@@ -40,13 +40,7 @@ func Dir() (string, error) {
 			return "", fmt.Errorf("APPDATA environment variable not set")
 		}
 		return filepath.Join(appData, "gf"), nil
-	case "darwin":
-		home, err := os.UserHomeDir()
-		if err != nil {
-			return "", err
-		}
-		return filepath.Join(home, "Library", "Application Support", "gf"), nil
-	default: // Linux and others
+	default: // Linux, macOS, and others
 		xdgConfigHome := os.Getenv("XDG_CONFIG_HOME")
 		if xdgConfigHome != "" {
 			return filepath.Join(xdgConfigHome, "gf"), nil

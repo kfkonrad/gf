@@ -108,8 +108,7 @@ forge types so `gf` knows which CLI to call and how to translate commands.
 On first run `gf` creates a config file with the four major public forges (github.com, gitlab.com. gitea.com,
 codeberg.org) pre-configured. The config lives at:
 
-- **Linux/Unix**: `$XDG_CONFIG_HOME/gf/config.yaml` (default: `~/.config/gf/config.yaml`)
-- **macOS**: `~/Library/Application Support/gf/config.yaml`
+- **Linux/macOS/Unix**: `$XDG_CONFIG_HOME/gf/config.yaml` (default: `~/.config/gf/config.yaml`)
 - **Windows**: `%APPDATA%/gf/config.yaml`
 - **Override**: set `GF_CONFIG` to a custom path
 
