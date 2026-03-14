@@ -23,12 +23,14 @@ var (
 	forgeAddHostname string
 	forgeAddType     string
 	forgeAddCLI      string
+	forgeAddYes      bool
 )
 
 var forgeAddCmd = &cobra.Command{
-	Use:   "add",
-	Short: "Add a forge entry",
-	RunE:  runForgeAdd,
+	Use:               "add",
+	Short:             "Add a forge entry",
+	RunE:              runForgeAdd,
+	ValidArgsFunction: cobra.NoFileCompletions,
 }
 
 var forgeListCmd = &cobra.Command{
@@ -44,12 +46,29 @@ var forgeRemoveCmd = &cobra.Command{
 	Short: "Remove a forge entry",
 	Args:  cobra.ExactArgs(1),
 	RunE:  runForgeRemove,
+	ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		if len(args) != 0 {
+			return nil, cobra.ShellCompDirectiveNoFileComp
+		}
+		cfg, err := config.Load()
+		if err != nil {
+			return nil, cobra.ShellCompDirectiveNoFileComp
+		}
+		var hosts []string
+		for h := range cfg.Forges {
+			if strings.HasPrefix(h, toComplete) {
+				hosts = append(hosts, h)
+			}
+		}
+		return hosts, cobra.ShellCompDirectiveNoFileComp
+	},
 }
 
 func init() {
 	forgeAddCmd.Flags().StringVar(&forgeAddHostname, "hostname", "", "Hostname to add")
 	forgeAddCmd.Flags().StringVar(&forgeAddType, "type", "", "Forge type (github, gitlab, gitea, forgejo)")
 	forgeAddCmd.Flags().StringVar(&forgeAddCLI, "cli", "", "CLI override (name or path)")
+	forgeAddCmd.Flags().BoolVarP(&forgeAddYes, "yes", "y", false, "Skip overwrite confirmation")
 
 	forgeRemoveCmd.Flags().BoolVarP(&forgeRemoveYes, "yes", "y", false, "Skip confirmation prompt")
 
@@ -126,6 +145,19 @@ func runForgeAdd(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("loading config: %w", err)
 	}
 
+	if existing, ok := cfg.Forges[hostname]; ok && !forgeAddYes {
+		fmt.Printf("Hostname %q is already configured (type: %s, cli: %s).\nOverwrite? [y/N] ", hostname, existing.Type, config.EffectiveCLI(existing))
+		input, err := reader.ReadString('\n')
+		if err != nil && !errors.Is(err, io.EOF) {
+			return fmt.Errorf("reading input: %w", err)
+		}
+		input = strings.TrimSpace(strings.ToLower(input))
+		if input != "y" && input != "yes" {
+			fmt.Println("Aborted.")
+			return nil
+		}
+	}
+
 	entry := config.ForgeEntry{Type: forgeType}
 	if cliOverride != "" {
 		entry.CLI = cliOverride
@@ -172,14 +204,14 @@ func runForgeRemove(cmd *cobra.Command, args []string) error {
 	}
 
 	if !forgeRemoveYes {
-		fmt.Printf("Remove forge %q? [y/N] ", hostname)
+		fmt.Printf("Remove forge %q? [Y/n] ", hostname)
 		reader := bufio.NewReader(os.Stdin)
 		input, err := reader.ReadString('\n')
 		if err != nil && !errors.Is(err, io.EOF) {
 			return fmt.Errorf("reading input: %w", err)
 		}
 		input = strings.TrimSpace(strings.ToLower(input))
-		if input != "y" && input != "yes" {
+		if input == "n" || input == "no" {
 			fmt.Println("Aborted.")
 			return nil
 		}

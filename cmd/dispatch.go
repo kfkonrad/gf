@@ -18,7 +18,6 @@ func dispatch(gfSubcmd string, args []string) int {
 	remainingArgs := args[1:]
 
 	// Reject unknown verbs immediately — before any forge or config lookup.
-	// Flags (starting with '-') are passed through as-is (e.g. --help).
 	if !strings.HasPrefix(gfVerb, "-") && !isValidVerb(gfSubcmd, gfVerb) {
 		fmt.Fprintf(os.Stderr, "gf: %s: unknown verb %q\n", gfSubcmd, gfVerb)
 		fmt.Fprintf(os.Stderr, "Supported verbs: %s\n", verbList(gfSubcmd))
