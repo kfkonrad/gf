@@ -14,11 +14,6 @@ import (
 // and verb, then exec's the forge CLI with the translated arguments.
 // args is [verb, remaining...]. Returns an exit code.
 func dispatch(gfSubcmd string, args []string) int {
-	// If no args, forward --help to the forge CLI
-	if len(args) == 0 {
-		args = []string{"--help"}
-	}
-
 	gfVerb := args[0]
 	remainingArgs := args[1:]
 

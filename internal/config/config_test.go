@@ -35,15 +35,43 @@ func TestDir_Default(t *testing.T) {
 	}
 }
 
-// TestLoad_Missing returns an empty config when the file does not exist.
+// TestLoad_Missing bootstraps the default config when the file does not exist.
 func TestLoad_Missing(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
 	cfg, err := config.Load()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(cfg.Forges) != 0 {
-		t.Errorf("expected empty forges map, got %v", cfg.Forges)
+	want := map[string]struct {
+		typ string
+		cli string
+	}{
+		"github.com":  {"github", "gh"},
+		"gitlab.com":  {"gitlab", "glab"},
+		"gitea.com":   {"gitea", "tea"},
+		"forgejo.org": {"forgejo", "fj"},
+	}
+	if len(cfg.Forges) != len(want) {
+		t.Fatalf("expected %d default forges, got %d: %v", len(want), len(cfg.Forges), cfg.Forges)
+	}
+	for host, w := range want {
+		e, ok := cfg.Forges[host]
+		if !ok {
+			t.Errorf("missing default forge %q", host)
+			continue
+		}
+		if e.Type != w.typ {
+			t.Errorf("%s: type = %q, want %q", host, e.Type, w.typ)
+		}
+		if e.CLI != w.cli {
+			t.Errorf("%s: cli = %q, want %q", host, e.CLI, w.cli)
+		}
+	}
+
+	// Config file must have been written to disk.
+	dir, _ := config.Dir()
+	if _, err := os.Stat(filepath.Join(dir, "config.yaml")); err != nil {
+		t.Errorf("config file not created on first load: %v", err)
 	}
 }
 
@@ -80,6 +108,46 @@ func TestLoad_Valid(t *testing.T) {
 	corp := cfg.Forges["git.corp.com"]
 	if corp.Type != "gitea" || corp.CLI != "/usr/local/bin/tea" {
 		t.Errorf("git.corp.com entry: got %+v", corp)
+	}
+}
+
+// TestPath_EnvOverride verifies that GF_CONFIG overrides the platform default.
+func TestPath_EnvOverride(t *testing.T) {
+	custom := filepath.Join(t.TempDir(), "custom.yaml")
+	t.Setenv("GF_CONFIG", custom)
+	got, err := config.Path()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != custom {
+		t.Errorf("Path() = %q, want %q", got, custom)
+	}
+}
+
+// TestLoad_EnvOverride uses GF_CONFIG to point Load/Save at a custom path.
+func TestLoad_EnvOverride(t *testing.T) {
+	custom := filepath.Join(t.TempDir(), "subdir", "my.yaml")
+	t.Setenv("GF_CONFIG", custom)
+
+	// First load: file absent → defaults written to custom path.
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := cfg.Forges["github.com"]; !ok {
+		t.Fatal("expected default forges to be present")
+	}
+	if _, err := os.Stat(custom); err != nil {
+		t.Errorf("config not written to custom path: %v", err)
+	}
+
+	// Second load: reads back from the custom path.
+	cfg2, err := config.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(cfg2.Forges) != len(cfg.Forges) {
+		t.Errorf("reload mismatch: got %d forges, want %d", len(cfg2.Forges), len(cfg.Forges))
 	}
 }
 

@@ -16,13 +16,16 @@ var rootCmd = &cobra.Command{
 	SilenceUsage:  true,
 }
 
+// cmdExitCode stores the exit code from the last dispatched passthrough command.
+var cmdExitCode int
+
 // Execute runs the root command and returns an exit code.
 func Execute() int {
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, "gf:", err)
 		return 1
 	}
-	return 0
+	return cmdExitCode
 }
 
 func init() {
@@ -68,7 +71,11 @@ func newPassthroughCmd(name, short string) *cobra.Command {
 			return delegateCompletion(cmd.Name(), verb, args[1:], toComplete)
 		},
 		Run: func(cmd *cobra.Command, args []string) {
-			os.Exit(dispatch(cmd.Name(), args))
+			if len(args) == 0 {
+				_ = cmd.Help()
+				return
+			}
+			cmdExitCode = dispatch(cmd.Name(), args)
 		},
 	}
 }

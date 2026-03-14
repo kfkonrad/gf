@@ -85,7 +85,9 @@ var subcmdTable = map[string]map[string][]string{
 // The returned Args should be prepended to the user's remaining args
 // (unless DropArgs is true).
 func Translate(forgeType, gfSubcmd, gfVerb string) (*Result, error) {
-	// Structural exceptions for gitea (tea CLI)
+	// Structural exceptions for gitea (tea CLI): `comment` is top-level.
+	// TODO: verify whether the forgejo fj CLI also uses a top-level `comment`
+	// command. If so, add forgejo here as well (same pattern as gitea).
 	if forgeType == "gitea" {
 		switch gfSubcmd {
 		case "pr", "mr", "issue":

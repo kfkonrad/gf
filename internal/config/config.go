@@ -59,17 +59,51 @@ func Dir() (string, error) {
 	}
 }
 
-// Load reads the config file. Returns an empty Config if the file doesn't exist.
-func Load() (*Config, error) {
+// defaultConfig returns a Config pre-populated with the four well-known public
+// forge hostnames so users who only use hosted forges never need to run
+// "gf forge add" manually. CLI names are written explicitly so the file is
+// self-documenting and easy to customise.
+func defaultConfig() *Config {
+	return &Config{
+		Forges: map[string]ForgeEntry{
+			"github.com":  {Type: "github", CLI: "gh"},
+			"gitlab.com":  {Type: "gitlab", CLI: "glab"},
+			"gitea.com":   {Type: "gitea", CLI: "tea"},
+			"forgejo.org": {Type: "forgejo", CLI: "fj"},
+		},
+	}
+}
+
+// Path returns the config file path. If the GF_CONFIG environment variable is
+// set its value is used as-is; otherwise the platform default is returned.
+func Path() (string, error) {
+	if p := os.Getenv("GF_CONFIG"); p != "" {
+		return p, nil
+	}
 	dir, err := Dir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(dir, "config.yaml"), nil
+}
+
+// Load reads the config file. If the file does not exist it writes the default
+// config (covering the four main public forges) and returns it, so first-time
+// users never need to touch "gf forge add" for hosted forges.
+func Load() (*Config, error) {
+	path, err := Path()
 	if err != nil {
 		return nil, err
 	}
-	path := filepath.Join(dir, "config.yaml")
 
 	data, err := os.ReadFile(path)
 	if os.IsNotExist(err) {
-		return &Config{Forges: make(map[string]ForgeEntry)}, nil
+		cfg := defaultConfig()
+		if saveErr := Save(cfg); saveErr != nil {
+			// Non-fatal: return the defaults even if we can't persist them.
+			return cfg, nil
+		}
+		return cfg, nil
 	}
 	if err != nil {
 		return nil, fmt.Errorf("read config: %w", err)
@@ -87,11 +121,11 @@ func Load() (*Config, error) {
 
 // Save writes the config file with 0600 permissions.
 func Save(cfg *Config) error {
-	dir, err := Dir()
+	path, err := Path()
 	if err != nil {
 		return err
 	}
-	if err := os.MkdirAll(dir, 0700); err != nil {
+	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
 		return fmt.Errorf("create config dir: %w", err)
 	}
 
@@ -100,7 +134,6 @@ func Save(cfg *Config) error {
 		return fmt.Errorf("marshal config: %w", err)
 	}
 
-	path := filepath.Join(dir, "config.yaml")
 	return os.WriteFile(path, data, 0600)
 }
 

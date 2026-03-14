@@ -22,11 +22,11 @@ func ParseRepo(remoteURL string) (host, repoPath string, err error) {
 	remoteURL = strings.TrimSpace(remoteURL)
 
 	if strings.HasPrefix(remoteURL, "git@") {
-		rest := strings.TrimPrefix(remoteURL, "git@")
-		h, path, found := strings.Cut(rest, ":")
-		if !found {
-			return "", "", fmt.Errorf("invalid SCP-style URL: %s", remoteURL)
+		h, path, err := parseSCPURL(remoteURL)
+		if err != nil {
+			return "", "", err
 		}
+		path = strings.TrimPrefix(path, "/")
 		path = strings.TrimSuffix(path, ".git")
 		return h, path, nil
 	}
@@ -60,12 +60,8 @@ func ParseHost(remoteURL string) (string, error) {
 
 	// Handle SCP-style: git@host:path
 	if strings.HasPrefix(remoteURL, "git@") {
-		rest := strings.TrimPrefix(remoteURL, "git@")
-		host, _, found := strings.Cut(rest, ":")
-		if !found {
-			return "", fmt.Errorf("invalid SCP-style URL: %s", remoteURL)
-		}
-		return host, nil
+		host, _, err := parseSCPURL(remoteURL)
+		return host, err
 	}
 
 	// Handle https:// and ssh://
@@ -77,4 +73,16 @@ func ParseHost(remoteURL string) (string, error) {
 		return "", fmt.Errorf("could not extract hostname from URL: %s", remoteURL)
 	}
 	return u.Hostname(), nil
+}
+
+// parseSCPURL splits a git@ SCP-style URL into host and raw path.
+// e.g. "git@github.com:owner/repo.git" → ("github.com", "owner/repo.git")
+// e.g. "git@github.com:/owner/repo.git" → ("github.com", "/owner/repo.git")
+func parseSCPURL(remoteURL string) (host, path string, err error) {
+	rest := strings.TrimPrefix(remoteURL, "git@")
+	h, p, found := strings.Cut(rest, ":")
+	if !found {
+		return "", "", fmt.Errorf("invalid SCP-style URL: %s", remoteURL)
+	}
+	return h, p, nil
 }

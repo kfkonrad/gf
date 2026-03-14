@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -199,22 +200,23 @@ func buildBrowseURL(forgeType, host, repoPath, branch, commit, filePath string, 
 func githubBrowseURL(base, branch, commit, filePath string, line int) string {
 	if commit != "" {
 		if filePath != "" {
-			u := base + "/blob/" + commit + "/" + filePath
+			u := base + "/blob/" + encodeURLPath(commit) + "/" + encodeURLPath(filePath)
 			if line > 0 {
 				u += "#L" + strconv.Itoa(line)
 			}
 			return u
 		}
-		return base + "/commit/" + commit
+		return base + "/commit/" + encodeURLPath(commit)
 	}
 	if branch != "" {
 		if filePath != "" {
+			u := base + "/blob/" + encodeURLPath(branch) + "/" + encodeURLPath(filePath)
 			if line > 0 {
-				return base + "/blob/" + branch + "/" + filePath + "#L" + strconv.Itoa(line)
+				u += "#L" + strconv.Itoa(line)
 			}
-			return base + "/tree/" + branch + "/" + filePath
+			return u
 		}
-		return base + "/tree/" + branch
+		return base + "/tree/" + encodeURLPath(branch)
 	}
 	return base
 }
@@ -222,22 +224,23 @@ func githubBrowseURL(base, branch, commit, filePath string, line int) string {
 func gitlabBrowseURL(base, branch, commit, filePath string, line int) string {
 	if commit != "" {
 		if filePath != "" {
-			u := base + "/-/blob/" + commit + "/" + filePath
+			u := base + "/-/blob/" + encodeURLPath(commit) + "/" + encodeURLPath(filePath)
 			if line > 0 {
 				u += "#L" + strconv.Itoa(line)
 			}
 			return u
 		}
-		return base + "/-/commit/" + commit
+		return base + "/-/commit/" + encodeURLPath(commit)
 	}
 	if branch != "" {
 		if filePath != "" {
+			u := base + "/-/blob/" + encodeURLPath(branch) + "/" + encodeURLPath(filePath)
 			if line > 0 {
-				return base + "/-/blob/" + branch + "/" + filePath + "#L" + strconv.Itoa(line)
+				u += "#L" + strconv.Itoa(line)
 			}
-			return base + "/-/tree/" + branch + "/" + filePath
+			return u
 		}
-		return base + "/-/tree/" + branch
+		return base + "/-/tree/" + encodeURLPath(branch)
 	}
 	return base
 }
@@ -245,25 +248,38 @@ func gitlabBrowseURL(base, branch, commit, filePath string, line int) string {
 func giteaBrowseURL(base, branch, commit, filePath string, line int) string {
 	if commit != "" {
 		if filePath != "" {
-			u := base + "/src/commit/" + commit + "/" + filePath
+			u := base + "/src/commit/" + encodeURLPath(commit) + "/" + encodeURLPath(filePath)
 			if line > 0 {
 				u += "#L" + strconv.Itoa(line)
 			}
 			return u
 		}
-		return base + "/src/commit/" + commit
+		return base + "/src/commit/" + encodeURLPath(commit)
 	}
 	if branch != "" {
 		if filePath != "" {
-			u := base + "/src/branch/" + branch + "/" + filePath
+			u := base + "/src/branch/" + encodeURLPath(branch) + "/" + encodeURLPath(filePath)
 			if line > 0 {
 				u += "#L" + strconv.Itoa(line)
 			}
 			return u
 		}
-		return base + "/src/branch/" + branch
+		return base + "/src/branch/" + encodeURLPath(branch)
 	}
 	return base
+}
+
+// encodeURLPath percent-encodes each slash-separated segment of a URL path,
+// preserving slashes so that multi-segment paths remain valid.
+func encodeURLPath(path string) string {
+	if path == "" {
+		return ""
+	}
+	parts := strings.Split(path, "/")
+	for i, p := range parts {
+		parts[i] = url.PathEscape(p)
+	}
+	return strings.Join(parts, "/")
 }
 
 // openBrowser opens the given URL in the default system browser.
@@ -275,7 +291,8 @@ func giteaBrowseURL(base, branch, commit, filePath string, line int) string {
 //     x-www-browser, www-browser, sensible-browser — first one found wins.
 func openBrowser(url string) error {
 	if browser := os.Getenv("BROWSER"); browser != "" {
-		return exec.Command(browser, url).Start()
+		parts := strings.Fields(browser)
+		return exec.Command(parts[0], append(parts[1:], url)...).Start()
 	}
 
 	switch runtime.GOOS {

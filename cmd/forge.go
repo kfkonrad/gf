@@ -2,9 +2,11 @@ package cmd
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"gf/internal/config"
 	"gf/internal/forge"
+	"io"
 	"os"
 	"strings"
 
@@ -62,18 +64,21 @@ func runForgeAdd(cmd *cobra.Command, args []string) error {
 	// Step 1: hostname
 	hostname := forgeAddHostname
 	if hostname == "" {
-		detected, err := forge.RemoteHost()
-		if err == nil {
+		detected, detectedErr := forge.RemoteHost()
+		if detectedErr == nil {
 			fmt.Printf("Hostname [%s]: ", detected)
 		} else {
 			fmt.Print("Hostname: ")
 		}
-		input, _ := reader.ReadString('\n')
+		input, err := reader.ReadString('\n')
+		if err != nil && !errors.Is(err, io.EOF) {
+			return fmt.Errorf("reading input: %w", err)
+		}
 		input = strings.TrimSpace(input)
-		if input == "" {
-			hostname = detected
-		} else {
+		if input != "" {
 			hostname = input
+		} else if detectedErr == nil {
+			hostname = detected
 		}
 	}
 	if hostname == "" {
@@ -89,12 +94,15 @@ func runForgeAdd(cmd *cobra.Command, args []string) error {
 		} else {
 			fmt.Print("Forge type (github/gitlab/gitea/forgejo): ")
 		}
-		input, _ := reader.ReadString('\n')
+		input, err := reader.ReadString('\n')
+		if err != nil && !errors.Is(err, io.EOF) {
+			return fmt.Errorf("reading input: %w", err)
+		}
 		input = strings.TrimSpace(input)
-		if input == "" {
-			forgeType = suggested
-		} else {
+		if input != "" {
 			forgeType = input
+		} else {
+			forgeType = suggested
 		}
 	}
 	if !isValidForgeType(forgeType) {
@@ -106,7 +114,10 @@ func runForgeAdd(cmd *cobra.Command, args []string) error {
 	if !cmd.Flags().Changed("cli") {
 		defaultCLI := config.DefaultCLIs[forgeType]
 		fmt.Printf("CLI override (leave blank to use default %q): ", defaultCLI)
-		input, _ := reader.ReadString('\n')
+		input, err := reader.ReadString('\n')
+		if err != nil && !errors.Is(err, io.EOF) {
+			return fmt.Errorf("reading input: %w", err)
+		}
 		cliOverride = strings.TrimSpace(input)
 	}
 
@@ -163,7 +174,10 @@ func runForgeRemove(cmd *cobra.Command, args []string) error {
 	if !forgeRemoveYes {
 		fmt.Printf("Remove forge %q? [y/N] ", hostname)
 		reader := bufio.NewReader(os.Stdin)
-		input, _ := reader.ReadString('\n')
+		input, err := reader.ReadString('\n')
+		if err != nil && !errors.Is(err, io.EOF) {
+			return fmt.Errorf("reading input: %w", err)
+		}
 		input = strings.TrimSpace(strings.ToLower(input))
 		if input != "y" && input != "yes" {
 			fmt.Println("Aborted.")

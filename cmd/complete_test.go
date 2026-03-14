@@ -530,9 +530,13 @@ func TestHelpDelegate_NoHelp(t *testing.T) {
 	src := `package main; import "os"; func main() { os.Exit(1) }`
 	dir := t.TempDir()
 	srcFile := filepath.Join(dir, "noop.go")
-	os.WriteFile(srcFile, []byte(src), 0600)
+	if err := os.WriteFile(srcFile, []byte(src), 0600); err != nil {
+		t.Fatal(err)
+	}
 	bin := filepath.Join(dir, "noop")
-	exec.Command("go", "build", "-o", bin, srcFile).Run()
+	if out, err := exec.Command("go", "build", "-o", bin, srcFile).CombinedOutput(); err != nil {
+		t.Fatalf("build noop binary: %v\n%s", err, out)
+	}
 
 	comps, _ := helpDelegate(bin, []string{"issues"}, "")
 	if len(comps) != 0 {
