@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"gf/internal/translate"
+	"github.com/derkev/gf/internal/translate"
 )
 
 // Bring names into scope for brevity.

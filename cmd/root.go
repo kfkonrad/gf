@@ -8,6 +8,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// SetVersion sets the version string reported by --version.
+func SetVersion(v string) {
+	rootCmd.Version = v
+}
+
 var rootCmd = &cobra.Command{
 	Use:           "gf",
 	Short:         "Git forge CLI wrapper",
