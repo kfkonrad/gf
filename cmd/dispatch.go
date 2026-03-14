@@ -14,7 +14,7 @@ import (
 // and verb, then exec's the forge CLI with the translated arguments.
 // args is [verb, remaining...]. Returns an exit code.
 func dispatch(gfSubcmd string, args []string) int {
-	gfVerb := args[0]
+	gfVerb := resolveVerb(args[0])
 	remainingArgs := args[1:]
 
 	// Reject unknown verbs immediately — before any forge or config lookup.
@@ -60,7 +60,12 @@ func dispatch(gfSubcmd string, args []string) int {
 
 	cliArgs := result.Args
 	if !result.DropArgs {
-		cliArgs = append(cliArgs, remainingArgs...)
+		if len(remainingArgs) == 0 {
+			// Only the verb was given — show the forge CLI's own help for this command.
+			cliArgs = append(cliArgs, "--help")
+		} else {
+			cliArgs = append(cliArgs, remainingArgs...)
+		}
 	}
 
 	cliBin := config.EffectiveCLI(entry)

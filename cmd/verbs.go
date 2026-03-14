@@ -17,8 +17,30 @@ var validVerbs = map[string][]string{
 	"org":       {"list", "view"},
 }
 
+// verbAliases maps single-letter shortcuts to their canonical verb names.
+var verbAliases = map[string]string{
+	"a": "add",
+	"b": "browse",
+	"c": "create",
+	"d": "delete",
+	"e": "edit",
+	"l": "list",
+	"v": "view",
+}
+
+// resolveVerb returns the canonical verb for a given input, expanding any
+// single-letter alias. If the input is already canonical it is returned as-is.
+func resolveVerb(verb string) string {
+	if canonical, ok := verbAliases[verb]; ok {
+		return canonical
+	}
+	return verb
+}
+
 // isValidVerb reports whether verb is in the supported set for the given subcommand.
+// Single-letter aliases are resolved before checking.
 func isValidVerb(subcmd, verb string) bool {
+	verb = resolveVerb(verb)
 	for _, v := range validVerbs[subcmd] {
 		if v == verb {
 			return true
@@ -27,7 +49,26 @@ func isValidVerb(subcmd, verb string) bool {
 	return false
 }
 
+// verbAliasFor returns the single-letter alias for a canonical verb, or "".
+func verbAliasFor(canonical string) string {
+	for alias, canon := range verbAliases {
+		if canon == canonical {
+			return alias
+		}
+	}
+	return ""
+}
+
 // verbList returns the verbs for a subcommand as a comma-separated string.
+// Verbs that have a single-letter alias are rendered as "verb (x)".
 func verbList(subcmd string) string {
-	return strings.Join(validVerbs[subcmd], ", ")
+	parts := make([]string, 0, len(validVerbs[subcmd]))
+	for _, v := range validVerbs[subcmd] {
+		if a := verbAliasFor(v); a != "" {
+			parts = append(parts, v+" ("+a+")")
+		} else {
+			parts = append(parts, v)
+		}
+	}
+	return strings.Join(parts, "\n  ")
 }

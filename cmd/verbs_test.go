@@ -17,6 +17,18 @@ func TestIsValidVerb(t *testing.T) {
 		{"milestone", "close"},
 		{"label", "create"},
 		{"org", "view"},
+		// single-letter aliases
+		{"repo", "b"},    // b → browse
+		{"repo", "l"},    // l → list
+		{"repo", "v"},    // v → view
+		{"repo", "c"},    // c → create
+		{"issue", "l"},   // l → list
+		{"issue", "v"},   // v → view
+		{"issue", "c"},   // c → create
+		{"label", "l"},   // l → list
+		{"label", "c"},   // c → create
+		{"org", "l"},     // l → list
+		{"org", "v"},     // v → view
 	}
 	for _, tc := range valid {
 		if !isValidVerb(tc.subcmd, tc.verb) {
@@ -33,10 +45,36 @@ func TestIsValidVerb(t *testing.T) {
 		{"label", "view"},   // label has no view
 		{"org", "create"},   // org has no create
 		{"pipeline", "comment"},
+		{"label", "v"},      // v → view, and label has no view
+		{"org", "c"},        // c → create, and org has no create
 	}
 	for _, tc := range invalid {
 		if isValidVerb(tc.subcmd, tc.verb) {
 			t.Errorf("isValidVerb(%q, %q) = true, want false", tc.subcmd, tc.verb)
+		}
+	}
+}
+
+func TestResolveVerb(t *testing.T) {
+	cases := []struct{ in, want string }{
+		{"l", "list"},
+		{"v", "view"},
+		{"c", "create"},
+		{"b", "browse"},
+		{"a", "add"},
+		{"d", "delete"},
+		{"e", "edit"},
+		// canonical verbs pass through unchanged
+		{"list", "list"},
+		{"merge", "merge"},
+		{"cancel", "cancel"},
+		// unknown inputs pass through unchanged
+		{"x", "x"},
+		{"", ""},
+	}
+	for _, tc := range cases {
+		if got := resolveVerb(tc.in); got != tc.want {
+			t.Errorf("resolveVerb(%q) = %q, want %q", tc.in, got, tc.want)
 		}
 	}
 }

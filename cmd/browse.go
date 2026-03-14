@@ -14,6 +14,26 @@ import (
 	"gf/internal/forge"
 )
 
+func printBrowseHelp() {
+	fmt.Print(`Usage: gf repo browse [flags]
+
+Open the current repository in a web browser, optionally at a specific
+branch, commit, or file path.
+
+Flags:
+  -b, --branch <branch>  Browse at a specific branch
+  -c, --commit <sha>     Browse at a specific commit
+  -p, --path <path>      Browse a specific path.
+                         Prefix with :/ for a repo-root-relative path,
+                         otherwise resolved from the current directory.
+                         Append :<line> to highlight a line (e.g. :/main.go:42).
+  -n, --no-browser       Print the URL instead of opening a browser
+  -h, --help             Show this help
+
+--branch and --commit are mutually exclusive.
+`)
+}
+
 // runBrowse implements "gf repo browse" natively without calling the forge CLI.
 func runBrowse(args []string) int {
 	var (
@@ -55,6 +75,9 @@ func runBrowse(args []string) int {
 			branch = strings.TrimPrefix(arg, "--branch=")
 		case arg == "--no-browser" || arg == "-n":
 			noBrowser = true
+		case arg == "--help" || arg == "-h":
+			printBrowseHelp()
+			return 0
 		default:
 			fmt.Fprintf(os.Stderr, "gf: repo browse: unknown flag %q\n", arg)
 			return 2
