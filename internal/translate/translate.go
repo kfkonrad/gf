@@ -93,11 +93,6 @@ func Translate(forgeType, gfSubcmd, gfVerb string) (*Result, error) {
 				// tea comment <ID> is a top-level command; drop pr/issue context
 				return &Result{Args: []string{"comment"}}, nil
 			}
-		case "repo":
-			if gfVerb == "browse" {
-				// tea open is top-level with no further args
-				return &Result{Args: []string{"open"}, DropArgs: true}, nil
-			}
 		}
 	}
 
@@ -142,13 +137,6 @@ func translateVerb(forgeType, gfSubcmd, gfVerb string) ([]string, error) {
 			return []string{"note"}, nil
 		}
 		// gitea structural exception is handled before this function is called
-
-	case "browse":
-		switch forgeType {
-		case "github", "gitlab":
-			return []string{"view", "--web"}, nil
-			// gitea structural exception handled before this function
-		}
 
 	case "view":
 		if gfSubcmd == "milestone" {

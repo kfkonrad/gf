@@ -6,6 +6,48 @@ import (
 	"gf/internal/forge"
 )
 
+func TestParseRepo(t *testing.T) {
+	cases := []struct {
+		input        string
+		wantHost     string
+		wantRepoPath string
+		wantErr      bool
+	}{
+		{"https://github.com/owner/repo.git", "github.com", "owner/repo", false},
+		{"https://github.com/owner/repo", "github.com", "owner/repo", false},
+		{"git@github.com:owner/repo.git", "github.com", "owner/repo", false},
+		{"git@gitlab.com:group/subgroup/repo.git", "gitlab.com", "group/subgroup/repo", false},
+		{"ssh://git@github.com/owner/repo.git", "github.com", "owner/repo", false},
+		{"https://git.corp.com:8080/owner/repo.git", "git.corp.com", "owner/repo", false},
+		// Trailing newline from git output
+		{"git@github.com:owner/repo.git\n", "github.com", "owner/repo", false},
+		// Errors
+		{"git@missing-colon", "", "", true},
+		{"not-a-url", "", "", true},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.input, func(t *testing.T) {
+			host, repoPath, err := forge.ParseRepo(tc.input)
+			if tc.wantErr {
+				if err == nil {
+					t.Fatalf("expected error, got host=%q repoPath=%q", host, repoPath)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if host != tc.wantHost {
+				t.Errorf("host: got %q, want %q", host, tc.wantHost)
+			}
+			if repoPath != tc.wantRepoPath {
+				t.Errorf("repoPath: got %q, want %q", repoPath, tc.wantRepoPath)
+			}
+		})
+	}
+}
+
 func TestParseHost(t *testing.T) {
 	cases := []struct {
 		input   string

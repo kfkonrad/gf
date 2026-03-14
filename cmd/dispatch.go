@@ -30,6 +30,11 @@ func dispatch(gfSubcmd string, args []string) int {
 		return 2
 	}
 
+	// repo browse is implemented natively — no forge CLI involved.
+	if gfSubcmd == "repo" && gfVerb == "browse" {
+		return runBrowse(remainingArgs)
+	}
+
 	cfg, err := config.Load()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "gf: error reading config: %v\n", err)

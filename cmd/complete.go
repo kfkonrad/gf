@@ -17,10 +17,194 @@ import (
 
 const completionTimeout = 5 * time.Second
 
+// browseCompletions returns completions for the native "gf repo browse".
+//
+// It handles three cases:
+//   - Flag name completion when no value is being typed yet.
+//   - Flag value completion for --branch/-b  (remote branch names from git).
+//   - Flag value completion for --path/-p    (repo-tree paths for :/ prefix;
+//     filesystem completion for plain relative paths).
+//   - --commit/-c deliberately produces no completions (hashes are not guessable).
+//
+// Both "--flag value" and "--flag=value" styles are handled.
+// Flags already present in remainingArgs are excluded from flag-name suggestions.
+func browseCompletions(remainingArgs []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	// --branch=VALUE style
+	if after, ok := strings.CutPrefix(toComplete, "--branch="); ok {
+		branches, _ := remoteBranchCompletions(after)
+		for i, b := range branches {
+			branches[i] = "--branch=" + b
+		}
+		return branches, cobra.ShellCompDirectiveNoFileComp
+	}
+	// --path=:/ style — complete from the repo tree, prepend the flag prefix back
+	if after, ok := strings.CutPrefix(toComplete, "--path=:/"); ok {
+		results, _ := repoPathCompletions(":/" + after)
+		for i, r := range results {
+			results[i] = "--path=" + r
+		}
+		return results, cobra.ShellCompDirectiveNoFileComp
+	}
+	// --path=<relative> style — fall back to shell file completion
+	if strings.HasPrefix(toComplete, "--path=") {
+		return nil, cobra.ShellCompDirectiveDefault
+	}
+
+	// "--flag VALUE" style: look at the previous arg to determine what we're completing
+	if len(remainingArgs) > 0 {
+		switch remainingArgs[len(remainingArgs)-1] {
+		case "--branch", "-b":
+			return remoteBranchCompletions(toComplete)
+		case "--path", "-p":
+			if strings.HasPrefix(toComplete, ":/") {
+				return repoPathCompletions(toComplete)
+			}
+			return nil, cobra.ShellCompDirectiveDefault
+		case "--commit", "-c":
+			return nil, cobra.ShellCompDirectiveNoFileComp
+		}
+	}
+
+	// Build the set of flags already present in remainingArgs so we don't
+	// suggest the same flag twice.
+	used := make(map[string]bool)
+	for _, a := range remainingArgs {
+		switch a {
+		case "--branch", "-b":
+			used["--branch"] = true
+		case "--commit", "-c":
+			used["--commit"] = true
+		case "--no-browser", "-n":
+			used["--no-browser"] = true
+		case "--path", "-p":
+			used["--path"] = true
+		default:
+			// handle --flag=value forms
+			for _, long := range []string{"--branch=", "--commit=", "--path="} {
+				if strings.HasPrefix(a, long) {
+					used[strings.TrimSuffix(long, "=")] = true
+				}
+			}
+		}
+	}
+	// --branch and --commit are mutually exclusive.
+	if used["--branch"] {
+		used["--commit"] = true
+	}
+	if used["--commit"] {
+		used["--branch"] = true
+	}
+
+	// Complete flag names, excluding already-used ones.
+	flags := []string{"--branch", "--commit", "--no-browser", "--path"}
+	var completions []string
+	for _, f := range flags {
+		if !used[f] && strings.HasPrefix(f, toComplete) {
+			completions = append(completions, f)
+		}
+	}
+	return completions, cobra.ShellCompDirectiveNoFileComp
+}
+
+// remoteBranchCompletions lists remote origin branches (without the "origin/"
+// prefix) whose names start with prefix.
+func remoteBranchCompletions(prefix string) ([]string, cobra.ShellCompDirective) {
+	ctx, cancel := context.WithTimeout(context.Background(), completionTimeout)
+	defer cancel()
+
+	out, err := exec.CommandContext(ctx, "git", "for-each-ref",
+		"--format=%(refname:short)", "refs/remotes/origin/").Output()
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+
+	var branches []string
+	for _, line := range strings.Split(strings.TrimSpace(string(out)), "\n") {
+		branch := strings.TrimPrefix(line, "origin/")
+		if branch == "" || branch == "HEAD" {
+			continue
+		}
+		if strings.HasPrefix(branch, prefix) {
+			branches = append(branches, branch)
+		}
+	}
+	return branches, cobra.ShellCompDirectiveNoFileComp
+}
+
+// repoPathCompletions completes ":/path" style paths against the HEAD tree.
+// prefix must start with ":/". Directories are returned with a trailing "/".
+//
+// git ls-tree is always run from the repo root so that paths in its output are
+// consistently repo-root-relative regardless of the caller's working directory.
+func repoPathCompletions(prefix string) ([]string, cobra.ShellCompDirective) {
+	repoPrefix := strings.TrimPrefix(prefix, ":/")
+
+	// Split into the already-complete directory and the current file prefix.
+	dir := ""
+	if idx := strings.LastIndex(repoPrefix, "/"); idx >= 0 {
+		dir = repoPrefix[:idx+1]
+	}
+	filePrefix := repoPrefix[len(dir):]
+
+	ctx, cancel := context.WithTimeout(context.Background(), completionTimeout)
+	defer cancel()
+
+	// Resolve the repo root so git ls-tree is always run from there, ensuring
+	// that path arguments and output are repo-root-relative.
+	root, err := getRepoRoot()
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+
+	var args []string
+	if dir != "" {
+		args = []string{"ls-tree", "HEAD", "--", dir}
+	} else {
+		args = []string{"ls-tree", "HEAD"}
+	}
+	cmd := exec.CommandContext(ctx, "git", args...)
+	cmd.Dir = root
+	out, err := cmd.Output()
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+
+	var completions []string
+	for _, line := range strings.Split(strings.TrimSpace(string(out)), "\n") {
+		if line == "" {
+			continue
+		}
+		// git ls-tree output: "<mode> <type> <hash>\t<name>"
+		// When run from the repo root, <name> is always the full repo-root-relative
+		// path, e.g. "cmd/browse.go" for a subdirectory query.
+		tab := strings.Index(line, "\t")
+		if tab < 0 {
+			continue
+		}
+		name := line[tab+1:]
+		// Filter: name must start with dir (guaranteed by git) and then filePrefix.
+		if !strings.HasPrefix(name, dir+filePrefix) {
+			continue
+		}
+		meta := strings.Fields(line[:tab])
+		entry := ":/" + name
+		if len(meta) >= 2 && meta[1] == "tree" {
+			entry += "/"
+		}
+		completions = append(completions, entry)
+	}
+	return completions, cobra.ShellCompDirectiveNoFileComp
+}
+
 // delegateCompletion resolves the active forge and delegates completion to the
 // underlying forge CLI. Any error silently returns no completions — errors must
 // not disrupt the shell.
 func delegateCompletion(gfSubcmd, gfVerb string, remainingArgs []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	// repo browse is implemented natively; complete its own flags and values.
+	if gfSubcmd == "repo" && gfVerb == "browse" {
+		return browseCompletions(remainingArgs, toComplete)
+	}
+
 	cfg, err := config.Load()
 	if err != nil {
 		return nil, cobra.ShellCompDirectiveNoFileComp
