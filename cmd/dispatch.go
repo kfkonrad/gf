@@ -7,6 +7,7 @@ import (
 	"gf/internal/translate"
 	"os"
 	"os/exec"
+	"strings"
 )
 
 // dispatch looks up the forge for the current repo, translates the gf subcommand
@@ -16,6 +17,17 @@ func dispatch(gfSubcmd string, args []string) int {
 	// If no args, forward --help to the forge CLI
 	if len(args) == 0 {
 		args = []string{"--help"}
+	}
+
+	gfVerb := args[0]
+	remainingArgs := args[1:]
+
+	// Reject unknown verbs immediately — before any forge or config lookup.
+	// Flags (starting with '-') are passed through as-is (e.g. --help).
+	if !strings.HasPrefix(gfVerb, "-") && !isValidVerb(gfSubcmd, gfVerb) {
+		fmt.Fprintf(os.Stderr, "gf: %s: unknown verb %q\n", gfSubcmd, gfVerb)
+		fmt.Fprintf(os.Stderr, "Supported verbs: %s\n", verbList(gfSubcmd))
+		return 2
 	}
 
 	cfg, err := config.Load()
@@ -35,9 +47,6 @@ func dispatch(gfSubcmd string, args []string) int {
 		fmt.Fprintf(os.Stderr, "gf: hostname %q not found in config. Run 'gf forge add' to add it.\n", host)
 		return 4
 	}
-
-	gfVerb := args[0]
-	remainingArgs := args[1:]
 
 	result, err := translate.Translate(entry.Type, gfSubcmd, gfVerb)
 	if err != nil {
