@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -51,9 +52,20 @@ func newPassthroughCmd(name, short string) *cobra.Command {
 		Args:               cobra.ArbitraryArgs,
 		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 			if len(args) == 0 {
-				return validVerbs[cmd.Name()], cobra.ShellCompDirectiveNoFileComp
+				// Cobra does not filter ValidArgsFunction results — do it ourselves.
+				var completions []string
+				for _, v := range validVerbs[cmd.Name()] {
+					if strings.HasPrefix(v, toComplete) {
+						completions = append(completions, v)
+					}
+				}
+				return completions, cobra.ShellCompDirectiveNoFileComp
 			}
-			return nil, cobra.ShellCompDirectiveNoFileComp
+			verb := args[0]
+			if !isValidVerb(cmd.Name(), verb) {
+				return nil, cobra.ShellCompDirectiveNoFileComp
+			}
+			return delegateCompletion(cmd.Name(), verb, args[1:], toComplete)
 		},
 		Run: func(cmd *cobra.Command, args []string) {
 			os.Exit(dispatch(cmd.Name(), args))
