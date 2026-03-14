@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"gf/internal/config"
+	"github.com/derkev/gf/internal/config"
 )
 
 // TestDir_XDG verifies the XDG_CONFIG_HOME override on Linux.

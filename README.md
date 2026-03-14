@@ -18,16 +18,13 @@ command, and delegates to the right CLI.
 
 ## Install
 
-```sh
-go install github.com/kfkonrad/gf@latest
-```
+Download the latest release for your platform from the [releases page](https://github.com/derkev/gf/releases),
+extract the archive, and place the `gf` binary somewhere on your `PATH`.
 
-Or clone and build:
+Or install from source:
 
 ```sh
-git clone https://github.com/kfkonrad/gf
-cd gf
-make install
+go install github.com/derkev/gf@latest
 ```
 
 `gf` requires the CLIs for the forges you use to be installed and in your `PATH`:

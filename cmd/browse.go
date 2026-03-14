@@ -10,8 +10,8 @@ import (
 	"strconv"
 	"strings"
 
-	"gf/internal/config"
-	"gf/internal/forge"
+	"github.com/derkev/gf/internal/config"
+	"github.com/derkev/gf/internal/forge"
 )
 
 func printBrowseHelp() {

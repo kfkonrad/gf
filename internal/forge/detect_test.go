@@ -3,7 +3,7 @@ package forge_test
 import (
 	"testing"
 
-	"gf/internal/forge"
+	"github.com/derkev/gf/internal/forge"
 )
 
 func TestParseRepo(t *testing.T) {

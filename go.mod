@@ -1,4 +1,4 @@
-module gf
+module github.com/derkev/gf
 
 go 1.22.2
 

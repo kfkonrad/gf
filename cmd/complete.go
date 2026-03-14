@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"gf/internal/config"
-	"gf/internal/forge"
-	"gf/internal/translate"
+	"github.com/derkev/gf/internal/config"
+	"github.com/derkev/gf/internal/forge"
+	"github.com/derkev/gf/internal/translate"
 
 	"github.com/spf13/cobra"
 )
