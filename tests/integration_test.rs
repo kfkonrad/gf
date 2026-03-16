@@ -62,7 +62,7 @@ fn test_cli_not_found() {
         .current_dir(repo.path())
         .env("HOME", home_dir.path())
         .env("PATH", &git_only)
-        .args(["pr", "list"])
+        .args(["pr", "view"])
         .assert()
         .failure()
         .stderr(predicate::str::contains("gh not found"));
@@ -80,7 +80,7 @@ fn test_cli_not_found_format() {
         .current_dir(repo.path())
         .env("HOME", home_dir.path())
         .env("PATH", &git_only)
-        .args(["pr", "list"])
+        .args(["pr", "view"])
         .assert()
         .failure()
         .stderr(predicate::str::contains("Install with: brew install"));
@@ -98,7 +98,7 @@ fn test_cli_not_found_url() {
         .current_dir(repo.path())
         .env("HOME", home_dir.path())
         .env("PATH", &git_only)
-        .args(["pr", "list"])
+        .args(["pr", "view"])
         .assert()
         .failure()
         .stderr(predicate::str::contains("Or see: "));
@@ -116,7 +116,7 @@ fn test_cli_not_found_no_ansi() {
         .current_dir(repo.path())
         .env("HOME", home_dir.path())
         .env("PATH", &git_only)
-        .args(["pr", "list"])
+        .args(["pr", "view"])
         .assert()
         .failure()
         .stderr(predicate::str::contains("\x1b").not());
@@ -164,7 +164,7 @@ fn test_exit_code_propagation() {
         .current_dir(repo.path())
         .env("HOME", home_dir.path())
         .env("PATH", &path)
-        .args(["pr", "list"])
+        .args(["pr", "view"])
         .assert()
         .code(2);
 }
@@ -183,7 +183,7 @@ fn test_exit_code_zero() {
         .current_dir(repo.path())
         .env("HOME", home_dir.path())
         .env("PATH", &path)
-        .args(["pr", "list"])
+        .args(["pr", "view"])
         .assert()
         .code(0);
 }
@@ -202,7 +202,7 @@ fn test_exit_code_42() {
         .current_dir(repo.path())
         .env("HOME", home_dir.path())
         .env("PATH", &path)
-        .args(["pr", "list"])
+        .args(["pr", "view"])
         .assert()
         .code(42);
 }
@@ -219,7 +219,7 @@ mod forge_detection {
         let mut cmd = Command::cargo_bin("gf").unwrap();
         cmd.current_dir("/tmp") // /tmp is not a git repo
             .arg("pr")
-            .arg("list");
+            .arg("view");
         cmd.assert()
             .failure()
             .stderr(contains("not a git repository"));
@@ -230,5 +230,130 @@ mod forge_detection {
     #[test]
     fn test_gf_unknown_remote_url_shows_config_hint() {
         // Covered by unit test. Full integration coverage deferred.
+    }
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Phase 3: Alias routing tests (CORE-08 through CORE-12)
+// These tests use build_cli() directly — no live forge CLI needed.
+// ────────────────────────────────────────────────────────────────────────────
+#[cfg(test)]
+mod alias_routing {
+    use clap_complete::{generate, Shell};
+    use gf::cmd::build_cli;
+
+    // CORE-09: `gf mr create` routes to the pr subcommand (canonical name)
+    #[test]
+    fn test_mr_alias_routes_to_pr() {
+        let matches = build_cli()
+            .try_get_matches_from(["gf", "mr", "create"])
+            .expect("mr create should parse");
+        let (subcmd, _) = matches.subcommand().expect("subcommand matched");
+        assert_eq!(subcmd, "pr", "mr should resolve to pr; got: {subcmd}");
+    }
+
+    // CORE-09: `gf mr view` routes to pr view
+    #[test]
+    fn test_mr_view_routes_to_pr_view() {
+        let matches = build_cli()
+            .try_get_matches_from(["gf", "mr", "view"])
+            .expect("mr view should parse");
+        let (subcmd, sub) = matches.subcommand().expect("top subcommand");
+        assert_eq!(subcmd, "pr");
+        let (verb, _) = sub.subcommand().expect("verb subcommand");
+        assert_eq!(verb, "view");
+    }
+
+    // CORE-08: `gf r v` routes to repo view
+    #[test]
+    fn test_r_v_routes_to_repo_view() {
+        let matches = build_cli()
+            .try_get_matches_from(["gf", "r", "v"])
+            .expect("r v should parse");
+        let (subcmd, sub) = matches.subcommand().expect("top subcommand");
+        assert_eq!(subcmd, "repo", "r should resolve to repo; got: {subcmd}");
+        let (verb, _) = sub.subcommand().expect("verb subcommand");
+        assert_eq!(verb, "view", "v should resolve to view; got: {verb}");
+    }
+
+    // CORE-08: `gf a s` routes to auth status
+    #[test]
+    fn test_a_s_routes_to_auth_status() {
+        let matches = build_cli()
+            .try_get_matches_from(["gf", "a", "s"])
+            .expect("a s should parse");
+        let (subcmd, sub) = matches.subcommand().expect("top subcommand");
+        assert_eq!(subcmd, "auth", "a should resolve to auth; got: {subcmd}");
+        let (verb, _) = sub.subcommand().expect("verb subcommand");
+        assert_eq!(verb, "status", "s should resolve to status; got: {verb}");
+    }
+
+    // CORE-10: `gf pr c` routes to pr create
+    #[test]
+    fn test_pr_c_routes_to_pr_create() {
+        let matches = build_cli()
+            .try_get_matches_from(["gf", "pr", "c"])
+            .expect("pr c should parse");
+        let (subcmd, sub) = matches.subcommand().expect("top subcommand");
+        assert_eq!(subcmd, "pr");
+        let (verb, _) = sub.subcommand().expect("verb");
+        assert_eq!(verb, "create", "c should resolve to create; got: {verb}");
+    }
+
+    // CORE-10: `gf r c` routes to repo create
+    #[test]
+    fn test_r_c_routes_to_repo_create() {
+        let matches = build_cli()
+            .try_get_matches_from(["gf", "r", "c"])
+            .expect("r c should parse");
+        let (subcmd, sub) = matches.subcommand().unwrap();
+        assert_eq!(subcmd, "repo");
+        let (verb, _) = sub.subcommand().unwrap();
+        assert_eq!(verb, "create");
+    }
+
+    // CORE-10: `gf a l` routes to auth login
+    #[test]
+    fn test_a_l_routes_to_auth_login() {
+        let matches = build_cli()
+            .try_get_matches_from(["gf", "a", "l"])
+            .expect("a l should parse");
+        let (subcmd, sub) = matches.subcommand().unwrap();
+        assert_eq!(subcmd, "auth");
+        let (verb, _) = sub.subcommand().unwrap();
+        assert_eq!(verb, "login");
+    }
+
+    // CORE-11: --help output contains "mr" alias
+    #[test]
+    fn test_help_contains_mr_alias() {
+        let help = build_cli().render_help().to_string();
+        assert!(help.contains("mr"), "help should mention 'mr' alias; help output:\n{help}");
+    }
+
+    // CORE-11: --help output contains "r" alias for repo
+    #[test]
+    fn test_help_contains_r_alias() {
+        let help = build_cli().render_help().to_string();
+        assert!(help.contains('['), "help should contain alias brackets; got:\n{help}");
+    }
+
+    // CORE-12: completions generate output containing "gf"
+    #[test]
+    fn test_completions_bash_generates_output() {
+        let mut buf = Vec::new();
+        generate(Shell::Bash, &mut build_cli(), "gf", &mut buf);
+        let output = String::from_utf8(buf).expect("valid UTF-8");
+        assert!(!output.is_empty(), "completion output should not be empty");
+        assert!(output.contains("gf"), "completion script should reference 'gf'; got length {}", output.len());
+    }
+
+    // CORE-12: completions for zsh also work
+    #[test]
+    fn test_completions_zsh_generates_output() {
+        let mut buf = Vec::new();
+        generate(Shell::Zsh, &mut build_cli(), "gf", &mut buf);
+        let output = String::from_utf8(buf).unwrap();
+        assert!(!output.is_empty());
     }
 }

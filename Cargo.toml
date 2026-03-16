@@ -18,6 +18,10 @@ clap_complete = "4"
 [target.'cfg(windows)'.dependencies]
 nix = { version = "0.29", features = ["signal"] }
 
+[lib]
+name = "gf"
+path = "src/lib.rs"
+
 [[bin]]
 name = "exit_with"
 path = "tests/helpers/exit_with.rs"
