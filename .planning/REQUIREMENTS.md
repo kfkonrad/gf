@@ -14,7 +14,7 @@
 
 ### CORE — Aliases and Abbreviations
 
-- [ ] **CORE-08**: Every command group has a one-letter alias (`p`=pr/mr, `r`=repo, `a`=auth, `b`=browse)
+- [ ] **CORE-08**: Non-pr command groups have a one-letter alias (`r`=repo, `a`=auth, `b`=browse); `pr` and `mr` are already short and have no single-letter alias
 - [ ] **CORE-09**: `mr` is a full alias for `pr` (e.g. `gf mr create` works identically to `gf pr create`)
 - [ ] **CORE-10**: Every verb has a one-letter alias (`c`=create, `v`=view, `f`=fork, `l`=login, `s`=status)
 - [ ] **CORE-11**: All aliases and abbreviations appear in clap-generated `--help` text
@@ -22,11 +22,11 @@
 
 ### PR — Pull Request / Merge Request Commands
 
-- [ ] **PR-01**: User can run `gf pr create` (aliases: `gf p c`, `gf mr create`, `gf mr c`) to create a PR/MR on the detected forge using canonical flags (`--title`, `--body`, `--base`, `--draft`)
+- [ ] **PR-01**: User can run `gf pr create` (aliases: `gf mr create`, `gf mr c`, `gf pr c`) to create a PR/MR on the detected forge using canonical flags (`--title`, `--body`, `--base`, `--draft`)
 - [ ] **PR-02**: System translates canonical flags to forge-specific equivalents (e.g. `--body` → `--description` for glab, `--base` → `--target-branch` for glab)
 - [ ] **PR-03**: System translates the command group name to the forge's equivalent (e.g. `gf pr` → `glab mr`, `gf pr` → `tea pulls`)
 - [ ] **PR-04**: System passes through unrecognized flags to the underlying CLI unchanged
-- [ ] **PR-05**: User can run `gf pr view [<number>]` (aliases: `gf p v`, `gf mr view`) to view a PR/MR; if on a branch with an open PR, number is optional and defaults to that PR; otherwise number is required
+- [ ] **PR-05**: User can run `gf pr view [<number>]` (aliases: `gf mr view`, `gf pr v`, `gf mr v`) to view a PR/MR; if on a branch with an open PR, number is optional and defaults to that PR; otherwise number is required
 - [ ] **PR-06**: Fork PR lookup for `gf pr view` (no number): delegates branch-based PR lookup to the underlying CLI, which handles cross-fork PRs natively (documented behavior depends on underlying CLI support)
 
 ### REPO — Repository Commands
@@ -75,15 +75,37 @@
 
 ## Traceability
 
-*(Filled by roadmapper)*
-
-| REQ-ID | Phase |
-|--------|-------|
-| CORE-01..12 | — |
-| PR-01..06 | — |
-| REPO-01..03 | — |
-| AUTH-01..03 | — |
-| BROWSE-01..05 | — |
+| REQ-ID | Phase | Status |
+|--------|-------|--------|
+| CORE-06 | Phase 1 | Pending |
+| CORE-07 | Phase 1 | Pending |
+| CORE-01 | Phase 2 | Pending |
+| CORE-02 | Phase 2 | Pending |
+| CORE-03 | Phase 2 | Pending |
+| CORE-04 | Phase 2 | Pending |
+| CORE-05 | Phase 2 | Pending |
+| CORE-08 | Phase 3 | Pending |
+| CORE-09 | Phase 3 | Pending |
+| CORE-10 | Phase 3 | Pending |
+| CORE-11 | Phase 3 | Pending |
+| CORE-12 | Phase 3 | Pending |
+| PR-01 | Phase 3 | Pending |
+| PR-02 | Phase 3 | Pending |
+| PR-03 | Phase 3 | Pending |
+| PR-04 | Phase 3 | Pending |
+| PR-05 | Phase 3 | Pending |
+| PR-06 | Phase 3 | Pending |
+| REPO-01 | Phase 3 | Pending |
+| REPO-02 | Phase 3 | Pending |
+| REPO-03 | Phase 3 | Pending |
+| AUTH-01 | Phase 3 | Pending |
+| AUTH-02 | Phase 3 | Pending |
+| AUTH-03 | Phase 3 | Pending |
+| BROWSE-01 | Phase 4 | Pending |
+| BROWSE-02 | Phase 4 | Pending |
+| BROWSE-03 | Phase 4 | Pending |
+| BROWSE-04 | Phase 4 | Pending |
+| BROWSE-05 | Phase 4 | Pending |
 
 ---
-*Last updated: 2026-03-16 after requirements refinement*
+*Last updated: 2026-03-16 after roadmap creation*
