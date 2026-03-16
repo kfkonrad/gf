@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Completed 02-forge-detection 02-01-PLAN.md
-last_updated: "2026-03-16T14:07:35.919Z"
+stopped_at: Completed 02-forge-detection 02-02-PLAN.md
+last_updated: "2026-03-16T14:10:46.674Z"
 last_activity: 2026-03-16 — Roadmap created
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 5
-  completed_plans: 3
+  completed_plans: 4
   percent: 0
 ---
 
@@ -53,6 +53,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01-foundation P01 | 2 | 2 tasks | 6 files |
 | Phase 01-foundation P02 | 3 | 2 tasks | 4 files |
 | Phase 02-forge-detection P01 | 8 | 2 tasks | 3 files |
+| Phase 02-forge-detection P02 | 2 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -70,6 +71,8 @@ Recent decisions affecting current work:
 - [Phase 01-foundation]: CliInfo.brew_name uses String not static str to handle unknown CLI names
 - [Phase 01-foundation]: TTY inheritance and signal re-raise (exit 130) confirmed in real terminal via human verification
 - [Phase 02-forge-detection]: GitCommandFailed uses #[from] io::Error for ergonomic ? conversion; ExecFailed/SpawnFailed retain String context without #[from]
+- [Phase 02-forge-detection]: Discriminate NotAGitRepo vs NoRemote by checking stderr.contains('not a git repository') — git uses text not separate exit codes
+- [Phase 02-forge-detection]: Integration test test_gf_outside_git_repo_shows_error intentionally RED — main.rs wiring deferred to plan 03
 
 ### Pending Todos
 
@@ -82,6 +85,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T14:07:35.916Z
-Stopped at: Completed 02-forge-detection 02-01-PLAN.md
+Last session: 2026-03-16T14:10:46.672Z
+Stopped at: Completed 02-forge-detection 02-02-PLAN.md
 Resume file: None
