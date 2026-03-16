@@ -378,4 +378,29 @@ mod tests {
         let (_, is_sha) = resolve_ref(Some("feature/my-branch")).unwrap();
         assert!(!is_sha);
     }
+
+    // ── resolve_forge_type: self-hosted via config ──
+
+    #[test]
+    fn test_resolve_forge_type_self_hosted_via_config() {
+        use std::io::Write;
+        let tmp_dir = std::path::PathBuf::from("/tmp/gf-test-phase5-config");
+        let config_dir = tmp_dir.join(".config/gf");
+        std::fs::create_dir_all(&config_dir).unwrap();
+        let config_path = config_dir.join("config.toml");
+        let mut f = std::fs::File::create(&config_path).unwrap();
+        writeln!(f, "[[forge]]\ndomain = \"git.mycompany.com\"\ntype = \"gitlab\"").unwrap();
+        unsafe { std::env::set_var("HOME", &tmp_dir) };
+        let result = resolve_forge_type("git.mycompany.com").unwrap();
+        assert_eq!(result, ForgeType::Gitlab);
+        // Cleanup
+        let _ = std::fs::remove_dir_all(&tmp_dir);
+    }
+
+    #[test]
+    fn test_resolve_forge_type_self_hosted_unknown_still_errors() {
+        unsafe { std::env::set_var("HOME", "/tmp/gf-test-phase5-empty") };
+        let result = resolve_forge_type("unknown.example.com");
+        assert!(matches!(result, Err(GfError::ForgeNotDetected { .. })));
+    }
 }
