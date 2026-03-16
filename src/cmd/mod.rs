@@ -56,7 +56,7 @@ fn build_pr() -> Command {
             Command::new("view")
                 .about("View a pull/merge request (aliases: v, mr view, mr v)")
                 .visible_alias("v")  // CORE-10
-                .arg(Arg::new("number").long("number").short('n').required(false).help("PR number (optional if on a PR branch)"))
+                .arg(Arg::new("number").value_name("NUMBER").required(false).help("PR number (optional if on a PR branch)"))
                 .arg(
                     Arg::new("extra")
                         .num_args(0..)
