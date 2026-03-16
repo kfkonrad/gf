@@ -90,5 +90,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 |-------|----------------|--------|-----------|
 | 1. Foundation | 2/2 | Complete   | 2026-03-16 |
 | 2. Forge Detection | 3/3 | Complete   | 2026-03-16 |
-| 3. Command Routing | 0/TBD | Not started | - |
+| 3. Command Routing | 3/4 | In Progress|  |
 | 4. Browse | 0/TBD | Not started | - |

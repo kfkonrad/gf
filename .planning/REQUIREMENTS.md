@@ -31,15 +31,15 @@
 
 ### REPO — Repository Commands
 
-- [ ] **REPO-01**: User can run `gf repo view` (aliases: `gf r v`) to view repo info for the current repo on the detected forge
-- [ ] **REPO-02**: User can run `gf repo create` (aliases: `gf r c`) to create a new repository on the detected forge
-- [ ] **REPO-03**: User can run `gf repo fork` (aliases: `gf r f`) to fork the current repository on the detected forge
+- [x] **REPO-01**: User can run `gf repo view` (aliases: `gf r v`) to view repo info for the current repo on the detected forge
+- [x] **REPO-02**: User can run `gf repo create` (aliases: `gf r c`) to create a new repository on the detected forge
+- [x] **REPO-03**: User can run `gf repo fork` (aliases: `gf r f`) to fork the current repository on the detected forge
 
 ### AUTH — Authentication Commands
 
-- [ ] **AUTH-01**: User can run `gf auth login` (aliases: `gf a l`) to authenticate with the detected forge (delegates to underlying CLI)
-- [ ] **AUTH-02**: User can run `gf auth logout` to remove credentials for the detected forge (delegates to underlying CLI)
-- [ ] **AUTH-03**: User can run `gf auth status` (aliases: `gf a s`) to check current authentication state for the detected forge (delegates to underlying CLI)
+- [x] **AUTH-01**: User can run `gf auth login` (aliases: `gf a l`) to authenticate with the detected forge (delegates to underlying CLI)
+- [x] **AUTH-02**: User can run `gf auth logout` to remove credentials for the detected forge (delegates to underlying CLI)
+- [x] **AUTH-03**: User can run `gf auth status` (aliases: `gf a s`) to check current authentication state for the detected forge (delegates to underlying CLI)
 
 ### BROWSE — Native Browser Open
 
@@ -95,12 +95,12 @@
 | PR-04 | Phase 3 | Pending |
 | PR-05 | Phase 3 | Pending |
 | PR-06 | Phase 3 | Pending |
-| REPO-01 | Phase 3 | Pending |
-| REPO-02 | Phase 3 | Pending |
-| REPO-03 | Phase 3 | Pending |
-| AUTH-01 | Phase 3 | Pending |
-| AUTH-02 | Phase 3 | Pending |
-| AUTH-03 | Phase 3 | Pending |
+| REPO-01 | Phase 3 | Complete |
+| REPO-02 | Phase 3 | Complete |
+| REPO-03 | Phase 3 | Complete |
+| AUTH-01 | Phase 3 | Complete |
+| AUTH-02 | Phase 3 | Complete |
+| AUTH-03 | Phase 3 | Complete |
 | BROWSE-01 | Phase 4 | Pending |
 | BROWSE-02 | Phase 4 | Pending |
 | BROWSE-03 | Phase 4 | Pending |
