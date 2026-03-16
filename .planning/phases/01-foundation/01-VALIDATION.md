@@ -2,8 +2,8 @@
 phase: 1
 slug: foundation
 status: draft
-nyquist_compliant: false
-wave_0_complete: false
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-03-16
 ---
 
@@ -38,9 +38,9 @@ created: 2026-03-16
 
 | Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| 1-01-01 | 01 | 0 | CORE-06 | integration | `cargo test test_cli_not_found` | ❌ W0 | ⬜ pending |
-| 1-01-02 | 01 | 0 | CORE-06 | integration | `cargo test test_cli_not_found_format` | ❌ W0 | ⬜ pending |
-| 1-01-03 | 01 | 1 | CORE-07 | integration | `cargo test test_exit_code_propagation` | ❌ W0 | ⬜ pending |
+| 1-01-01 | 01 | 0 | CORE-06 | integration | `cargo test test_cli_not_found` | ✅ | ✅ green |
+| 1-01-02 | 01 | 0 | CORE-06 | integration | `cargo test test_cli_not_found_format` | ✅ | ✅ green |
+| 1-01-03 | 01 | 1 | CORE-07 | integration | `cargo test test_exit_code_propagation` | ✅ | ✅ green |
 | 1-01-04 | 01 | 1 | CORE-07 | manual | — requires TTY signal delivery | manual-only | ⬜ pending |
 | 1-01-05 | 01 | 1 | CORE-07 | manual | — requires real TTY | manual-only | ⬜ pending |
 
