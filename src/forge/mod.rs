@@ -177,7 +177,7 @@ pub fn parse_remote_parts(url: &str) -> Result<(String, String, String), GfError
 
 /// Checks ~/.config/gf/config.toml for a domain-to-forge mapping.
 /// Returns Ok(None) if config file is absent (not an error).
-fn config_lookup(host: &str) -> Result<Option<ForgeType>, GfError> {
+pub fn config_lookup(host: &str) -> Result<Option<ForgeType>, GfError> {
     let cfg = match load_config()? {
         Some(c) => c,
         None => return Ok(None),

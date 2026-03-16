@@ -2,7 +2,7 @@
 //! Does NOT delegate to gh/glab/tea/fj (BROWSE-05).
 
 use crate::error::GfError;
-use crate::forge::{parse_remote_parts, ForgeType};
+use crate::forge::{config_lookup, parse_remote_parts, ForgeType};
 use clap::ArgMatches;
 
 // ── Public entry point ──────────────────────────────────────────────────────
@@ -121,24 +121,22 @@ fn get_remote_url(remote: &str) -> Result<String, GfError> {
 }
 
 /// Resolves the ForgeType for a given host.
-/// Checks known public forges, returns ForgeNotDetected for self-hosted.
+/// Config lookup first (CORE-05) — mirrors forge::detect() priority.
 fn resolve_forge_type(host: &str) -> Result<ForgeType, GfError> {
+    // Config lookup first (CORE-05) — mirrors forge::detect() priority
+    if let Some(forge_type) = config_lookup(host)? {
+        return Ok(forge_type);
+    }
+    // Known public forges second
     match host {
         "github.com" => Ok(ForgeType::Github),
         "gitlab.com" => Ok(ForgeType::Gitlab),
         "gitea.com" => Ok(ForgeType::Gitea),
         "codeberg.org" => Ok(ForgeType::Forgejo),
-        other => {
-            // For self-hosted instances: return ForgeNotDetected so user can configure it.
-            Err(GfError::ForgeNotDetected {
-                domain: other.to_string(),
-            })
-        }
+        other => Err(GfError::ForgeNotDetected {
+            domain: other.to_string(),
+        }),
     }
-    // NOTE: Self-hosted instances need the user to configure ~/.config/gf/config.toml.
-    // A future improvement could call config_lookup() directly but that requires making
-    // it pub or restructuring the forge module. For v1, self-hosted users configure TOML.
-    // The ForgeNotDetected error message already explains how to do this.
 }
 
 /// Resolves the git ref to use in the URL.
