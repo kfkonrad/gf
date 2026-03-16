@@ -43,7 +43,12 @@ struct ForgeEntry {
 /// Returns the path to ~/.config/gf/config.toml using $HOME env var.
 fn config_path() -> Option<std::path::PathBuf> {
     let home = std::env::var("HOME").ok()?;
-    Some(std::path::PathBuf::from(home).join(".config").join("gf").join("config.toml"))
+    Some(
+        std::path::PathBuf::from(home)
+            .join(".config")
+            .join("gf")
+            .join("config.toml"),
+    )
 }
 
 /// Loads the config file. Returns Ok(None) if file is absent (not an error).
@@ -56,8 +61,8 @@ fn load_config() -> Result<Option<GfConfig>, GfError> {
     if !path.exists() {
         return Ok(None);
     }
-    let text = std::fs::read_to_string(&path)
-        .map_err(|e| GfError::ConfigParseError(e.to_string()))?;
+    let text =
+        std::fs::read_to_string(&path).map_err(|e| GfError::ConfigParseError(e.to_string()))?;
     toml::from_str(&text)
         .map(Some)
         .map_err(|e| GfError::ConfigParseError(e.to_string()))
@@ -106,7 +111,10 @@ fn get_remote_url(remote: &str) -> Result<String, GfError> {
 fn parse_host(url: &str) -> Result<String, GfError> {
     // HTTPS / HTTP: https://github.com/owner/repo.git
     // Also covers http:// (uncommon but valid)
-    if let Some(rest) = url.strip_prefix("https://").or_else(|| url.strip_prefix("http://")) {
+    if let Some(rest) = url
+        .strip_prefix("https://")
+        .or_else(|| url.strip_prefix("http://"))
+    {
         let host_with_possible_port = rest.split('/').next().unwrap_or("");
         // Strip port: "git.company.com:8443" -> "git.company.com"
         let host = host_with_possible_port.split(':').next().unwrap_or("");
@@ -133,17 +141,23 @@ fn config_lookup(host: &str) -> Result<Option<ForgeType>, GfError> {
         Some(c) => c,
         None => return Ok(None),
     };
-    Ok(cfg.forge.iter().find(|e| e.domain == host).map(|e| e.forge_type))
+    Ok(cfg
+        .forge
+        .iter()
+        .find(|e| e.domain == host)
+        .map(|e| e.forge_type))
 }
 
 /// Matches a hostname against the four built-in public forge entries.
 fn match_known_host(host: &str) -> Result<ForgeType, GfError> {
     match host {
-        "github.com"   => Ok(ForgeType::Github),
-        "gitlab.com"   => Ok(ForgeType::Gitlab),
-        "gitea.com"    => Ok(ForgeType::Gitea),
+        "github.com" => Ok(ForgeType::Github),
+        "gitlab.com" => Ok(ForgeType::Gitlab),
+        "gitea.com" => Ok(ForgeType::Gitea),
         "codeberg.org" => Ok(ForgeType::Forgejo),
-        other          => Err(GfError::ForgeNotDetected { domain: other.to_string() }),
+        other => Err(GfError::ForgeNotDetected {
+            domain: other.to_string(),
+        }),
     }
 }
 
@@ -232,7 +246,10 @@ mod tests {
 
     #[test]
     fn test_known_host_codeberg() {
-        assert_eq!(match_known_host("codeberg.org").unwrap(), ForgeType::Forgejo);
+        assert_eq!(
+            match_known_host("codeberg.org").unwrap(),
+            ForgeType::Forgejo
+        );
     }
 
     #[test]
@@ -280,9 +297,14 @@ mod tests {
         // When HOME points to a dir without .config/gf/config.toml, returns Ok(None)
         // Override HOME to a temp dir that definitely has no config
         // Safety: set_var is process-wide; cargo test runs unit tests sequentially by default
-        unsafe { std::env::set_var("HOME", "/tmp"); }
+        unsafe {
+            std::env::set_var("HOME", "/tmp");
+        }
         let result = config_lookup("github.com");
-        assert!(matches!(result, Ok(None)), "expected Ok(None) for absent config, got: {result:?}");
+        assert!(
+            matches!(result, Ok(None)),
+            "expected Ok(None) for absent config, got: {result:?}"
+        );
     }
 
     #[test]

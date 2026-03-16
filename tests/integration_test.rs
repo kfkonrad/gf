@@ -19,7 +19,12 @@ fn setup_github_repo() -> tempfile::TempDir {
         .output()
         .expect("git init");
     std::process::Command::new("git")
-        .args(["remote", "add", "origin", "https://github.com/test/repo.git"])
+        .args([
+            "remote",
+            "add",
+            "origin",
+            "https://github.com/test/repo.git",
+        ])
         .current_dir(dir.path())
         .output()
         .expect("git remote add");
@@ -34,7 +39,10 @@ fn make_git_only_bin_dir() -> (tempfile::TempDir, String) {
     let symlink_path = bin_dir.path().join("git");
     #[cfg(unix)]
     std::os::unix::fs::symlink(&git_path, &symlink_path).expect("symlink git");
-    (bin_dir, symlink_path.parent().unwrap().to_string_lossy().to_string())
+    (
+        bin_dir,
+        symlink_path.parent().unwrap().to_string_lossy().to_string(),
+    )
 }
 
 // ── CORE-06: CLI not found ─────────────────────────────────────────────────
@@ -124,8 +132,13 @@ fn setup_gh_exit_script(home_dir: &std::path::Path, exit_code: u32) -> std::path
     let gh_script = bin_dir.join("gh");
     std::fs::write(
         &gh_script,
-        format!("#!/bin/sh\nexec \"{}\" {}\n", exit_with_path.display(), exit_code),
-    ).expect("write gh script");
+        format!(
+            "#!/bin/sh\nexec \"{}\" {}\n",
+            exit_with_path.display(),
+            exit_code
+        ),
+    )
+    .expect("write gh script");
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;

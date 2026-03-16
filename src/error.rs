@@ -84,16 +84,34 @@ mod forge_error_tests {
     #[test]
     fn test_no_remote_display() {
         let msg = GfError::NoRemote("origin".to_string()).to_string();
-        assert_eq!(msg, "no remote named 'origin' \u{2014} use --remote to specify one");
+        assert_eq!(
+            msg,
+            "no remote named 'origin' \u{2014} use --remote to specify one"
+        );
     }
 
     #[test]
     fn test_forge_not_detected_display() {
-        let msg = GfError::ForgeNotDetected { domain: "git.internal.io".to_string() }.to_string();
-        assert!(msg.contains("Could not detect forge for: git.internal.io"), "missing header: {msg}");
-        assert!(msg.contains("Supported forges: github, gitlab, gitea, forgejo"), "missing forge list: {msg}");
-        assert!(msg.contains("domain = \"git.internal.io\""), "missing TOML snippet: {msg}");
-        assert!(msg.contains("type = \"forgejo\"  # or github, gitlab, gitea"), "missing type comment: {msg}");
+        let msg = GfError::ForgeNotDetected {
+            domain: "git.internal.io".to_string(),
+        }
+        .to_string();
+        assert!(
+            msg.contains("Could not detect forge for: git.internal.io"),
+            "missing header: {msg}"
+        );
+        assert!(
+            msg.contains("Supported forges: github, gitlab, gitea, forgejo"),
+            "missing forge list: {msg}"
+        );
+        assert!(
+            msg.contains("domain = \"git.internal.io\""),
+            "missing TOML snippet: {msg}"
+        );
+        assert!(
+            msg.contains("type = \"forgejo\"  # or github, gitlab, gitea"),
+            "missing type comment: {msg}"
+        );
     }
 
     #[test]

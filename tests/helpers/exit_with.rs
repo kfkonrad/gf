@@ -3,9 +3,6 @@
 //! Usage: exit_with 2
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
-    let code: i32 = args
-        .first()
-        .and_then(|s| s.parse().ok())
-        .unwrap_or(0);
+    let code: i32 = args.first().and_then(|s| s.parse().ok()).unwrap_or(0);
     std::process::exit(code);
 }
