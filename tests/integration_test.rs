@@ -233,6 +233,206 @@ mod forge_detection {
     }
 }
 
+// ── Helper: create a temp git repo with a GitLab remote ───────────────────
+
+fn setup_gitlab_repo() -> tempfile::TempDir {
+    let dir = tempfile::tempdir().expect("create temp dir");
+    std::process::Command::new("git")
+        .args(["init"])
+        .current_dir(dir.path())
+        .output()
+        .expect("git init");
+    std::process::Command::new("git")
+        .args([
+            "remote",
+            "add",
+            "origin",
+            "https://gitlab.com/test/repo.git",
+        ])
+        .current_dir(dir.path())
+        .output()
+        .expect("git remote add");
+    dir
+}
+
+// ── BROWSE-01 / BROWSE-05: --no-browser prints URL, no forge CLI spawned ──
+
+/// gf browse --no-browser prints the repo URL to stdout and exits 0.
+/// Uses PATH isolation (git-only bin dir) to prove no forge CLI is spawned.
+/// Covers BROWSE-01 (URL printed) and BROWSE-05 (no gh/glab/tea/fj invoked).
+#[test]
+fn test_browse_no_browser_prints_url() {
+    let repo = setup_github_repo();
+    let home_dir = tempfile::tempdir().expect("create home temp dir");
+    let (_bin_tmp, git_only) = make_git_only_bin_dir();
+
+    std::process::Command::new("git")
+        .args(["config", "user.email", "test@test.com"])
+        .current_dir(repo.path())
+        .output()
+        .expect("git config email");
+    std::process::Command::new("git")
+        .args(["config", "user.name", "Test"])
+        .current_dir(repo.path())
+        .output()
+        .expect("git config name");
+    std::process::Command::new("git")
+        .args(["commit", "--allow-empty", "-m", "init"])
+        .current_dir(repo.path())
+        .output()
+        .expect("git commit");
+
+    Command::cargo_bin("gf")
+        .unwrap()
+        .args(["browse", "--no-browser"])
+        .current_dir(repo.path())
+        .env("HOME", home_dir.path())
+        .env("PATH", &git_only)
+        .assert()
+        .success()
+        .stdout(predicates::str::starts_with("https://github.com/test/repo/tree/"));
+}
+
+/// gf browse --no-browser from a GitLab repo includes the /-/ infix in the URL.
+/// Covers BROWSE-01 GitLab URL format.
+#[test]
+fn test_browse_no_browser_gitlab_url_has_infix() {
+    let repo = setup_gitlab_repo();
+    let home_dir = tempfile::tempdir().expect("create home temp dir");
+    let (_bin_tmp, git_only) = make_git_only_bin_dir();
+
+    std::process::Command::new("git")
+        .args(["config", "user.email", "test@test.com"])
+        .current_dir(repo.path())
+        .output()
+        .expect("git config email");
+    std::process::Command::new("git")
+        .args(["config", "user.name", "Test"])
+        .current_dir(repo.path())
+        .output()
+        .expect("git config name");
+    std::process::Command::new("git")
+        .args(["commit", "--allow-empty", "-m", "init"])
+        .current_dir(repo.path())
+        .output()
+        .expect("git commit");
+
+    Command::cargo_bin("gf")
+        .unwrap()
+        .args(["browse", "--no-browser"])
+        .current_dir(repo.path())
+        .env("HOME", home_dir.path())
+        .env("PATH", &git_only)
+        .assert()
+        .success()
+        .stdout(predicates::str::contains("/-/tree/"));
+}
+
+/// gf browse --no-browser --branch main forces "main" in the URL
+/// regardless of the checked-out branch. Covers BROWSE-04.
+#[test]
+fn test_browse_no_browser_branch_override() {
+    let repo = setup_github_repo();
+    let home_dir = tempfile::tempdir().expect("create home temp dir");
+    let (_bin_tmp, git_only) = make_git_only_bin_dir();
+
+    std::process::Command::new("git")
+        .args(["config", "user.email", "test@test.com"])
+        .current_dir(repo.path())
+        .output()
+        .expect("git config email");
+    std::process::Command::new("git")
+        .args(["config", "user.name", "Test"])
+        .current_dir(repo.path())
+        .output()
+        .expect("git config name");
+    std::process::Command::new("git")
+        .args(["commit", "--allow-empty", "-m", "init"])
+        .current_dir(repo.path())
+        .output()
+        .expect("git commit");
+
+    Command::cargo_bin("gf")
+        .unwrap()
+        .args(["browse", "--no-browser", "--branch", "main"])
+        .current_dir(repo.path())
+        .env("HOME", home_dir.path())
+        .env("PATH", &git_only)
+        .assert()
+        .success()
+        .stdout(predicates::str::contains("/tree/main"));
+}
+
+/// gf browse --no-browser <file> includes the file path in the URL.
+/// Covers BROWSE-03.
+#[test]
+fn test_browse_no_browser_file_arg() {
+    let repo = setup_github_repo();
+    let home_dir = tempfile::tempdir().expect("create home temp dir");
+    let (_bin_tmp, git_only) = make_git_only_bin_dir();
+
+    std::process::Command::new("git")
+        .args(["config", "user.email", "test@test.com"])
+        .current_dir(repo.path())
+        .output()
+        .expect("git config email");
+    std::process::Command::new("git")
+        .args(["config", "user.name", "Test"])
+        .current_dir(repo.path())
+        .output()
+        .expect("git config name");
+    std::process::Command::new("git")
+        .args(["commit", "--allow-empty", "-m", "init"])
+        .current_dir(repo.path())
+        .output()
+        .expect("git commit");
+
+    Command::cargo_bin("gf")
+        .unwrap()
+        .args(["browse", "--no-browser", "src/lib.rs"])
+        .current_dir(repo.path())
+        .env("HOME", home_dir.path())
+        .env("PATH", &git_only)
+        .assert()
+        .success()
+        .stdout(predicates::str::contains("/blob/"))
+        .stdout(predicates::str::contains("src/lib.rs"));
+}
+
+/// gf b (alias) works identically to gf browse. Covers BROWSE-01 alias.
+#[test]
+fn test_browse_alias_b_works() {
+    let repo = setup_github_repo();
+    let home_dir = tempfile::tempdir().expect("create home temp dir");
+    let (_bin_tmp, git_only) = make_git_only_bin_dir();
+
+    std::process::Command::new("git")
+        .args(["config", "user.email", "test@test.com"])
+        .current_dir(repo.path())
+        .output()
+        .expect("git config email");
+    std::process::Command::new("git")
+        .args(["config", "user.name", "Test"])
+        .current_dir(repo.path())
+        .output()
+        .expect("git config name");
+    std::process::Command::new("git")
+        .args(["commit", "--allow-empty", "-m", "init"])
+        .current_dir(repo.path())
+        .output()
+        .expect("git commit");
+
+    Command::cargo_bin("gf")
+        .unwrap()
+        .args(["b", "--no-browser"])
+        .current_dir(repo.path())
+        .env("HOME", home_dir.path())
+        .env("PATH", &git_only)
+        .assert()
+        .success()
+        .stdout(predicates::str::starts_with("https://github.com/test/repo/tree/"));
+}
+
 // ────────────────────────────────────────────────────────────────────────────
 // Phase 3: Alias routing tests (CORE-08 through CORE-12)
 // These tests use build_cli() directly — no live forge CLI needed.
