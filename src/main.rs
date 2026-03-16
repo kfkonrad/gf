@@ -1,4 +1,5 @@
 mod error;
+mod forge;
 mod runner;
 
 fn main() {
