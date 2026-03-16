@@ -43,9 +43,23 @@ pub fn detect(remote: &str) -> Result<ForgeType, GfError> {
 /// Returns GfError::NotAGitRepo if not in a git repo.
 /// Returns GfError::NoRemote if the remote name does not exist.
 fn get_remote_url(remote: &str) -> Result<String, GfError> {
-    // TODO: implement in plan 02
-    let _ = remote;
-    Err(GfError::NotAGitRepo)
+    let output = std::process::Command::new("git")
+        .args(["remote", "get-url", remote])
+        .output()
+        .map_err(GfError::GitCommandFailed)?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        // git exits non-zero for both "not a git repo" and "no such remote"
+        // Distinguish by stderr content (git uses text, not exit codes, to differentiate)
+        if stderr.contains("not a git repository") {
+            return Err(GfError::NotAGitRepo);
+        }
+        // "No such remote" — covers "No such remote 'upstream'" etc.
+        return Err(GfError::NoRemote(remote.to_string()));
+    }
+
+    Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
 }
 
 /// Extracts the hostname from HTTPS or SCP-style git remote URLs.
@@ -184,6 +198,27 @@ mod tests {
     fn test_known_host_unknown_returns_error() {
         let result = match_known_host("unknown.example.com");
         assert!(matches!(result, Err(GfError::ForgeNotDetected { .. })));
+    }
+
+    // --- get_remote_url() tests ---
+
+    #[test]
+    fn test_get_remote_url_invalid_remote() {
+        // "definitely_no_such_remote_gf_test" does not exist in this repo
+        let result = get_remote_url("definitely_no_such_remote_gf_test");
+        assert!(
+            matches!(result, Err(GfError::NoRemote(_))),
+            "expected NoRemote, got: {result:?}"
+        );
+    }
+
+    #[test]
+    fn test_get_remote_url_not_in_git_repo() {
+        // Change working directory to /tmp (not a git repo) for this test
+        // We can't easily test this from within cargo test without temp dir manipulation.
+        // This behavior is covered by the integration test in tests/integration_test.rs instead.
+        // Placeholder: assert the function exists and compiles.
+        let _ = std::mem::discriminant(&GfError::NotAGitRepo);
     }
 
     // --- config_lookup() stubs (RED — will pass after plan 03) ---

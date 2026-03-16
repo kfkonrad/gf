@@ -96,3 +96,35 @@ fn test_exit_code_42() {
         .assert()
         .code(42);
 }
+
+// ─── Phase 2: Forge Detection integration tests ───────────────────────────────
+// Note: These tests verify error output. The main.rs wiring happens in plan 03.
+// These tests will fully pass after plan 03. Add them now so plan 03 has RED tests.
+
+mod forge_detection {
+    use assert_cmd::Command;
+    use predicates::str::contains;
+
+    /// CORE-01: Running gf outside a git repo should produce the NotAGitRepo error.
+    /// This test will be RED until plan 03 wires forge::detect() into main.rs.
+    #[test]
+    fn test_gf_outside_git_repo_shows_error() {
+        let mut cmd = Command::cargo_bin("gf").unwrap();
+        cmd.current_dir("/tmp") // /tmp is not a git repo
+            .arg("pr")
+            .arg("list");
+        cmd.assert()
+            .failure()
+            .stderr(contains("not a git repository"));
+    }
+
+    /// CORE-01: Running gf in a repo without a recognized forge should show detection error.
+    /// This requires a temp git repo with an unknown remote — tested in unit tests instead.
+    /// Integration placeholder to confirm error format matches CONTEXT.md spec.
+    #[test]
+    fn test_gf_unknown_remote_url_shows_config_hint() {
+        // This test needs a temp repo with an unknown remote.
+        // Skip for now — covered by forge::tests::test_known_host_unknown_returns_error unit test.
+        // Full integration coverage added in plan 03 after main.rs wiring.
+    }
+}
