@@ -3,20 +3,41 @@ mod forge;
 mod runner;
 
 fn main() {
-    // Placeholder: Phase 2 adds forge detection.
-    // For now, parse the CLI name as the first arg for testing.
     let args: Vec<String> = std::env::args().skip(1).collect();
-    let arg_refs: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
 
-    if arg_refs.is_empty() {
-        eprintln!("usage: gf <forge-cli> [args...]");
-        std::process::exit(1);
+    // Parse --remote <name> flag before remaining args.
+    // Simple hand-rolled parse — clap arrives in Phase 3 and will supersede this.
+    // If multiple --remote flags appear, last one wins.
+    let mut remote = "origin".to_string();
+    let mut remaining: Vec<&str> = Vec::new();
+    let mut i = 0;
+    while i < args.len() {
+        if args[i] == "--remote" {
+            if i + 1 < args.len() {
+                remote = args[i + 1].clone();
+                i += 2; // skip both --remote and the name
+            } else {
+                eprintln!("--remote requires a value");
+                std::process::exit(1);
+            }
+        } else {
+            remaining.push(args[i].as_str());
+            i += 1;
+        }
     }
 
-    let cli = arg_refs[0];
-    let rest = &arg_refs[1..];
+    // Phase 2: Detect the forge from the git remote URL.
+    let forge_type = match forge::detect(&remote) {
+        Ok(f) => f,
+        Err(e) => {
+            eprintln!("{e}");
+            std::process::exit(1);
+        }
+    };
 
-    if let Err(e) = runner::run(cli, rest) {
+    let cli = forge_type.cli_name();
+
+    if let Err(e) = runner::run(cli, &remaining) {
         eprintln!("{e}");
         std::process::exit(1);
     }
