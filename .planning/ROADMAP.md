@@ -28,7 +28,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. When the underlying CLI exits normally, `gf` exits with the same exit code
   3. When the underlying CLI is killed by a signal (e.g., Ctrl+C), `gf` re-raises the signal so the shell sees exit 130, not exit 1
   4. The underlying CLI receives an inherited TTY — color output and interactive prompts work identically to calling the CLI directly
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — Project scaffold, GfError type, Wave 0 test infrastructure
+- [ ] 01-02-PLAN.md — Runner implementation (exec/spawn), integration tests green, TTY/signal checkpoint
 
 ### Phase 2: Forge Detection
 **Goal**: Given any git repo, `gf` reliably identifies which forge it lives on — including self-hosted instances and non-standard remotes
@@ -73,7 +77,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 0/TBD | Not started | - |
+| 1. Foundation | 0/2 | Not started | - |
 | 2. Forge Detection | 0/TBD | Not started | - |
 | 3. Command Routing | 0/TBD | Not started | - |
 | 4. Browse | 0/TBD | Not started | - |
