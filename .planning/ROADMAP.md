@@ -16,6 +16,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: Forge Detection** - Auto-detect forge from git remote with full edge case coverage (completed 2026-03-16)
 - [x] **Phase 3: Command Routing** - ForgeAdapter trait, flag normalization, PR / repo / auth commands, aliases (completed 2026-03-16)
 - [x] **Phase 4: Browse** - Native URL construction and browser open for all four forges (completed 2026-03-16)
+- [ ] **Phase 5: Fix Self-Hosted Browse Forge Detection** - Wire config_lookup into browse::resolve_forge_type so self-hosted forge users are not broken
 
 ## Phase Details
 
@@ -85,10 +86,23 @@ Plans:
 - [ ] 04-01-PLAN.md — webbrowser dep, GfError variants, parse_remote_parts(), build_browse() CLI, full browse module with unit tests
 - [ ] 04-02-PLAN.md — Browse integration tests and human-verify checkpoint
 
+### Phase 5: Fix Self-Hosted Browse Forge Detection
+**Goal:** `gf browse` consults `forge::config_lookup()` for self-hosted forge users, matching the behavior of all other `gf` commands
+**Depends on:** Phase 4
+**Requirements:** CORE-05, BROWSE-01, BROWSE-02, BROWSE-03, BROWSE-04
+**Gap Closure:** Closes FINDING-02 from v1.0 audit
+
+**Success Criteria** (what must be TRUE):
+  1. A user with a self-hosted forge domain in `~/.config/gf/config.toml` can run `gf browse` without getting `ForgeNotDetected`
+  2. `browse::resolve_forge_type()` calls `forge::config_lookup()` before returning an error
+  3. All existing browse tests still pass
+
+**Plans**: 1 plan
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -96,3 +110,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 2. Forge Detection | 3/3 | Complete   | 2026-03-16 |
 | 3. Command Routing | 4/4 | Complete   | 2026-03-16 |
 | 4. Browse | 2/2 | Complete   | 2026-03-16 |
+| 5. Fix Self-Hosted Browse | 0/1 | Pending | — |

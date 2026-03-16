@@ -83,7 +83,7 @@
 | CORE-02 | Phase 2 | Complete |
 | CORE-03 | Phase 2 | Complete |
 | CORE-04 | Deferred | Deferred |
-| CORE-05 | Phase 2 | Complete |
+| CORE-05 | Phase 2 / Phase 5 | Complete (Phase 5 closes browse gap) |
 | CORE-08 | Phase 3 | Complete |
 | CORE-09 | Phase 3 | Complete |
 | CORE-10 | Phase 3 | Complete |
@@ -101,10 +101,10 @@
 | AUTH-01 | Phase 3 | Complete |
 | AUTH-02 | Phase 3 | Complete |
 | AUTH-03 | Phase 3 | Complete |
-| BROWSE-01 | Phase 4 | Complete |
-| BROWSE-02 | Phase 4 | Complete |
-| BROWSE-03 | Phase 4 | Complete |
-| BROWSE-04 | Phase 4 | Complete |
+| BROWSE-01 | Phase 4 / Phase 5 | Complete (Phase 5 closes self-hosted gap) |
+| BROWSE-02 | Phase 4 / Phase 5 | Complete (Phase 5 closes self-hosted gap) |
+| BROWSE-03 | Phase 4 / Phase 5 | Complete (Phase 5 closes self-hosted gap) |
+| BROWSE-04 | Phase 4 / Phase 5 | Complete (Phase 5 closes self-hosted gap) |
 | BROWSE-05 | Phase 4 | Complete |
 
 ---
