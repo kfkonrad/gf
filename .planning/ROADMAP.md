@@ -16,7 +16,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: Forge Detection** - Auto-detect forge from git remote with full edge case coverage (completed 2026-03-16)
 - [x] **Phase 3: Command Routing** - ForgeAdapter trait, flag normalization, PR / repo / auth commands, aliases (completed 2026-03-16)
 - [x] **Phase 4: Browse** - Native URL construction and browser open for all four forges (completed 2026-03-16)
-- [ ] **Phase 5: Fix Self-Hosted Browse Forge Detection** - Wire config_lookup into browse::resolve_forge_type so self-hosted forge users are not broken
+- [x] **Phase 5: Fix Self-Hosted Browse Forge Detection** - Wire config_lookup into browse::resolve_forge_type so self-hosted forge users are not broken (completed 2026-03-16)
 
 ## Phase Details
 
@@ -113,4 +113,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 2. Forge Detection | 3/3 | Complete   | 2026-03-16 |
 | 3. Command Routing | 4/4 | Complete   | 2026-03-16 |
 | 4. Browse | 2/2 | Complete   | 2026-03-16 |
-| 5. Fix Self-Hosted Browse | 0/1 | Pending | — |
+| 5. Fix Self-Hosted Browse | 1/1 | Complete   | 2026-03-16 |

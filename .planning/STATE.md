@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Completed 04-02-PLAN.md
-last_updated: "2026-03-16T16:32:11.890Z"
+stopped_at: Completed 05-01-PLAN.md
+last_updated: "2026-03-16T17:15:05.198Z"
 last_activity: 2026-03-16 — Roadmap created
 progress:
-  total_phases: 4
-  completed_phases: 4
-  total_plans: 11
-  completed_plans: 11
+  total_phases: 5
+  completed_phases: 5
+  total_plans: 12
+  completed_plans: 12
   percent: 0
 ---
 
@@ -60,6 +60,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 03-command-routing P02 | 5 | 1 tasks | 2 files |
 | Phase 03-command-routing P04 | 15 | 2 tasks | 4 files |
 | Phase 04-browse P02 | 5 | 1 tasks | 1 files |
+| Phase 05-fix-self-hosted-browse P01 | 5 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -95,6 +96,8 @@ Recent decisions affecting current work:
 - [Phase 04-browse]: normalize_path() passes relative paths through unchanged; strips repo root prefix only for absolute paths — no filesystem validation since paths may only exist on remote
 - [Phase 04-browse]: Browse integration tests go directly GREEN — implementation was complete in plan 01 before tests were written
 - [Phase 04-browse]: Browse integration tests go directly GREEN — implementation was complete in plan 01 before tests were written
+- [Phase 05-fix-self-hosted-browse]: config_lookup made pub (not re-implemented) — single source of truth for domain-to-forge mapping
+- [Phase 05-fix-self-hosted-browse]: resolve_forge_type mirrors forge::detect() priority: config first, known hosts second, ForgeNotDetected last
 
 ### Pending Todos
 
@@ -107,6 +110,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T16:30:10.424Z
-Stopped at: Completed 04-02-PLAN.md
+Last session: 2026-03-16T17:15:05.195Z
+Stopped at: Completed 05-01-PLAN.md
 Resume file: None
