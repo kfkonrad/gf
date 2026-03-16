@@ -1,9 +1,11 @@
 #![allow(dead_code)]
 
 use crate::error::GfError;
+use serde::Deserialize;
 
 /// The four supported forge types.
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum ForgeType {
     Github,
     Gitlab,
@@ -22,6 +24,43 @@ impl ForgeType {
             ForgeType::Forgejo => "fj",
         }
     }
+}
+
+#[derive(Debug, Deserialize)]
+struct GfConfig {
+    #[serde(default)]
+    forge: Vec<ForgeEntry>,
+}
+
+#[derive(Debug, Deserialize)]
+struct ForgeEntry {
+    domain: String,
+    /// TOML key is `type` (Rust keyword — must use rename)
+    #[serde(rename = "type")]
+    forge_type: ForgeType,
+}
+
+/// Returns the path to ~/.config/gf/config.toml using $HOME env var.
+fn config_path() -> Option<std::path::PathBuf> {
+    let home = std::env::var("HOME").ok()?;
+    Some(std::path::PathBuf::from(home).join(".config").join("gf").join("config.toml"))
+}
+
+/// Loads the config file. Returns Ok(None) if file is absent (not an error).
+/// Returns Err(ConfigParseError) on TOML parse failure.
+fn load_config() -> Result<Option<GfConfig>, GfError> {
+    let path = match config_path() {
+        Some(p) => p,
+        None => return Ok(None),
+    };
+    if !path.exists() {
+        return Ok(None);
+    }
+    let text = std::fs::read_to_string(&path)
+        .map_err(|e| GfError::ConfigParseError(e.to_string()))?;
+    toml::from_str(&text)
+        .map(Some)
+        .map_err(|e| GfError::ConfigParseError(e.to_string()))
 }
 
 /// Top-level forge detection entry point.
@@ -90,9 +129,11 @@ fn parse_host(url: &str) -> Result<String, GfError> {
 /// Checks ~/.config/gf/config.toml for a domain-to-forge mapping.
 /// Returns Ok(None) if config file is absent (not an error).
 fn config_lookup(host: &str) -> Result<Option<ForgeType>, GfError> {
-    // TODO: implement in plan 03
-    let _ = host;
-    Ok(None)
+    let cfg = match load_config()? {
+        Some(c) => c,
+        None => return Ok(None),
+    };
+    Ok(cfg.forge.iter().find(|e| e.domain == host).map(|e| e.forge_type))
 }
 
 /// Matches a hostname against the four built-in public forge entries.
@@ -230,5 +271,46 @@ mod tests {
         // This test validates the stub behavior only
         let result = config_lookup("anything.example.com");
         assert!(result.is_ok());
+    }
+
+    // --- config_lookup() full tests (plan 03) ---
+
+    #[test]
+    fn test_config_lookup_absent_config_is_ok_none() {
+        // When HOME points to a dir without .config/gf/config.toml, returns Ok(None)
+        // Override HOME to a temp dir that definitely has no config
+        // Safety: set_var is process-wide; cargo test runs unit tests sequentially by default
+        unsafe { std::env::set_var("HOME", "/tmp"); }
+        let result = config_lookup("github.com");
+        assert!(matches!(result, Ok(None)), "expected Ok(None) for absent config, got: {result:?}");
+    }
+
+    #[test]
+    fn test_config_lookup_with_inline_config() {
+        // Test TOML parsing directly via toml::from_str
+        let toml_str = r#"
+[[forge]]
+domain = "gitlab.mycompany.com"
+type = "gitlab"
+
+[[forge]]
+domain = "git.internal.io"
+type = "forgejo"
+"#;
+        let cfg: GfConfig = toml::from_str(toml_str).expect("valid TOML");
+        assert_eq!(cfg.forge.len(), 2);
+        assert_eq!(cfg.forge[0].domain, "gitlab.mycompany.com");
+        assert_eq!(cfg.forge[0].forge_type, ForgeType::Gitlab);
+        assert_eq!(cfg.forge[1].forge_type, ForgeType::Forgejo);
+    }
+
+    #[test]
+    fn test_config_malformed_toml_returns_parse_error() {
+        let bad_toml = "[[forge\ndomain = !!!";
+        let result: Result<GfConfig, _> = toml::from_str(bad_toml);
+        assert!(result.is_err(), "malformed TOML should fail");
+        // Wrap in GfError to verify round-trip
+        let gf_err = GfError::ConfigParseError(result.unwrap_err().to_string());
+        assert!(gf_err.to_string().starts_with("failed to parse config:"));
     }
 }
