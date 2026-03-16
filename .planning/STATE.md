@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Completed 04-01-PLAN.md
-last_updated: "2026-03-16T16:14:33.185Z"
+stopped_at: "Checkpoint: human-verify gf browse opens browser (04-02 Task 2)"
+last_updated: "2026-03-16T16:22:35.327Z"
 last_activity: 2026-03-16 — Roadmap created
 progress:
   total_phases: 4
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 11
-  completed_plans: 10
+  completed_plans: 11
   percent: 0
 ---
 
@@ -59,6 +59,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 03-command-routing P03 | 8 | 2 tasks | 1 files |
 | Phase 03-command-routing P02 | 5 | 1 tasks | 2 files |
 | Phase 03-command-routing P04 | 15 | 2 tasks | 4 files |
+| Phase 04-browse P02 | 5 | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -92,6 +93,7 @@ Recent decisions affecting current work:
 - [Phase 04-browse]: resolve_forge_type() in browse module replicates known-host match rather than calling private forge::match_known_host() — avoids making private functions public
 - [Phase 04-browse]: mod browse declared in both lib.rs and main.rs — bin and lib are separate Rust crates sharing source files, matching existing pattern
 - [Phase 04-browse]: normalize_path() passes relative paths through unchanged; strips repo root prefix only for absolute paths — no filesystem validation since paths may only exist on remote
+- [Phase 04-browse]: Browse integration tests go directly GREEN — implementation was complete in plan 01 before tests were written
 
 ### Pending Todos
 
@@ -104,6 +106,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T16:14:28.779Z
-Stopped at: Completed 04-01-PLAN.md
+Last session: 2026-03-16T16:22:35.325Z
+Stopped at: Checkpoint: human-verify gf browse opens browser (04-02 Task 2)
 Resume file: None
