@@ -99,6 +99,9 @@ Plans:
 
 **Plans**: 1 plan
 
+Plans:
+- [ ] 05-01-PLAN.md — Make config_lookup pub, wire into browse::resolve_forge_type, add self-hosted unit tests
+
 ## Progress
 
 **Execution Order:**
