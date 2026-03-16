@@ -22,12 +22,12 @@
 
 ### PR — Pull Request / Merge Request Commands
 
-- [ ] **PR-01**: User can run `gf pr create` (aliases: `gf mr create`, `gf mr c`, `gf pr c`) to create a PR/MR on the detected forge using canonical flags (`--title`, `--body`, `--base`, `--draft`)
-- [ ] **PR-02**: System translates canonical flags to forge-specific equivalents (e.g. `--body` → `--description` for glab, `--base` → `--target-branch` for glab)
-- [ ] **PR-03**: System translates the command group name to the forge's equivalent (e.g. `gf pr` → `glab mr`, `gf pr` → `tea pulls`)
-- [ ] **PR-04**: System passes through unrecognized flags to the underlying CLI unchanged
-- [ ] **PR-05**: User can run `gf pr view [<number>]` (aliases: `gf mr view`, `gf pr v`, `gf mr v`) to view a PR/MR; if on a branch with an open PR, number is optional and defaults to that PR; otherwise number is required
-- [ ] **PR-06**: Fork PR lookup for `gf pr view` (no number): delegates branch-based PR lookup to the underlying CLI, which handles cross-fork PRs natively (documented behavior depends on underlying CLI support)
+- [x] **PR-01**: User can run `gf pr create` (aliases: `gf mr create`, `gf mr c`, `gf pr c`) to create a PR/MR on the detected forge using canonical flags (`--title`, `--body`, `--base`, `--draft`)
+- [x] **PR-02**: System translates canonical flags to forge-specific equivalents (e.g. `--body` → `--description` for glab, `--base` → `--target-branch` for glab)
+- [x] **PR-03**: System translates the command group name to the forge's equivalent (e.g. `gf pr` → `glab mr`, `gf pr` → `tea pulls`)
+- [x] **PR-04**: System passes through unrecognized flags to the underlying CLI unchanged
+- [x] **PR-05**: User can run `gf pr view [<number>]` (aliases: `gf mr view`, `gf pr v`, `gf mr v`) to view a PR/MR; if on a branch with an open PR, number is optional and defaults to that PR; otherwise number is required
+- [x] **PR-06**: Fork PR lookup for `gf pr view` (no number): delegates branch-based PR lookup to the underlying CLI, which handles cross-fork PRs natively (documented behavior depends on underlying CLI support)
 
 ### REPO — Repository Commands
 
@@ -89,12 +89,12 @@
 | CORE-10 | Phase 3 | Complete |
 | CORE-11 | Phase 3 | Complete |
 | CORE-12 | Phase 3 | Complete |
-| PR-01 | Phase 3 | Pending |
-| PR-02 | Phase 3 | Pending |
-| PR-03 | Phase 3 | Pending |
-| PR-04 | Phase 3 | Pending |
-| PR-05 | Phase 3 | Pending |
-| PR-06 | Phase 3 | Pending |
+| PR-01 | Phase 3 | Complete |
+| PR-02 | Phase 3 | Complete |
+| PR-03 | Phase 3 | Complete |
+| PR-04 | Phase 3 | Complete |
+| PR-05 | Phase 3 | Complete |
+| PR-06 | Phase 3 | Complete |
 | REPO-01 | Phase 3 | Complete |
 | REPO-02 | Phase 3 | Complete |
 | REPO-03 | Phase 3 | Complete |

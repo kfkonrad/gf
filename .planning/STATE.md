@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Completed 03-command-routing/03-03-PLAN.md
-last_updated: "2026-03-16T15:05:55.254Z"
+stopped_at: Completed 03-command-routing/03-02-PLAN.md
+last_updated: "2026-03-16T15:06:05.823Z"
 last_activity: 2026-03-16 — Roadmap created
 progress:
   total_phases: 4
@@ -57,6 +57,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 02-forge-detection P03 | 525548 | 2 tasks | 4 files |
 | Phase 03-command-routing P01 | 15 | 3 tasks | 6 files |
 | Phase 03-command-routing P03 | 8 | 2 tasks | 1 files |
+| Phase 03-command-routing P02 | 5 | 1 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -82,6 +83,7 @@ Recent decisions affecting current work:
 - [Phase 03-command-routing]: mr implemented as visible_alias on pr subcommand — clap routes gf mr create to pr handler automatically, no multi-word alias needed
 - [Phase 03-command-routing]: GitLab repo create uses --visibility private/public, not --private/--public (Pitfall 4)
 - [Phase 03-command-routing]: Tea auth uses logins subcommand (logins add/rm/ls) — no auth subcommand in tea CLI
+- [Phase 03-command-routing]: pr view number arg changed from named --number flag to positional arg to match gf pr view 42 syntax
 
 ### Pending Todos
 
@@ -94,6 +96,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T15:05:55.252Z
-Stopped at: Completed 03-command-routing/03-03-PLAN.md
+Last session: 2026-03-16T15:06:05.821Z
+Stopped at: Completed 03-command-routing/03-02-PLAN.md
 Resume file: None
