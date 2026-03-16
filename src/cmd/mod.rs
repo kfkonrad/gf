@@ -29,6 +29,7 @@ pub fn build_cli() -> Command {
         .subcommand(build_repo())
         .subcommand(build_auth())
         .subcommand(build_completions())
+        .subcommand(build_browse())
 }
 
 fn build_pr() -> Command {
@@ -153,6 +154,31 @@ fn build_auth() -> Command {
         )
 }
 
+fn build_browse() -> Command {
+    Command::new("browse")
+        .about("Open repo, branch, or file in browser (alias: b)")
+        .visible_alias("b")  // CORE-08
+        .arg(
+            Arg::new("file")
+                .value_name("FILE")
+                .required(false)
+                .help("File path to open (relative or absolute)"),
+        )
+        .arg(
+            Arg::new("branch")
+                .long("branch")
+                .value_name("BRANCH")
+                .help("Branch to use instead of the current branch"),
+        )
+        .arg(
+            Arg::new("no-browser")
+                .long("no-browser")
+                .short('n')
+                .action(ArgAction::SetTrue)
+                .help("Print URL without opening browser (for scripting/CI)"),
+        )
+}
+
 /// Hidden subcommand: `gf completions --shell <bash|zsh|fish|...>`
 /// Generates shell completion scripts to stdout. CORE-12.
 fn build_completions() -> Command {
@@ -246,6 +272,14 @@ mod tests {
         let fork_cmd = repo_cmd.find_subcommand("fork").expect("fork subcommand exists");
         let aliases: Vec<&str> = fork_cmd.get_visible_aliases().collect();
         assert!(aliases.contains(&"f"), "repo fork should have alias 'f'; got: {aliases:?}");
+    }
+
+    #[test]
+    fn test_browse_has_b_alias() {
+        let cli = build_cli();
+        let browse_cmd = cli.find_subcommand("browse").expect("browse subcommand exists");
+        let aliases: Vec<&str> = browse_cmd.get_visible_aliases().collect();
+        assert!(aliases.contains(&"b"), "browse should have visible alias 'b'; got: {aliases:?}");
     }
 
     /// Verifies that `mr` routes to the same subcommand as `pr` at the top level.

@@ -134,6 +134,47 @@ fn parse_host(url: &str) -> Result<String, GfError> {
     Err(GfError::RemoteUrlUnrecognized(url.to_string()))
 }
 
+/// Parses HTTPS or SCP-style remote URLs into (host, owner, repo).
+/// Strips .git suffix from repo name.
+/// Handles HTTPS with port (e.g., "https://host:8443/owner/repo.git").
+///
+/// Examples:
+///   "https://github.com/alice/myrepo.git" → ("github.com", "alice", "myrepo")
+///   "git@gitlab.com:alice/myrepo.git"     → ("gitlab.com", "alice", "myrepo")
+pub fn parse_remote_parts(url: &str) -> Result<(String, String, String), GfError> {
+    // HTTPS / HTTP path: strip scheme, strip host (first segment), take next two path segments
+    if let Some(rest) = url
+        .strip_prefix("https://")
+        .or_else(|| url.strip_prefix("http://"))
+    {
+        let mut parts = rest.splitn(4, '/');
+        let host_with_port = parts.next().unwrap_or("");
+        let host = host_with_port.split(':').next().unwrap_or("").to_string();
+        let owner = parts.next().unwrap_or("").to_string();
+        let repo_raw = parts.next().unwrap_or("");
+        let repo = repo_raw.strip_suffix(".git").unwrap_or(repo_raw).to_string();
+        if !host.is_empty() && !owner.is_empty() && !repo.is_empty() {
+            return Ok((host, owner, repo));
+        }
+    }
+    // SCP-style: [user@]host:owner/repo.git
+    if let Some(at_pos) = url.find('@') {
+        let after_at = &url[at_pos + 1..];
+        if let Some(colon_pos) = after_at.find(':') {
+            let host = after_at[..colon_pos].to_string();
+            let path = &after_at[colon_pos + 1..];
+            let mut path_parts = path.splitn(2, '/');
+            let owner = path_parts.next().unwrap_or("").to_string();
+            let repo_raw = path_parts.next().unwrap_or("");
+            let repo = repo_raw.strip_suffix(".git").unwrap_or(repo_raw).to_string();
+            if !host.is_empty() && !owner.is_empty() && !repo.is_empty() {
+                return Ok((host, owner, repo));
+            }
+        }
+    }
+    Err(GfError::RemoteUrlUnrecognized(url.to_string()))
+}
+
 /// Checks ~/.config/gf/config.toml for a domain-to-forge mapping.
 /// Returns Ok(None) if config file is absent (not an error).
 fn config_lookup(host: &str) -> Result<Option<ForgeType>, GfError> {
@@ -324,6 +365,46 @@ type = "forgejo"
         assert_eq!(cfg.forge[0].domain, "gitlab.mycompany.com");
         assert_eq!(cfg.forge[0].forge_type, ForgeType::Gitlab);
         assert_eq!(cfg.forge[1].forge_type, ForgeType::Forgejo);
+    }
+
+    // --- parse_remote_parts() tests ---
+
+    #[test]
+    fn test_parse_remote_parts_https_github() {
+        let (host, owner, repo) = parse_remote_parts("https://github.com/alice/myrepo.git").unwrap();
+        assert_eq!(host, "github.com");
+        assert_eq!(owner, "alice");
+        assert_eq!(repo, "myrepo");
+    }
+
+    #[test]
+    fn test_parse_remote_parts_https_no_git_suffix() {
+        let (host, owner, repo) = parse_remote_parts("https://github.com/alice/myrepo").unwrap();
+        assert_eq!(host, "github.com");
+        assert_eq!(owner, "alice");
+        assert_eq!(repo, "myrepo");
+    }
+
+    #[test]
+    fn test_parse_remote_parts_https_with_port() {
+        let (host, owner, repo) = parse_remote_parts("https://git.company.com:8443/org/proj.git").unwrap();
+        assert_eq!(host, "git.company.com");
+        assert_eq!(owner, "org");
+        assert_eq!(repo, "proj");
+    }
+
+    #[test]
+    fn test_parse_remote_parts_scp_ssh() {
+        let (host, owner, repo) = parse_remote_parts("git@gitlab.com:alice/myrepo.git").unwrap();
+        assert_eq!(host, "gitlab.com");
+        assert_eq!(owner, "alice");
+        assert_eq!(repo, "myrepo");
+    }
+
+    #[test]
+    fn test_parse_remote_parts_unrecognized() {
+        let result = parse_remote_parts("not-a-url");
+        assert!(matches!(result, Err(GfError::RemoteUrlUnrecognized(_))));
     }
 
     #[test]

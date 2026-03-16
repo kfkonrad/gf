@@ -35,6 +35,12 @@ pub enum GfError {
 
     #[error("git command failed: {0}")]
     GitCommandFailed(#[from] io::Error),
+
+    #[error("failed to open browser for {0}: {1}")]
+    BrowseFailed(String, #[source] std::io::Error),
+
+    #[error("cannot construct browse URL: {0}")]
+    BrowseUrlConstructionFailed(String),
 }
 
 /// Known forge CLI info for install hints.
