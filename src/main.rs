@@ -1,4 +1,5 @@
 mod adapter;
+mod browse;
 mod cmd;
 mod error;
 mod forge;
@@ -15,6 +16,16 @@ fn main() {
     if let Some(("completions", sub)) = matches.subcommand() {
         let shell = sub.get_one::<Shell>("shell").copied().unwrap_or(Shell::Bash);
         generate(shell, &mut cli_cmd, "gf", &mut std::io::stdout());
+        return;
+    }
+
+    // Handle `gf browse` / `gf b` natively (BROWSE-05).
+    // Browse intercepts early — it does its own git + forge detection internally.
+    if let Some(("browse", sub)) = matches.subcommand() {
+        if let Err(e) = browse::run(sub) {
+            eprintln!("{e}");
+            std::process::exit(1);
+        }
         return;
     }
 
