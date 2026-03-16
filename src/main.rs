@@ -1,3 +1,4 @@
+mod adapter;
 mod cmd;
 mod error;
 mod forge;
