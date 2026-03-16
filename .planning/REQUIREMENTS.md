@@ -9,8 +9,8 @@
 - [ ] **CORE-03**: System detects known public forge hosts: `github.com` (gh), `gitlab.com` (glab), `gitea.com` (tea), `codeberg.org` (fj)
 - [ ] **CORE-04**: System attempts to detect self-hosted forges by probing installed forge CLIs' auth status (e.g. `gh auth status`, `glab auth status`)
 - [ ] **CORE-05**: User can configure domain-to-forge-type mappings in a config file (`~/.config/gf/config.toml`) for forges that cannot be auto-detected
-- [ ] **CORE-06**: System prints a clear error with install hint when the required forge CLI is not on PATH (e.g. "glab not found — install with: brew install glab")
-- [ ] **CORE-07**: System propagates the child CLI's exit code exactly, including signal-terminated processes
+- [x] **CORE-06**: System prints a clear error with install hint when the required forge CLI is not on PATH (e.g. "glab not found — install with: brew install glab")
+- [x] **CORE-07**: System propagates the child CLI's exit code exactly, including signal-terminated processes
 
 ### CORE — Aliases and Abbreviations
 
@@ -77,8 +77,8 @@
 
 | REQ-ID | Phase | Status |
 |--------|-------|--------|
-| CORE-06 | Phase 1 | Pending |
-| CORE-07 | Phase 1 | Pending |
+| CORE-06 | Phase 1 | Complete |
+| CORE-07 | Phase 1 | Complete |
 | CORE-01 | Phase 2 | Pending |
 | CORE-02 | Phase 2 | Pending |
 | CORE-03 | Phase 2 | Pending |

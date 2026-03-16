@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Phase 1 context gathered
-last_updated: "2026-03-16T10:36:59.706Z"
+stopped_at: Completed 01-foundation-01-01-PLAN.md
+last_updated: "2026-03-16T11:06:31.508Z"
 last_activity: 2026-03-16 — Roadmap created
 progress:
   total_phases: 4
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_plans: 2
+  completed_plans: 1
   percent: 0
 ---
 
@@ -50,6 +50,7 @@ Progress: [░░░░░░░░░░] 0%
 - Trend: -
 
 *Updated after each plan completion*
+| Phase 01-foundation P01 | 2 | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -62,6 +63,8 @@ Recent decisions affecting current work:
 - Initialization: Native browse implementation (tea's browse is broken)
 - Initialization: Auth fully delegated (no value in duplicating auth management)
 - Initialization: Normalize known flags, passthrough unknown (canonical UX + escape hatch)
+- [Phase 01-foundation]: Use thiserror for GfError enum to keep error variants match-able in tests and future phases
+- [Phase 01-foundation]: nix dep gated under cfg(windows) only — Unix exec() path needs no signal re-raise
 
 ### Pending Todos
 
@@ -74,6 +77,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T10:36:59.704Z
-Stopped at: Phase 1 context gathered
-Resume file: .planning/phases/01-foundation/01-CONTEXT.md
+Last session: 2026-03-16T11:06:31.506Z
+Stopped at: Completed 01-foundation-01-01-PLAN.md
+Resume file: None
