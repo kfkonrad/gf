@@ -36,23 +36,42 @@ created: 2026-03-16
 
 ## Per-Task Verification Map
 
-| Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
-|---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| 2-01-01 | 01 | 1 | CORE-01 | unit | `cargo test forge::detection::https` | ❌ W0 | ⬜ pending |
-| 2-01-02 | 01 | 1 | CORE-02 | unit | `cargo test forge::detection::ssh` | ❌ W0 | ⬜ pending |
-| 2-01-03 | 01 | 1 | CORE-03 | unit | `cargo test forge::detection::remote_flag` | ❌ W0 | ⬜ pending |
-| 2-01-04 | 01 | 2 | CORE-04 | unit | `cargo test forge::config` | ❌ W0 | ⬜ pending |
-| 2-01-05 | 01 | 2 | CORE-05 | unit | `cargo test forge::detection::error` | ❌ W0 | ⬜ pending |
+All detection code lives in `src/forge/mod.rs`. Test paths use `forge::tests::*`.
+
+| Task ID | Plan | Wave | Requirement | Test Type | Automated Command | Status |
+|---------|------|------|-------------|-----------|-------------------|--------|
+| 2-01-01 | 01 | 1 | CORE-01 | unit (RED) | `cargo test forge::tests::test_parse_host_https_github` | ⬜ pending |
+| 2-01-02 | 01 | 1 | CORE-01 | unit (RED) | `cargo test forge::tests::test_parse_host_ssh_scp` | ⬜ pending |
+| 2-01-03 | 01 | 1 | CORE-02 | unit (RED) | `cargo test forge::tests::test_get_remote_url_invalid_remote` | ⬜ pending |
+| 2-01-04 | 01 | 1 | CORE-03 | unit (RED) | `cargo test forge::tests::test_known_hosts` | ⬜ pending |
+| 2-01-05 | 01 | 1 | CORE-05 | unit (RED) | `cargo test forge::tests::test_config_lookup_with_inline_config` | ⬜ pending |
+| 2-02-01 | 02 | 2 | CORE-01 | unit (GREEN) | `cargo test forge::tests::test_parse_host_https_github` | ⬜ pending |
+| 2-02-02 | 02 | 2 | CORE-01 | unit (GREEN) | `cargo test forge::tests::test_parse_host_ssh_scp` | ⬜ pending |
+| 2-02-03 | 02 | 2 | CORE-02 | unit (GREEN) | `cargo test forge::tests::test_get_remote_url_invalid_remote` | ⬜ pending |
+| 2-02-04 | 02 | 2 | CORE-03 | unit (GREEN) | `cargo test forge::tests::test_known_host_github` | ⬜ pending |
+| 2-03-01 | 03 | 3 | CORE-05 | unit (GREEN) | `cargo test forge::tests::test_config_lookup_with_inline_config` | ⬜ pending |
+| 2-03-02 | 03 | 3 | CORE-01 | integration | `cargo test forge_detection::test_gf_outside_git_repo_shows_error` | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
+
+Note: CORE-04 (auth probing) was dropped per locked user decision in CONTEXT.md — no tasks or tests exist for it.
 
 ---
 
 ## Wave 0 Requirements
 
-- [ ] `src/forge/mod.rs` — test module stubs for all 5 CORE requirements
-- [ ] `src/forge/detection.rs` — unit test stubs for URL parsing (HTTPS + SSH)
-- [ ] `src/forge/config.rs` — unit test stubs for TOML config loading
+Wave 0 is satisfied by plan 01 (stubs + failing tests committed before any implementation):
+
+- [x] `src/forge/mod.rs` — `ForgeType` enum and all function stubs created
+- [x] `src/forge/mod.rs` — `#[cfg(test)] mod tests` with stubs for all CORE requirements:
+  - `test_parse_host_https_github` (CORE-01 HTTPS)
+  - `test_parse_host_ssh_scp` (CORE-01 SSH)
+  - `test_get_remote_url_invalid_remote` (CORE-02)
+  - `test_known_host_github` (CORE-03)
+  - `test_config_lookup_with_inline_config` (CORE-05)
+- [x] All stub tests compile and fail RED before plan 02 runs
+
+Wave 0 gate command: `cargo test forge::tests 2>&1` — compile must succeed, most tests must fail.
 
 ---
 
@@ -60,7 +79,7 @@ created: 2026-03-16
 
 | Behavior | Requirement | Why Manual | Test Instructions |
 |----------|-------------|------------|-------------------|
-| Self-hosted domain config roundtrip | CORE-04 | Requires actual `~/.config/gf/config.toml` on disk | Add entry, run `gf detect` in a repo with matching remote, verify correct forge type returned |
+| Self-hosted domain roundtrip via real config file on disk | CORE-05 | Requires actual `~/.config/gf/config.toml` | Add entry, run `gf` in a repo with matching remote, verify correct forge type returned |
 
 ---
 
