@@ -43,11 +43,11 @@
 
 ### BROWSE — Native Browser Open
 
-- [ ] **BROWSE-01**: User can run `gf browse` (aliases: `gf b`) to open the current repo in the browser at the correct forge URL
-- [ ] **BROWSE-02**: `gf browse` uses the current branch by default; falls back to HEAD commit SHA if branch is detached
-- [ ] **BROWSE-03**: User can run `gf browse <file>` to open a specific file in the browser at the forge's file view URL
-- [ ] **BROWSE-04**: User can specify `--branch <name>` to override the detected branch when browsing
-- [ ] **BROWSE-05**: Browse URL construction is implemented natively (not delegated to underlying CLIs)
+- [x] **BROWSE-01**: User can run `gf browse` (aliases: `gf b`) to open the current repo in the browser at the correct forge URL
+- [x] **BROWSE-02**: `gf browse` uses the current branch by default; falls back to HEAD commit SHA if branch is detached
+- [x] **BROWSE-03**: User can run `gf browse <file>` to open a specific file in the browser at the forge's file view URL
+- [x] **BROWSE-04**: User can specify `--branch <name>` to override the detected branch when browsing
+- [x] **BROWSE-05**: Browse URL construction is implemented natively (not delegated to underlying CLIs)
 
 ---
 
@@ -101,11 +101,11 @@
 | AUTH-01 | Phase 3 | Complete |
 | AUTH-02 | Phase 3 | Complete |
 | AUTH-03 | Phase 3 | Complete |
-| BROWSE-01 | Phase 4 | Pending |
-| BROWSE-02 | Phase 4 | Pending |
-| BROWSE-03 | Phase 4 | Pending |
-| BROWSE-04 | Phase 4 | Pending |
-| BROWSE-05 | Phase 4 | Pending |
+| BROWSE-01 | Phase 4 | Complete |
+| BROWSE-02 | Phase 4 | Complete |
+| BROWSE-03 | Phase 4 | Complete |
+| BROWSE-04 | Phase 4 | Complete |
+| BROWSE-05 | Phase 4 | Complete |
 
 ---
 *Last updated: 2026-03-16 after roadmap creation*

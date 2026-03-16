@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Phase 4 context gathered
-last_updated: "2026-03-16T15:40:31.411Z"
+stopped_at: Completed 04-01-PLAN.md
+last_updated: "2026-03-16T16:14:33.185Z"
 last_activity: 2026-03-16 — Roadmap created
 progress:
   total_phases: 4
   completed_phases: 3
-  total_plans: 9
-  completed_plans: 9
+  total_plans: 11
+  completed_plans: 10
   percent: 0
 ---
 
@@ -89,6 +89,9 @@ Recent decisions affecting current work:
 - [Phase 03-command-routing]: Integration tests updated from pr list to pr view since clap validates subcommands before forge detection
 - [Phase 03-command-routing]: clap-based main() wired with clone before get_matches() to preserve cli_cmd for completions generation
 - [Phase 03-command-routing]: Integration tests updated from pr list to pr view since clap validates subcommands before forge detection
+- [Phase 04-browse]: resolve_forge_type() in browse module replicates known-host match rather than calling private forge::match_known_host() — avoids making private functions public
+- [Phase 04-browse]: mod browse declared in both lib.rs and main.rs — bin and lib are separate Rust crates sharing source files, matching existing pattern
+- [Phase 04-browse]: normalize_path() passes relative paths through unchanged; strips repo root prefix only for absolute paths — no filesystem validation since paths may only exist on remote
 
 ### Pending Todos
 
@@ -101,6 +104,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T15:40:31.402Z
-Stopped at: Phase 4 context gathered
-Resume file: .planning/phases/04-browse/04-CONTEXT.md
+Last session: 2026-03-16T16:14:28.779Z
+Stopped at: Completed 04-01-PLAN.md
+Resume file: None
