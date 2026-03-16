@@ -61,7 +61,13 @@ Plans:
   3. `gf repo view`, `gf repo create`, and `gf repo fork` each delegate to the correct underlying CLI for the detected forge
   4. `gf auth login`, `gf auth logout`, and `gf auth status` each delegate to the correct underlying CLI for the detected forge
   5. `gf p c`, `gf mr create`, `gf r v`, `gf a s` and all other defined aliases and abbreviations resolve to the same underlying command as their full forms, and appear in `--help` and shell completion output
-**Plans**: TBD
+**Plans**: 4 plans
+
+Plans:
+- [ ] 03-01-PLAN.md — Add clap 4 deps, build full CLI tree with all aliases, create adapter module skeleton
+- [ ] 03-02-PLAN.md — Implement PR flag and subcommand translation for all four forges
+- [ ] 03-03-PLAN.md — Implement Repo and Auth translation (visibility flags, tea/fj subcommand remaps)
+- [ ] 03-04-PLAN.md — Wire main.rs to clap + adapter, integration alias tests, shell completions
 
 ### Phase 4: Browse
 **Goal**: Users can open any repo, branch, or file in their browser from the terminal using `gf browse`, natively and correctly across all four forges
