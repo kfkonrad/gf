@@ -35,20 +35,20 @@ patterns-established:
 
 requirements-completed: [BROWSE-01, BROWSE-02, BROWSE-03, BROWSE-04, BROWSE-05]
 
-duration: 5min
+duration: 10min
 completed: 2026-03-16
 ---
 
 # Phase 4 Plan 2: Browse Integration Tests Summary
 
-**5 headless-safe integration tests for `gf browse --no-browser` using PATH isolation to prove no forge CLI subprocess is spawned (BROWSE-01 through BROWSE-05)**
+**5 headless-safe integration tests for `gf browse --no-browser` using PATH isolation to prove no forge CLI subprocess is spawned, human-verified that browser opens correctly (BROWSE-01 through BROWSE-05)**
 
 ## Performance
 
-- **Duration:** ~5 min
+- **Duration:** ~10 min
 - **Started:** 2026-03-16T17:00:00Z
-- **Completed:** 2026-03-16T17:05:00Z
-- **Tasks:** 1 (+ human-verify checkpoint pending)
+- **Completed:** 2026-03-16T17:10:00Z
+- **Tasks:** 2 (1 auto + 1 human-verify checkpoint, approved)
 - **Files modified:** 1
 
 ## Accomplishments
@@ -56,10 +56,14 @@ completed: 2026-03-16
 - PATH isolation via `make_git_only_bin_dir()` proves BROWSE-05: if any forge CLI were invoked the tests would fail
 - `setup_gitlab_repo()` helper added for GitLab URL format coverage
 - Full suite: 96 unit + 25 integration tests all GREEN
+- Human verified `gf browse` opens the default browser to the correct repo page in a real terminal
 
 ## Task Commits
 
 1. **Task 1: Add browse integration tests** - `d802bbe` (test)
+2. **Task 2: Human-verify checkpoint** - approved (no code commit)
+
+**Plan metadata:** `984fcf1` (docs: complete browse integration tests plan)
 
 ## Files Created/Modified
 - `tests/integration_test.rs` - Added `setup_gitlab_repo()` and 5 browse test functions
@@ -77,7 +81,8 @@ None.
 
 ## Next Phase Readiness
 - All BROWSE-01 through BROWSE-05 requirements are implemented and integration-tested
-- Human verification of browser-open behavior (checkpoint) is the only remaining step
+- Human confirmed browser-open behavior works correctly in a real terminal
+- Phase 4 browse domain fully complete
 
 ---
 *Phase: 04-browse*
