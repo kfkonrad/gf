@@ -4,32 +4,28 @@ mod error;
 mod forge;
 mod runner;
 
-fn main() {
-    let args: Vec<String> = std::env::args().skip(1).collect();
+use clap_complete::{generate, Shell};
 
-    // Parse --remote <name> flag before remaining args.
-    // Simple hand-rolled parse — clap arrives in Phase 3 and will supersede this.
-    // If multiple --remote flags appear, last one wins.
-    let mut remote = "origin".to_string();
-    let mut remaining: Vec<&str> = Vec::new();
-    let mut i = 0;
-    while i < args.len() {
-        if args[i] == "--remote" {
-            if i + 1 < args.len() {
-                remote = args[i + 1].clone();
-                i += 2; // skip both --remote and the name
-            } else {
-                eprintln!("--remote requires a value");
-                std::process::exit(1);
-            }
-        } else {
-            remaining.push(args[i].as_str());
-            i += 1;
-        }
+fn main() {
+    let mut cli_cmd = cmd::build_cli();
+    let matches = cli_cmd.clone().get_matches();
+
+    // Handle the hidden `gf completions --shell <shell>` subcommand (CORE-12).
+    // Must be handled before forge detection — completions don't need a git repo.
+    if let Some(("completions", sub)) = matches.subcommand() {
+        let shell = sub.get_one::<Shell>("shell").copied().unwrap_or(Shell::Bash);
+        generate(shell, &mut cli_cmd, "gf", &mut std::io::stdout());
+        return;
     }
 
-    // Phase 2: Detect the forge from the git remote URL.
-    let forge_type = match forge::detect(&remote) {
+    // Extract --remote (global flag, defaults to "origin")
+    let remote = matches
+        .get_one::<String>("remote")
+        .map(|s| s.as_str())
+        .unwrap_or("origin");
+
+    // Detect the forge from the git remote URL (Phase 2)
+    let forge_type = match forge::detect(remote) {
         Ok(f) => f,
         Err(e) => {
             eprintln!("{e}");
@@ -37,9 +33,14 @@ fn main() {
         }
     };
 
-    let cli = forge_type.cli_name();
+    // Translate canonical gf args → forge-specific args (Phase 3)
+    let translated: Vec<String> = adapter::translate(forge_type, &matches);
 
-    if let Err(e) = runner::run(cli, &remaining) {
+    // runner::run takes &[&str] — convert Vec<String> to temporary &[&str]
+    let args_refs: Vec<&str> = translated.iter().map(|s| s.as_str()).collect();
+
+    // Exec the forge CLI (replaces current process on Unix)
+    if let Err(e) = runner::run(forge_type.cli_name(), &args_refs) {
         eprintln!("{e}");
         std::process::exit(1);
     }
