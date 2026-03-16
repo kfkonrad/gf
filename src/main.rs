@@ -1,3 +1,4 @@
+mod cmd;
 mod error;
 mod forge;
 mod runner;
