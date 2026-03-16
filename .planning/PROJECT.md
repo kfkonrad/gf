@@ -1,12 +1,12 @@
-# forge
+# gf (git forge)
 
 ## What This Is
 
-`forge` is a Rust CLI that wraps `gh`, `glab`, `tea`, and `fj` to provide a unified command interface across all major git forges. It auto-detects which forge you're on from the git remote and delegates to the appropriate CLI transparently — so `forge pr create` just works, whether you're on GitHub, GitLab, Gitea, or Forgejo.
+`gf` is a Rust CLI that wraps `gh`, `glab`, `tea`, and `fj` to provide a unified command interface across all major git forges. It auto-detects which forge you're on from the git remote and delegates to the appropriate CLI transparently — so `gf pr create` just works, whether you're on GitHub, GitLab, Gitea, or Forgejo.
 
 ## Core Value
 
-One command syntax that works on any forge, with zero knowledge of which forge you're on.
+One `gf` command syntax that works on any forge, with zero knowledge of which forge you're on.
 
 ## Requirements
 
