@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: "Completed 03-command-routing/03-04-PLAN.md (checkpoint:human-verify pending Task 3)"
-last_updated: "2026-03-16T15:10:22.298Z"
+stopped_at: Completed 03-command-routing/03-04-PLAN.md
+last_updated: "2026-03-16T15:21:43.639Z"
 last_activity: 2026-03-16 — Roadmap created
 progress:
   total_phases: 4
@@ -87,6 +87,8 @@ Recent decisions affecting current work:
 - [Phase 03-command-routing]: pr view number arg changed from named --number flag to positional arg to match gf pr view 42 syntax
 - [Phase 03-command-routing]: clap-based main() wired with clone before get_matches() to preserve cli_cmd for completions generation
 - [Phase 03-command-routing]: Integration tests updated from pr list to pr view since clap validates subcommands before forge detection
+- [Phase 03-command-routing]: clap-based main() wired with clone before get_matches() to preserve cli_cmd for completions generation
+- [Phase 03-command-routing]: Integration tests updated from pr list to pr view since clap validates subcommands before forge detection
 
 ### Pending Todos
 
@@ -99,6 +101,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T15:10:22.296Z
-Stopped at: Completed 03-command-routing/03-04-PLAN.md (checkpoint:human-verify pending Task 3)
+Last session: 2026-03-16T15:21:39.493Z
+Stopped at: Completed 03-command-routing/03-04-PLAN.md
 Resume file: None
