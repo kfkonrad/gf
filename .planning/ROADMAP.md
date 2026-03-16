@@ -13,7 +13,7 @@
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation** - Subprocess delegation, error types, and CLI presence detection (completed 2026-03-16)
-- [ ] **Phase 2: Forge Detection** - Auto-detect forge from git remote with full edge case coverage
+- [x] **Phase 2: Forge Detection** - Auto-detect forge from git remote with full edge case coverage (completed 2026-03-16)
 - [ ] **Phase 3: Command Routing** - ForgeAdapter trait, flag normalization, PR / repo / auth commands, aliases
 - [ ] **Phase 4: Browse** - Native URL construction and browser open for all four forges
 
@@ -83,6 +83,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 2/2 | Complete   | 2026-03-16 |
-| 2. Forge Detection | 2/3 | In Progress|  |
+| 2. Forge Detection | 3/3 | Complete   | 2026-03-16 |
 | 3. Command Routing | 0/TBD | Not started | - |
 | 4. Browse | 0/TBD | Not started | - |
