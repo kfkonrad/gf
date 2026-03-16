@@ -79,7 +79,11 @@ Plans:
   3. `gf browse path/to/file.rs` opens the file's view URL on the correct forge
   4. `gf browse --branch main` opens the repo at the `main` branch regardless of which branch is checked out
   5. Browse URLs are constructed locally — no delegation to `gh browse`, `glab browse`, or `tea browse`
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 04-01-PLAN.md — webbrowser dep, GfError variants, parse_remote_parts(), build_browse() CLI, full browse module with unit tests
+- [ ] 04-02-PLAN.md — Browse integration tests and human-verify checkpoint
 
 ## Progress
 
@@ -91,4 +95,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 1. Foundation | 2/2 | Complete   | 2026-03-16 |
 | 2. Forge Detection | 3/3 | Complete   | 2026-03-16 |
 | 3. Command Routing | 4/4 | Complete   | 2026-03-16 |
-| 4. Browse | 0/TBD | Not started | - |
+| 4. Browse | 0/2 | Not started | - |
