@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Phase 3 context gathered
-last_updated: "2026-03-16T14:33:19.750Z"
+stopped_at: Completed 03-command-routing/03-01-PLAN.md
+last_updated: "2026-03-16T15:03:01.140Z"
 last_activity: 2026-03-16 — Roadmap created
 progress:
   total_phases: 4
   completed_phases: 2
-  total_plans: 5
-  completed_plans: 5
+  total_plans: 9
+  completed_plans: 6
   percent: 0
 ---
 
@@ -55,6 +55,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 02-forge-detection P01 | 8 | 2 tasks | 3 files |
 | Phase 02-forge-detection P02 | 2 | 2 tasks | 2 files |
 | Phase 02-forge-detection P03 | 525548 | 2 tasks | 4 files |
+| Phase 03-command-routing P01 | 15 | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -76,6 +77,8 @@ Recent decisions affecting current work:
 - [Phase 02-forge-detection]: Integration test test_gf_outside_git_repo_shows_error intentionally RED — main.rs wiring deferred to plan 03
 - [Phase 02-forge-detection]: toml 0.8 used instead of 1.0 — 1.x does not exist on crates.io; 0.8 is current stable with identical API
 - [Phase 02-forge-detection]: Integration tests rewritten with temp git repos + isolated PATH bin dirs to survive Phase 2 forge-detection-first interface change
+- [Phase 03-command-routing]: clap builder API (not derive) used for CLI tree — gives precise control over visible_alias placement for mr/pr routing
+- [Phase 03-command-routing]: mr implemented as visible_alias on pr subcommand — clap routes gf mr create to pr handler automatically, no multi-word alias needed
 
 ### Pending Todos
 
@@ -88,6 +91,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T14:33:19.744Z
-Stopped at: Phase 3 context gathered
-Resume file: .planning/phases/03-command-routing/03-CONTEXT.md
+Last session: 2026-03-16T15:03:01.137Z
+Stopped at: Completed 03-command-routing/03-01-PLAN.md
+Resume file: None
