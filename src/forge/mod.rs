@@ -51,9 +51,26 @@ fn get_remote_url(remote: &str) -> Result<String, GfError> {
 /// Extracts the hostname from HTTPS or SCP-style git remote URLs.
 /// Strips port numbers from HTTPS hostnames (e.g., "host:8443" → "host").
 fn parse_host(url: &str) -> Result<String, GfError> {
-    // TODO: implement in plan 02
-    let _ = url;
-    Err(GfError::RemoteUrlUnrecognized("stub".to_string()))
+    // HTTPS / HTTP: https://github.com/owner/repo.git
+    // Also covers http:// (uncommon but valid)
+    if let Some(rest) = url.strip_prefix("https://").or_else(|| url.strip_prefix("http://")) {
+        let host_with_possible_port = rest.split('/').next().unwrap_or("");
+        // Strip port: "git.company.com:8443" -> "git.company.com"
+        let host = host_with_possible_port.split(':').next().unwrap_or("");
+        if !host.is_empty() {
+            return Ok(host.to_string());
+        }
+    }
+    // SCP-style: git@github.com:owner/repo.git
+    // Format: [user@]host:path — find '@', take everything after until ':'
+    if let Some(at_pos) = url.find('@') {
+        let after_at = &url[at_pos + 1..];
+        let host = after_at.split(':').next().unwrap_or("");
+        if !host.is_empty() {
+            return Ok(host.to_string());
+        }
+    }
+    Err(GfError::RemoteUrlUnrecognized(url.to_string()))
 }
 
 /// Checks ~/.config/gf/config.toml for a domain-to-forge mapping.
@@ -66,11 +83,13 @@ fn config_lookup(host: &str) -> Result<Option<ForgeType>, GfError> {
 
 /// Matches a hostname against the four built-in public forge entries.
 fn match_known_host(host: &str) -> Result<ForgeType, GfError> {
-    // TODO: implement in plan 02
-    let _ = host;
-    Err(GfError::ForgeNotDetected {
-        domain: host.to_string(),
-    })
+    match host {
+        "github.com"   => Ok(ForgeType::Github),
+        "gitlab.com"   => Ok(ForgeType::Gitlab),
+        "gitea.com"    => Ok(ForgeType::Gitea),
+        "codeberg.org" => Ok(ForgeType::Forgejo),
+        other          => Err(GfError::ForgeNotDetected { domain: other.to_string() }),
+    }
 }
 
 #[cfg(test)]
