@@ -1,10 +1,11 @@
 ---
 phase: 2
 slug: forge-detection
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: complete
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-03-16
+audited: 2026-03-16
 ---
 
 # Phase 2 — Validation Strategy
@@ -40,17 +41,17 @@ All detection code lives in `src/forge/mod.rs`. Test paths use `forge::tests::*`
 
 | Task ID | Plan | Wave | Requirement | Test Type | Automated Command | Status |
 |---------|------|------|-------------|-----------|-------------------|--------|
-| 2-01-01 | 01 | 1 | CORE-01 | unit (RED) | `cargo test forge::tests::test_parse_host_https_github` | ⬜ pending |
-| 2-01-02 | 01 | 1 | CORE-01 | unit (RED) | `cargo test forge::tests::test_parse_host_ssh_scp` | ⬜ pending |
-| 2-01-03 | 01 | 1 | CORE-02 | unit (RED) | `cargo test forge::tests::test_get_remote_url_invalid_remote` | ⬜ pending |
-| 2-01-04 | 01 | 1 | CORE-03 | unit (RED) | `cargo test forge::tests::test_known_hosts` | ⬜ pending |
-| 2-01-05 | 01 | 1 | CORE-05 | unit (RED) | `cargo test forge::tests::test_config_lookup_with_inline_config` | ⬜ pending |
-| 2-02-01 | 02 | 2 | CORE-01 | unit (GREEN) | `cargo test forge::tests::test_parse_host_https_github` | ⬜ pending |
-| 2-02-02 | 02 | 2 | CORE-01 | unit (GREEN) | `cargo test forge::tests::test_parse_host_ssh_scp` | ⬜ pending |
-| 2-02-03 | 02 | 2 | CORE-02 | unit (GREEN) | `cargo test forge::tests::test_get_remote_url_invalid_remote` | ⬜ pending |
-| 2-02-04 | 02 | 2 | CORE-03 | unit (GREEN) | `cargo test forge::tests::test_known_host_github` | ⬜ pending |
-| 2-03-01 | 03 | 3 | CORE-05 | unit (GREEN) | `cargo test forge::tests::test_config_lookup_with_inline_config` | ⬜ pending |
-| 2-03-02 | 03 | 3 | CORE-01 | integration | `cargo test forge_detection::test_gf_outside_git_repo_shows_error` | ⬜ pending |
+| 2-01-01 | 01 | 1 | CORE-01 | unit (RED) | `cargo test forge::tests::test_parse_host_https_github` | ✅ green |
+| 2-01-02 | 01 | 1 | CORE-01 | unit (RED) | `cargo test forge::tests::test_parse_host_ssh_scp` | ✅ green |
+| 2-01-03 | 01 | 1 | CORE-02 | unit (RED) | `cargo test forge::tests::test_get_remote_url_invalid_remote` | ✅ green |
+| 2-01-04 | 01 | 1 | CORE-03 | unit (RED) | `cargo test forge::tests::test_known_hosts` | ✅ green |
+| 2-01-05 | 01 | 1 | CORE-05 | unit (RED) | `cargo test forge::tests::test_config_lookup_with_inline_config` | ✅ green |
+| 2-02-01 | 02 | 2 | CORE-01 | unit (GREEN) | `cargo test forge::tests::test_parse_host_https_github` | ✅ green |
+| 2-02-02 | 02 | 2 | CORE-01 | unit (GREEN) | `cargo test forge::tests::test_parse_host_ssh_scp` | ✅ green |
+| 2-02-03 | 02 | 2 | CORE-02 | unit (GREEN) | `cargo test forge::tests::test_get_remote_url_invalid_remote` | ✅ green |
+| 2-02-04 | 02 | 2 | CORE-03 | unit (GREEN) | `cargo test forge::tests::test_known_host_github` | ✅ green |
+| 2-03-01 | 03 | 3 | CORE-05 | unit (GREEN) | `cargo test forge::tests::test_config_lookup_with_inline_config` | ✅ green |
+| 2-03-02 | 03 | 3 | CORE-01 | integration | `cargo test forge_detection::test_gf_outside_git_repo_shows_error` | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -85,11 +86,23 @@ Wave 0 gate command: `cargo test forge::tests 2>&1` — compile must succeed, mo
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 10s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 10s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** 2026-03-16 (retroactive audit — all 11 tasks green, 32 unit tests + 2 integration tests pass)
+
+---
+
+## Validation Audit 2026-03-16
+
+| Metric | Count |
+|--------|-------|
+| Gaps found | 0 |
+| Resolved | 0 |
+| Escalated | 0 |
+| Tasks updated to green | 11 |
+| Tests passing | 34 (32 unit + 2 integration) |
