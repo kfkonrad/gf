@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: "Checkpoint: Task 3 TTY/signal human-verify for 01-02"
-last_updated: "2026-03-16T11:10:37.396Z"
+stopped_at: Completed 01-02-PLAN.md
+last_updated: "2026-03-16T12:09:14.244Z"
 last_activity: 2026-03-16 — Roadmap created
 progress:
   total_phases: 4
@@ -67,6 +67,7 @@ Recent decisions affecting current work:
 - [Phase 01-foundation]: Use thiserror for GfError enum to keep error variants match-able in tests and future phases
 - [Phase 01-foundation]: nix dep gated under cfg(windows) only — Unix exec() path needs no signal re-raise
 - [Phase 01-foundation]: CliInfo.brew_name uses String not static str to handle unknown CLI names
+- [Phase 01-foundation]: TTY inheritance and signal re-raise (exit 130) confirmed in real terminal via human verification
 
 ### Pending Todos
 
@@ -79,6 +80,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T11:10:37.394Z
-Stopped at: Checkpoint: Task 3 TTY/signal human-verify for 01-02
+Last session: 2026-03-16T12:09:10.380Z
+Stopped at: Completed 01-02-PLAN.md
 Resume file: None
