@@ -44,7 +44,12 @@ Plans:
   3. `gf <command> --remote upstream` uses the `upstream` remote instead of `origin` for forge detection
   4. A domain-to-forge mapping in `~/.config/gf/config.toml` allows a user on a self-hosted Forgejo instance to have `gf` correctly route commands after adding that domain
   5. When detection fails and no config override exists, `gf` prints a clear error explaining that the forge could not be detected and how to configure it
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 02-01-PLAN.md — GfError variants, ForgeType enum, forge module skeleton with failing test stubs (Wave 0)
+- [ ] 02-02-PLAN.md — Implement get_remote_url, parse_host, match_known_host (CORE-01/02/03)
+- [ ] 02-03-PLAN.md — Implement config_lookup with TOML parsing, wire forge::detect into main.rs (CORE-05)
 
 ### Phase 3: Command Routing
 **Goal**: Users can run `gf pr`, `gf repo`, and `gf auth` commands on any supported forge with canonical flags, and all aliases resolve correctly
@@ -78,6 +83,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 2/2 | Complete   | 2026-03-16 |
-| 2. Forge Detection | 0/TBD | Not started | - |
+| 2. Forge Detection | 0/3 | Not started | - |
 | 3. Command Routing | 0/TBD | Not started | - |
 | 4. Browse | 0/TBD | Not started | - |
