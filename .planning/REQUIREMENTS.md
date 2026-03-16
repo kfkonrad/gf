@@ -82,7 +82,7 @@
 | CORE-01 | Phase 2 | Complete |
 | CORE-02 | Phase 2 | Complete |
 | CORE-03 | Phase 2 | Complete |
-| CORE-04 | Phase 2 | Pending |
+| CORE-04 | Deferred | Deferred |
 | CORE-05 | Phase 2 | Complete |
 | CORE-08 | Phase 3 | Pending |
 | CORE-09 | Phase 3 | Pending |
