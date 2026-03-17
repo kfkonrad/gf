@@ -372,3 +372,403 @@ audit_test!(audit_glab_auth_login_hostname,  cli: "glab", args: ["auth", "login"
 // --- Auth: tea logins add flags ---
 audit_test!(audit_tea_logins_add_url,    cli: "tea",  args: ["logins", "add"],  contains: "--url");
 audit_test!(audit_tea_logins_add_token,  cli: "tea",  args: ["logins", "add"],  contains: "--token");
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// v11_translation_test! — like translation_test! but #[ignore]d until Phase 8
+// ═══════════════════════════════════════════════════════════════════════════════
+
+macro_rules! v11_translation_test {
+    ($name:ident, input: [$($arg:expr),+ $(,)?], forge: $forge:expr, expected: [$($exp:expr),+ $(,)?]) => {
+        #[test]
+        #[ignore] // Phase 8: remove #[ignore] when adapter is implemented
+        fn $name() {
+            let matches = gf::cmd::build_cli()
+                .try_get_matches_from([$($arg),+])
+                .unwrap_or_else(|e| panic!("clap parse failed: {e}"));
+            let result = gf::adapter::translate($forge, &matches);
+            let expected: Vec<String> = vec![$($exp.to_string()),+];
+            assert_eq!(result, expected, "forge={:?}", $forge);
+        }
+    };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// v1.1 Pre-Mapped Translations — PR list/merge/checkout/review, issue, repo clone
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// These entries document the canonical-to-forge translation BEFORE Phase 8
+// writes the adapter code. All are #[ignore]d and will fail until Phase 8
+// implements both the CLI subcommands and the adapter translation logic.
+// Run with: cargo test -- --ignored
+
+// ── PR LIST (PR-01): gf pr list → gh pr list / glab mr list / tea pulls list / fj pr search ──
+
+v11_translation_test!(v11_pr_list_github_state,
+    input: ["gf", "pr", "list", "--state", "closed"],
+    forge: ForgeType::Github,
+    expected: ["pr", "list", "--state", "closed"]
+);
+
+v11_translation_test!(v11_pr_list_glab_state_closed,
+    input: ["gf", "pr", "list", "--state", "closed"],
+    forge: ForgeType::Gitlab,
+    expected: ["mr", "list", "--closed"]
+);
+
+v11_translation_test!(v11_pr_list_glab_state_merged,
+    input: ["gf", "pr", "list", "--state", "merged"],
+    forge: ForgeType::Gitlab,
+    expected: ["mr", "list", "--merged"]
+);
+
+v11_translation_test!(v11_pr_list_glab_state_all,
+    input: ["gf", "pr", "list", "--state", "all"],
+    forge: ForgeType::Gitlab,
+    expected: ["mr", "list", "--all"]
+);
+
+v11_translation_test!(v11_pr_list_tea_state,
+    input: ["gf", "pr", "list", "--state", "closed"],
+    forge: ForgeType::Gitea,
+    expected: ["pulls", "list", "--state", "closed"]
+);
+
+v11_translation_test!(v11_pr_list_fj_state,
+    input: ["gf", "pr", "list", "--state", "closed"],
+    forge: ForgeType::Forgejo,
+    expected: ["pr", "search", "--state", "closed"]
+);
+
+v11_translation_test!(v11_pr_list_github_author,
+    input: ["gf", "pr", "list", "--author", "alice"],
+    forge: ForgeType::Github,
+    expected: ["pr", "list", "--author", "alice"]
+);
+
+v11_translation_test!(v11_pr_list_glab_author,
+    input: ["gf", "pr", "list", "--author", "alice"],
+    forge: ForgeType::Gitlab,
+    expected: ["mr", "list", "--author", "alice"]
+);
+
+// tea pr list --author: UNSUPPORTED (tea pulls list has no --author flag)
+
+v11_translation_test!(v11_pr_list_fj_author,
+    input: ["gf", "pr", "list", "--author", "alice"],
+    forge: ForgeType::Forgejo,
+    expected: ["pr", "search", "--creator", "alice"]
+);
+
+v11_translation_test!(v11_pr_list_github_label,
+    input: ["gf", "pr", "list", "--label", "bug"],
+    forge: ForgeType::Github,
+    expected: ["pr", "list", "--label", "bug"]
+);
+
+v11_translation_test!(v11_pr_list_glab_label,
+    input: ["gf", "pr", "list", "--label", "bug"],
+    forge: ForgeType::Gitlab,
+    expected: ["mr", "list", "--label", "bug"]
+);
+
+// tea pr list --label: UNSUPPORTED (tea pulls list has no --label flag)
+
+v11_translation_test!(v11_pr_list_fj_label,
+    input: ["gf", "pr", "list", "--label", "bug"],
+    forge: ForgeType::Forgejo,
+    expected: ["pr", "search", "--labels", "bug"]
+);
+
+// ── PR MERGE (PR-02): gf pr merge → gh pr merge / glab mr merge / tea pulls merge / fj pr merge ──
+
+v11_translation_test!(v11_pr_merge_github_squash,
+    input: ["gf", "pr", "merge", "--squash"],
+    forge: ForgeType::Github,
+    expected: ["pr", "merge", "--squash"]
+);
+
+v11_translation_test!(v11_pr_merge_glab_squash,
+    input: ["gf", "pr", "merge", "--squash"],
+    forge: ForgeType::Gitlab,
+    expected: ["mr", "merge", "--squash"]
+);
+
+v11_translation_test!(v11_pr_merge_tea_squash,
+    input: ["gf", "pr", "merge", "--squash"],
+    forge: ForgeType::Gitea,
+    expected: ["pulls", "merge", "--style", "squash"]
+);
+
+v11_translation_test!(v11_pr_merge_fj_squash,
+    input: ["gf", "pr", "merge", "--squash"],
+    forge: ForgeType::Forgejo,
+    expected: ["pr", "merge", "--method", "squash"]
+);
+
+v11_translation_test!(v11_pr_merge_tea_rebase,
+    input: ["gf", "pr", "merge", "--rebase"],
+    forge: ForgeType::Gitea,
+    expected: ["pulls", "merge", "--style", "rebase"]
+);
+
+v11_translation_test!(v11_pr_merge_fj_rebase,
+    input: ["gf", "pr", "merge", "--rebase"],
+    forge: ForgeType::Forgejo,
+    expected: ["pr", "merge", "--method", "rebase"]
+);
+
+v11_translation_test!(v11_pr_merge_glab_merge_default,
+    input: ["gf", "pr", "merge", "--merge"],
+    forge: ForgeType::Gitlab,
+    expected: ["mr", "merge"]
+);
+// --merge is glab's default strategy, no flag needed
+
+// ── PR CHECKOUT (PR-03): gf pr checkout → gh pr checkout / glab mr checkout / tea pulls checkout / fj pr checkout ──
+
+v11_translation_test!(v11_pr_checkout_github,
+    input: ["gf", "pr", "checkout", "42"],
+    forge: ForgeType::Github,
+    expected: ["pr", "checkout", "42"]
+);
+
+v11_translation_test!(v11_pr_checkout_glab,
+    input: ["gf", "pr", "checkout", "42"],
+    forge: ForgeType::Gitlab,
+    expected: ["mr", "checkout", "42"]
+);
+
+v11_translation_test!(v11_pr_checkout_tea,
+    input: ["gf", "pr", "checkout", "42"],
+    forge: ForgeType::Gitea,
+    expected: ["pulls", "checkout", "42"]
+);
+
+v11_translation_test!(v11_pr_checkout_fj,
+    input: ["gf", "pr", "checkout", "42"],
+    forge: ForgeType::Forgejo,
+    expected: ["pr", "checkout", "42"]
+);
+
+// ── PR REVIEW (PR-04, PR-05): gf pr review → gh pr review / glab mr comment|approve / fj pr comment ──
+
+v11_translation_test!(v11_pr_review_comment_github,
+    input: ["gf", "pr", "review", "42", "--comment", "--body", "looks good"],
+    forge: ForgeType::Github,
+    expected: ["pr", "review", "42", "--comment", "--body", "looks good"]
+);
+
+v11_translation_test!(v11_pr_review_comment_glab,
+    input: ["gf", "pr", "review", "42", "--comment", "--body", "looks good"],
+    forge: ForgeType::Gitlab,
+    expected: ["mr", "comment", "42", "--message", "looks good"]
+);
+// glab uses separate subcommand: `glab mr comment <N> --message <text>`
+
+// tea pr review --comment: UNSUPPORTED (tea has no pulls review subcommand)
+
+v11_translation_test!(v11_pr_review_comment_fj,
+    input: ["gf", "pr", "review", "42", "--comment", "--body", "looks good"],
+    forge: ForgeType::Forgejo,
+    expected: ["pr", "comment", "42", "looks good"]
+);
+// fj uses positional body: `fj pr comment <N> <body>`
+
+v11_translation_test!(v11_pr_review_approve_github,
+    input: ["gf", "pr", "review", "42", "--approve"],
+    forge: ForgeType::Github,
+    expected: ["pr", "review", "42", "--approve"]
+);
+
+v11_translation_test!(v11_pr_review_approve_glab,
+    input: ["gf", "pr", "review", "42", "--approve"],
+    forge: ForgeType::Gitlab,
+    expected: ["mr", "approve", "42"]
+);
+// glab uses separate subcommand: `glab mr approve <N>`
+
+// tea pr review --approve: UNSUPPORTED (tea has no pulls review/approve)
+// fj pr review --approve: UNSUPPORTED (fj has no pr approve subcommand)
+
+// ── ISSUE LIST (ISSUE-01): gf issue list → gh issue list / glab issue list / tea issues list / fj issue search ──
+
+v11_translation_test!(v11_issue_list_github_state,
+    input: ["gf", "issue", "list", "--state", "closed"],
+    forge: ForgeType::Github,
+    expected: ["issue", "list", "--state", "closed"]
+);
+
+v11_translation_test!(v11_issue_list_glab_state_closed,
+    input: ["gf", "issue", "list", "--state", "closed"],
+    forge: ForgeType::Gitlab,
+    expected: ["issue", "list", "--closed"]
+);
+
+v11_translation_test!(v11_issue_list_tea_state,
+    input: ["gf", "issue", "list", "--state", "closed"],
+    forge: ForgeType::Gitea,
+    expected: ["issues", "list", "--state", "closed"]
+);
+
+v11_translation_test!(v11_issue_list_fj_state,
+    input: ["gf", "issue", "list", "--state", "closed"],
+    forge: ForgeType::Forgejo,
+    expected: ["issue", "search", "--state", "closed"]
+);
+
+v11_translation_test!(v11_issue_list_github_label,
+    input: ["gf", "issue", "list", "--label", "bug"],
+    forge: ForgeType::Github,
+    expected: ["issue", "list", "--label", "bug"]
+);
+
+v11_translation_test!(v11_issue_list_tea_label,
+    input: ["gf", "issue", "list", "--label", "bug"],
+    forge: ForgeType::Gitea,
+    expected: ["issues", "list", "--labels", "bug"]
+);
+
+v11_translation_test!(v11_issue_list_fj_label,
+    input: ["gf", "issue", "list", "--label", "bug"],
+    forge: ForgeType::Forgejo,
+    expected: ["issue", "search", "--labels", "bug"]
+);
+
+// ── ISSUE VIEW (ISSUE-02): gf issue view → gh issue view / glab issue view / tea issues <N> / fj issue view ──
+
+v11_translation_test!(v11_issue_view_github,
+    input: ["gf", "issue", "view", "42"],
+    forge: ForgeType::Github,
+    expected: ["issue", "view", "42"]
+);
+
+v11_translation_test!(v11_issue_view_glab,
+    input: ["gf", "issue", "view", "42"],
+    forge: ForgeType::Gitlab,
+    expected: ["issue", "view", "42"]
+);
+
+v11_translation_test!(v11_issue_view_tea,
+    input: ["gf", "issue", "view", "42"],
+    forge: ForgeType::Gitea,
+    expected: ["issues", "42"]
+);
+// tea has no "view" verb — uses `tea issues <number>` directly
+
+v11_translation_test!(v11_issue_view_fj,
+    input: ["gf", "issue", "view", "42"],
+    forge: ForgeType::Forgejo,
+    expected: ["issue", "view", "42"]
+);
+
+// ── ISSUE CREATE (ISSUE-03): gf issue create → gh issue create / glab issue create / tea issues create ──
+
+v11_translation_test!(v11_issue_create_github,
+    input: ["gf", "issue", "create", "--title", "bug", "--body", "details"],
+    forge: ForgeType::Github,
+    expected: ["issue", "create", "--title", "bug", "--body", "details"]
+);
+
+v11_translation_test!(v11_issue_create_glab,
+    input: ["gf", "issue", "create", "--title", "bug", "--body", "details"],
+    forge: ForgeType::Gitlab,
+    expected: ["issue", "create", "--title", "bug", "--description", "details"]
+);
+// glab: --body → --description
+
+v11_translation_test!(v11_issue_create_tea,
+    input: ["gf", "issue", "create", "--title", "bug", "--body", "details"],
+    forge: ForgeType::Gitea,
+    expected: ["issues", "create", "--title", "bug", "--description", "details"]
+);
+// tea: --body → --description
+
+// ── REPO CLONE (REPO-01): gf repo clone → gh repo clone / glab repo clone / fj repo clone ──
+
+v11_translation_test!(v11_repo_clone_github,
+    input: ["gf", "repo", "clone", "owner/repo"],
+    forge: ForgeType::Github,
+    expected: ["repo", "clone", "owner/repo"]
+);
+
+v11_translation_test!(v11_repo_clone_glab,
+    input: ["gf", "repo", "clone", "owner/repo"],
+    forge: ForgeType::Gitlab,
+    expected: ["repo", "clone", "owner/repo"]
+);
+
+// tea repo clone: UNSUPPORTED (tea has no repos clone subcommand)
+
+v11_translation_test!(v11_repo_clone_fj,
+    input: ["gf", "repo", "clone", "owner/repo"],
+    forge: ForgeType::Forgejo,
+    expected: ["repo", "clone", "owner/repo"]
+);
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// v1.1 INTEGRATION AUDIT TESTS — verify target forge flags exist in CLI --help
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// These are NOT ignored — they verify the forge CLIs actually support the
+// flags we plan to translate TO. If a forge CLI removes a flag in a future
+// version, these tests will catch it.
+
+// --- gh pr list flags ---
+audit_test!(audit_v11_gh_pr_list_state,    cli: "gh",   args: ["pr", "list"],    contains: "--state");
+audit_test!(audit_v11_gh_pr_list_author,   cli: "gh",   args: ["pr", "list"],    contains: "--author");
+audit_test!(audit_v11_gh_pr_list_label,    cli: "gh",   args: ["pr", "list"],    contains: "--label");
+
+// --- glab mr list flags ---
+audit_test!(audit_v11_glab_mr_list_closed, cli: "glab", args: ["mr", "list"],    contains: "--closed");
+audit_test!(audit_v11_glab_mr_list_author, cli: "glab", args: ["mr", "list"],    contains: "--author");
+audit_test!(audit_v11_glab_mr_list_label,  cli: "glab", args: ["mr", "list"],    contains: "--label");
+
+// --- tea pulls list flags ---
+audit_test!(audit_v11_tea_pulls_list_state, cli: "tea", args: ["pulls", "list"], contains: "--state");
+
+// --- fj pr search flags ---
+audit_test!(audit_v11_fj_pr_search_state,   cli: "fj",  args: ["pr", "search"],  contains: "--state");
+audit_test!(audit_v11_fj_pr_search_creator, cli: "fj",  args: ["pr", "search"],  contains: "--creator");
+audit_test!(audit_v11_fj_pr_search_labels,  cli: "fj",  args: ["pr", "search"],  contains: "--labels");
+
+// --- gh/glab pr merge flags ---
+audit_test!(audit_v11_gh_pr_merge_squash,    cli: "gh",   args: ["pr", "merge"],   contains: "--squash");
+audit_test!(audit_v11_glab_mr_merge_squash,  cli: "glab", args: ["mr", "merge"],   contains: "--squash");
+
+// --- tea pulls merge / fj pr merge flags ---
+audit_test!(audit_v11_tea_pulls_merge_style, cli: "tea",  args: ["pulls", "merge"], contains: "--style");
+audit_test!(audit_v11_fj_pr_merge_method,    cli: "fj",   args: ["pr", "merge"],    contains: "--method");
+
+// --- pr checkout ---
+audit_test!(audit_v11_gh_pr_checkout,        cli: "gh",   args: ["pr", "checkout"],    contains: "checkout");
+audit_test!(audit_v11_glab_mr_checkout,      cli: "glab", args: ["mr", "checkout"],    contains: "checkout");
+audit_test!(audit_v11_tea_pulls_checkout,    cli: "tea",  args: ["pulls", "checkout"], contains: "checkout");
+
+// --- pr review / approve ---
+audit_test!(audit_v11_gh_pr_review_approve,  cli: "gh",   args: ["pr", "review"],  contains: "--approve");
+audit_test!(audit_v11_glab_mr_approve,       cli: "glab", args: ["mr", "approve"], contains: "approve");
+
+// --- issue list flags ---
+audit_test!(audit_v11_gh_issue_list_state,      cli: "gh",   args: ["issue", "list"],    contains: "--state");
+audit_test!(audit_v11_glab_issue_list_closed,   cli: "glab", args: ["issue", "list"],    contains: "--closed");
+audit_test!(audit_v11_tea_issues_list_state,    cli: "tea",  args: ["issues", "list"],   contains: "--state");
+audit_test!(audit_v11_fj_issue_search_state,    cli: "fj",   args: ["issue", "search"],  contains: "--state");
+
+// --- issue create flags ---
+audit_test!(audit_v11_gh_issue_create_title,    cli: "gh",   args: ["issue", "create"],  contains: "--title");
+audit_test!(audit_v11_glab_issue_create_title,  cli: "glab", args: ["issue", "create"],  contains: "--title");
+audit_test!(audit_v11_glab_issue_create_description, cli: "glab", args: ["issue", "create"], contains: "--description");
+audit_test!(audit_v11_tea_issues_create_title,  cli: "tea",  args: ["issues", "create"], contains: "--title");
+
+// --- repo clone ---
+audit_test!(audit_v11_gh_repo_clone,   cli: "gh",   args: ["repo", "clone"], contains: "clone");
+audit_test!(audit_v11_glab_repo_clone, cli: "glab", args: ["repo", "clone"], contains: "clone");
+audit_test!(audit_v11_fj_repo_clone,   cli: "fj",   args: ["repo", "clone"], contains: "clone");
+
+// Note: No audit tests for UNSUPPORTED combinations:
+// - UNSUPPORTED: tea pulls list --author (no --author on tea pulls list)
+// - UNSUPPORTED: tea pulls list --label (no --label on tea pulls list)
+// - UNSUPPORTED: tea pulls review (no tea pulls review subcommand)
+// - UNSUPPORTED: tea pulls approve (no tea pulls approve subcommand)
+// - UNSUPPORTED: fj pr approve (no fj pr approve subcommand)
+// - UNSUPPORTED: tea repos clone (tea has no repos clone subcommand)
