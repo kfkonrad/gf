@@ -32,7 +32,7 @@ Requirements for v1.1 Feature Completeness & Quality. Each maps to roadmap phase
 
 ### Browse Enhancements
 
-- [ ] **BROWSE-01**: User can deep-link to line ranges (`gf browse file.rs:42-55`) with correct per-forge fragment
+- [x] **BROWSE-01**: User can deep-link to line ranges (`gf browse file.rs:42-55`) with correct per-forge fragment
 - [x] **BROWSE-02**: Known-host match table deduplicated between browse and forge detection modules
 
 ### Quality
@@ -78,7 +78,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| BROWSE-01 | Phase 6 | Pending |
+| BROWSE-01 | Phase 6 | Complete |
 | BROWSE-02 | Phase 6 | Complete |
 | QUAL-01 | Phase 7 | Pending |
 | QUAL-02 | Phase 7 | Pending |

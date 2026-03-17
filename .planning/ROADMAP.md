@@ -22,7 +22,7 @@
 
 **Milestone Goal:** Complete the core command surface (PR workflows, issues, clone) and harden flag mappings across all forges.
 
-- [ ] **Phase 6: Browse Enhancements** — Line-range deep-linking and known-host deduplication
+- [x] **Phase 6: Browse Enhancements** — Line-range deep-linking and known-host deduplication (completed 2026-03-17)
 - [ ] **Phase 7: Flag Normalization Audit** — Audit and verify all flag translations against live forge CLI help texts
 - [ ] **Phase 8: PR Workflow Commands** — Complete PR lifecycle: list, merge, checkout, review, approve, view, browse
 - [ ] **Phase 9: Issues, Clone, and Self-Hosted Detection** — Issue commands, repo clone, and CORE-04 forge probing
@@ -37,7 +37,7 @@
   1. `gf browse src/main.rs:42` opens the browser to the correct line anchor for all four forges
   2. `gf browse src/main.rs:42-55` opens the browser to the correct line range anchor, with GitLab producing `#L42-55` and GitHub/Gitea/Forgejo producing `#L42-L55`
   3. Known-host matching logic exists in exactly one place in the codebase; browse and forge detection both use it
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 Plans:
 - [ ] 06-01-PLAN.md — Deduplicate known-host match table (BROWSE-02)
 - [ ] 06-02-PLAN.md — Line-range deep-linking with per-forge fragments (BROWSE-01)
@@ -85,7 +85,7 @@ Plans:
 | 3. Command Routing | v1.0 | 4/4 | Complete | 2026-03-16 |
 | 4. Browse | v1.0 | 2/2 | Complete | 2026-03-16 |
 | 5. Fix Self-Hosted Browse | v1.0 | 1/1 | Complete | 2026-03-16 |
-| 6. Browse Enhancements | 1/2 | In Progress|  | - |
+| 6. Browse Enhancements | 2/2 | Complete   | 2026-03-17 | - |
 | 7. Flag Normalization Audit | v1.1 | 0/? | Not started | - |
 | 8. PR Workflow Commands | v1.1 | 0/? | Not started | - |
 | 9. Issues, Clone, and Self-Hosted Detection | v1.1 | 0/? | Not started | - |
