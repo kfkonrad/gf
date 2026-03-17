@@ -50,7 +50,7 @@ Plans:
   1. Running the test suite produces a passing result for every canonical flag × forge combination that is currently wired (no silent drops)
   2. Any flag mismatch found against current forge CLI `--help` output is fixed before Phase 8 begins
   3. New v1.1 flag normalizations (pr list, pr merge, pr checkout, pr review, issue list/view/create, repo clone) have verified mappings documented before their adapters are written
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 Plans:
 - [ ] 07-01-PLAN.md — Macro test infrastructure, existing audit, mismatch fixes (QUAL-01, QUAL-03)
 - [ ] 07-02-PLAN.md — v1.1 flag pre-mapping and integration audit (QUAL-02, QUAL-03)
@@ -89,6 +89,6 @@ Plans:
 | 4. Browse | v1.0 | 2/2 | Complete | 2026-03-16 |
 | 5. Fix Self-Hosted Browse | v1.0 | 1/1 | Complete | 2026-03-16 |
 | 6. Browse Enhancements | 2/2 | Complete   | 2026-03-17 | - |
-| 7. Flag Normalization Audit | v1.1 | 0/2 | Planning complete | - |
+| 7. Flag Normalization Audit | 1/2 | In Progress|  | - |
 | 8. PR Workflow Commands | v1.1 | 0/? | Not started | - |
 | 9. Issues, Clone, and Self-Hosted Detection | v1.1 | 0/? | Not started | - |

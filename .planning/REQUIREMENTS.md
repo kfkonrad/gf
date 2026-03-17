@@ -37,9 +37,9 @@ Requirements for v1.1 Feature Completeness & Quality. Each maps to roadmap phase
 
 ### Quality
 
-- [ ] **QUAL-01**: All existing flag normalizations audited and verified against current forge CLI help texts
+- [x] **QUAL-01**: All existing flag normalizations audited and verified against current forge CLI help texts
 - [ ] **QUAL-02**: All new v1.1 flag normalizations verified against current forge CLI help texts
-- [ ] **QUAL-03**: Tests cover flag translation for every command × forge combination
+- [x] **QUAL-03**: Tests cover flag translation for every command × forge combination
 
 ### Self-Hosted Detection
 
@@ -80,9 +80,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 |-------------|-------|--------|
 | BROWSE-01 | Phase 6 | Complete |
 | BROWSE-02 | Phase 6 | Complete |
-| QUAL-01 | Phase 7 | Pending |
+| QUAL-01 | Phase 7 | Complete |
 | QUAL-02 | Phase 7 | Pending |
-| QUAL-03 | Phase 7 | Pending |
+| QUAL-03 | Phase 7 | Complete |
 | PR-01 | Phase 8 | Pending |
 | PR-02 | Phase 8 | Pending |
 | PR-03 | Phase 8 | Pending |

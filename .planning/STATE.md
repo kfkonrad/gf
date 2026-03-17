@@ -25,18 +25,18 @@ See: .planning/PROJECT.md (updated 2026-03-17)
 
 ## Current Position
 
-Phase: 6 of 9 (Browse Enhancements)
-Plan: 0 of ? in current phase
-Status: Ready to plan
-Last activity: 2026-03-17 — v1.1 roadmap created; phases 6-9 defined
+Phase: 7 of 9 (Flag Normalization Audit)
+Plan: 1 of 1 in current phase
+Status: executing
+Last activity: 2026-03-17 — Phase 7 Plan 01 completed (flag audit + adapter fixes)
 
-Progress: [░░░░░░░░░░] 0% (v1.1 not started)
+Progress: [█░░░░░░░░░] 10% (v1.1 phase 7 plan 1 done)
 
 ## Session Continuity
 
-Last session: 2026-03-17T12:29:39.965Z
-Stopped at: Phase 7 context gathered
-Resume file: .planning/phases/07-flag-normalization-audit/07-CONTEXT.md
+Last session: 2026-03-17T13:12:22Z
+Stopped at: Completed 07-01-PLAN.md
+Resume file: .planning/phases/07-flag-normalization-audit/07-01-SUMMARY.md
 
 ## Accumulated Context
 
@@ -48,3 +48,6 @@ Resume file: .planning/phases/07-flag-normalization-audit/07-CONTEXT.md
 - CORE-04: probe only after config_lookup() and match_known_host() both fail; cache in ~/.cache/gf/
 - Phase 8 risk: glab mr approve is a subcommand, not a flag — requires subcommand routing in translate_pr_review
 - Phase 6 gap: Gitea ROOT_URL subpath browse behavior unresolved — flag for edge case testing
+- Phase 7: Unsupported forge flags silently omitted (not errors) — matches existing adapter convention
+- Phase 7: translation_test! macro covers full dispatch path via gf::adapter::translate() public API
+- Phase 7: tea pr view uses "pulls <N>" directly (no "view" verb); fj auth uses positional args
