@@ -5,6 +5,15 @@ use crate::error::GfError;
 use crate::forge::{config_lookup, match_known_host, parse_remote_parts, ForgeType};
 use clap::ArgMatches;
 
+// ── Line-range types ─────────────────────────────────────────────────────────
+
+/// Parsed line range from colon suffix (e.g., `:42` or `:42-55`).
+#[derive(Debug)]
+pub(crate) struct LineRange {
+    start: u32,
+    end: Option<u32>, // None = single line
+}
+
 // ── Public entry point ──────────────────────────────────────────────────────
 
 /// Entry point called from main.rs for the `browse` subcommand.
@@ -30,9 +39,20 @@ pub fn run(matches: &ArgMatches) -> Result<(), GfError> {
 
     // 5. Build URL
     let file_arg = matches.get_one::<String>("file").map(|s| s.as_str());
-    let url = if let Some(file) = file_arg {
-        let normalized = normalize_path(file)?;
-        build_file_url(&forge_type, &host, &owner, &repo, &git_ref, is_sha, &normalized)
+    let url = if let Some(raw_file) = file_arg {
+        let (path_part, line_spec) = split_file_and_line(raw_file);
+        let line_range = line_spec.map(parse_line_spec).transpose()?;
+        let normalized = normalize_path(path_part)?;
+        build_file_url(
+            &forge_type,
+            &host,
+            &owner,
+            &repo,
+            &git_ref,
+            is_sha,
+            &normalized,
+            line_range.as_ref(),
+        )
     } else {
         build_repo_url(&forge_type, &host, &owner, &repo, &git_ref)
     };
@@ -74,11 +94,12 @@ pub fn build_repo_url(
 
 /// Builds a file view URL for the given forge, ref, and file path.
 /// is_sha: true when git_ref is a full commit SHA (affects Gitea/Forgejo URL segment).
+/// line_range: optional line anchor (appended as per-forge fragment).
 /// File URL format:
-///   GitHub:  https://host/owner/repo/blob/<ref>/<path>
-///   GitLab:  https://host/owner/repo/-/blob/<ref>/<path>
-///   Gitea:   https://host/owner/repo/src/branch/<ref>/<path>  (or src/commit/ if SHA)
-///   Forgejo: https://host/owner/repo/src/branch/<ref>/<path>  (or src/commit/ if SHA)
+///   GitHub:  https://host/owner/repo/blob/<ref>/<path>[#L<n>[-L<m>]]
+///   GitLab:  https://host/owner/repo/-/blob/<ref>/<path>[#L<n>[-<m>]]
+///   Gitea:   https://host/owner/repo/src/branch/<ref>/<path>[#L<n>[-L<m>]]  (or src/commit/ if SHA)
+///   Forgejo: https://host/owner/repo/src/branch/<ref>/<path>[#L<n>[-L<m>]]  (or src/commit/ if SHA)
 pub fn build_file_url(
     forge: &ForgeType,
     host: &str,
@@ -87,18 +108,83 @@ pub fn build_file_url(
     git_ref: &str,
     is_sha: bool,
     path: &str,
+    line_range: Option<&LineRange>,
 ) -> String {
     let base = format!("https://{host}/{owner}/{repo}");
+    let fragment = line_range
+        .map(|lr| line_fragment(forge, lr))
+        .unwrap_or_default();
     match forge {
-        ForgeType::Github => format!("{base}/blob/{git_ref}/{path}"),
-        ForgeType::Gitlab => format!("{base}/-/blob/{git_ref}/{path}"),
+        ForgeType::Github => format!("{base}/blob/{git_ref}/{path}{fragment}"),
+        ForgeType::Gitlab => format!("{base}/-/blob/{git_ref}/{path}{fragment}"),
         ForgeType::Gitea | ForgeType::Forgejo => {
             if is_sha {
-                format!("{base}/src/commit/{git_ref}/{path}")
+                format!("{base}/src/commit/{git_ref}/{path}{fragment}")
             } else {
-                format!("{base}/src/branch/{git_ref}/{path}")
+                format!("{base}/src/branch/{git_ref}/{path}{fragment}")
             }
         }
+    }
+}
+
+// ── Line-range helpers ───────────────────────────────────────────────────────
+
+/// Splits "path:linespec" on the last colon. Returns (path, optional_line_spec).
+fn split_file_and_line(raw: &str) -> (&str, Option<&str>) {
+    if let Some(pos) = raw.rfind(':') {
+        let (path, rest) = (&raw[..pos], &raw[pos + 1..]);
+        if !rest.is_empty() {
+            return (path, Some(rest));
+        }
+        // Trailing colon with nothing after: strip the colon, no line spec
+        return (path, None);
+    }
+    (raw, None)
+}
+
+/// Parses a line spec string (e.g., "42" or "42-55") into a LineRange.
+fn parse_line_spec(spec: &str) -> Result<LineRange, GfError> {
+    if let Some((start_str, end_str)) = spec.split_once('-') {
+        let start: u32 = start_str.parse().map_err(|_| invalid_line_err(spec))?;
+        let end: u32 = end_str.parse().map_err(|_| invalid_line_err(spec))?;
+        if start == 0 || end == 0 {
+            return Err(invalid_line_err(spec));
+        }
+        if end < start {
+            return Err(GfError::BrowseUrlConstructionFailed(format!(
+                "line range '{spec}' is reversed — end must be >= start"
+            )));
+        }
+        Ok(LineRange {
+            start,
+            end: Some(end),
+        })
+    } else {
+        let n: u32 = spec.parse().map_err(|_| invalid_line_err(spec))?;
+        if n == 0 {
+            return Err(invalid_line_err(spec));
+        }
+        Ok(LineRange { start: n, end: None })
+    }
+}
+
+fn invalid_line_err(spec: &str) -> GfError {
+    GfError::BrowseUrlConstructionFailed(format!(
+        "invalid line spec '{spec}' — expected N or N-M (e.g. 42, 42-55)"
+    ))
+}
+
+/// Returns the per-forge URL fragment for a line range.
+fn line_fragment(forge: &ForgeType, lr: &LineRange) -> String {
+    match forge {
+        ForgeType::Github | ForgeType::Gitea | ForgeType::Forgejo => match lr.end {
+            None => format!("#L{}", lr.start),
+            Some(end) => format!("#L{}-L{}", lr.start, end),
+        },
+        ForgeType::Gitlab => match lr.end {
+            None => format!("#L{}", lr.start),
+            Some(end) => format!("#L{}-{}", lr.start, end),
+        },
     }
 }
 
@@ -254,7 +340,7 @@ mod tests {
         assert_eq!(url, "https://git.mycompany.com/team/proj/-/tree/develop");
     }
 
-    // ── build_file_url ──
+    // ── build_file_url (existing tests updated with None 8th arg) ──
 
     #[test]
     fn test_build_file_url_github() {
@@ -266,6 +352,7 @@ mod tests {
             "main",
             false,
             "src/lib.rs",
+            None,
         );
         assert_eq!(url, "https://github.com/alice/myrepo/blob/main/src/lib.rs");
     }
@@ -280,6 +367,7 @@ mod tests {
             "main",
             false,
             "src/lib.rs",
+            None,
         );
         assert_eq!(url, "https://gitlab.com/alice/myrepo/-/blob/main/src/lib.rs");
     }
@@ -294,6 +382,7 @@ mod tests {
             "main",
             false,
             "src/lib.rs",
+            None,
         );
         assert_eq!(
             url,
@@ -313,6 +402,7 @@ mod tests {
             &sha,
             true,
             "src/lib.rs",
+            None,
         );
         assert_eq!(
             url,
@@ -331,11 +421,201 @@ mod tests {
             &sha,
             true,
             "src/lib.rs",
+            None,
         );
         assert_eq!(
             url,
             format!("https://codeberg.org/alice/myrepo/src/commit/{sha}/src/lib.rs")
         );
+    }
+
+    // ── split_file_and_line ──
+
+    #[test]
+    fn test_split_file_and_line_with_single_line() {
+        let (path, spec) = split_file_and_line("src/main.rs:42");
+        assert_eq!(path, "src/main.rs");
+        assert_eq!(spec, Some("42"));
+    }
+
+    #[test]
+    fn test_split_file_and_line_with_range() {
+        let (path, spec) = split_file_and_line("src/main.rs:42-55");
+        assert_eq!(path, "src/main.rs");
+        assert_eq!(spec, Some("42-55"));
+    }
+
+    #[test]
+    fn test_split_file_and_line_no_colon() {
+        let (path, spec) = split_file_and_line("src/main.rs");
+        assert_eq!(path, "src/main.rs");
+        assert_eq!(spec, None);
+    }
+
+    #[test]
+    fn test_split_file_and_line_trailing_colon() {
+        // Trailing colon with nothing after it => no spec
+        let (path, spec) = split_file_and_line("src/main.rs:");
+        assert_eq!(path, "src/main.rs");
+        assert_eq!(spec, None);
+    }
+
+    // ── parse_line_spec ──
+
+    #[test]
+    fn test_parse_line_spec_single() {
+        let lr = parse_line_spec("42").unwrap();
+        assert_eq!(lr.start, 42);
+        assert_eq!(lr.end, None);
+    }
+
+    #[test]
+    fn test_parse_line_spec_range() {
+        let lr = parse_line_spec("42-55").unwrap();
+        assert_eq!(lr.start, 42);
+        assert_eq!(lr.end, Some(55));
+    }
+
+    #[test]
+    fn test_parse_line_spec_zero_errors() {
+        let err = parse_line_spec("0").unwrap_err();
+        assert!(
+            matches!(err, GfError::BrowseUrlConstructionFailed(_)),
+            "expected BrowseUrlConstructionFailed, got: {err:?}"
+        );
+    }
+
+    #[test]
+    fn test_parse_line_spec_zero_start_in_range_errors() {
+        let err = parse_line_spec("0-10").unwrap_err();
+        assert!(matches!(err, GfError::BrowseUrlConstructionFailed(_)));
+    }
+
+    #[test]
+    fn test_parse_line_spec_zero_end_in_range_errors() {
+        let err = parse_line_spec("10-0").unwrap_err();
+        assert!(matches!(err, GfError::BrowseUrlConstructionFailed(_)));
+    }
+
+    #[test]
+    fn test_parse_line_spec_reversed_errors() {
+        let err = parse_line_spec("55-42").unwrap_err();
+        let msg = err.to_string();
+        assert!(
+            msg.contains("reversed"),
+            "expected 'reversed' in message, got: {msg}"
+        );
+    }
+
+    #[test]
+    fn test_parse_line_spec_non_numeric_errors() {
+        let err = parse_line_spec("abc").unwrap_err();
+        let msg = err.to_string();
+        assert!(
+            msg.contains("invalid"),
+            "expected 'invalid' in message, got: {msg}"
+        );
+    }
+
+    // ── line_fragment ──
+
+    #[test]
+    fn test_line_fragment_github_single() {
+        let lr = LineRange { start: 42, end: None };
+        assert_eq!(line_fragment(&ForgeType::Github, &lr), "#L42");
+    }
+
+    #[test]
+    fn test_line_fragment_github_range() {
+        let lr = LineRange { start: 42, end: Some(55) };
+        assert_eq!(line_fragment(&ForgeType::Github, &lr), "#L42-L55");
+    }
+
+    #[test]
+    fn test_line_fragment_gitlab_range() {
+        let lr = LineRange { start: 42, end: Some(55) };
+        assert_eq!(line_fragment(&ForgeType::Gitlab, &lr), "#L42-55");
+    }
+
+    #[test]
+    fn test_line_fragment_gitea_range() {
+        let lr = LineRange { start: 42, end: Some(55) };
+        assert_eq!(line_fragment(&ForgeType::Gitea, &lr), "#L42-L55");
+    }
+
+    #[test]
+    fn test_line_fragment_forgejo_range() {
+        let lr = LineRange { start: 42, end: Some(55) };
+        assert_eq!(line_fragment(&ForgeType::Forgejo, &lr), "#L42-L55");
+    }
+
+    // ── build_file_url with line ranges ──
+
+    #[test]
+    fn test_build_file_url_with_line_github_single() {
+        let lr = LineRange { start: 42, end: None };
+        let url = build_file_url(
+            &ForgeType::Github,
+            "github.com",
+            "alice",
+            "myrepo",
+            "main",
+            false,
+            "src/lib.rs",
+            Some(&lr),
+        );
+        assert_eq!(
+            url,
+            "https://github.com/alice/myrepo/blob/main/src/lib.rs#L42"
+        );
+    }
+
+    #[test]
+    fn test_build_file_url_with_line_github_range() {
+        let lr = LineRange { start: 42, end: Some(55) };
+        let url = build_file_url(
+            &ForgeType::Github,
+            "github.com",
+            "alice",
+            "myrepo",
+            "main",
+            false,
+            "src/lib.rs",
+            Some(&lr),
+        );
+        assert!(url.ends_with("src/lib.rs#L42-L55"), "url={url}");
+    }
+
+    #[test]
+    fn test_build_file_url_with_line_gitlab_range() {
+        let lr = LineRange { start: 42, end: Some(55) };
+        let url = build_file_url(
+            &ForgeType::Gitlab,
+            "gitlab.com",
+            "alice",
+            "myrepo",
+            "main",
+            false,
+            "src/lib.rs",
+            Some(&lr),
+        );
+        assert!(url.ends_with("src/lib.rs#L42-55"), "url={url}");
+    }
+
+    #[test]
+    fn test_build_file_url_no_line_range_unchanged() {
+        // None produces same URL as original (no fragment)
+        let url = build_file_url(
+            &ForgeType::Github,
+            "github.com",
+            "alice",
+            "myrepo",
+            "main",
+            false,
+            "src/lib.rs",
+            None,
+        );
+        assert_eq!(url, "https://github.com/alice/myrepo/blob/main/src/lib.rs");
     }
 
     // ── normalize_path ──
