@@ -190,7 +190,7 @@ pub fn config_lookup(host: &str) -> Result<Option<ForgeType>, GfError> {
 }
 
 /// Matches a hostname against the four built-in public forge entries.
-fn match_known_host(host: &str) -> Result<ForgeType, GfError> {
+pub fn match_known_host(host: &str) -> Result<ForgeType, GfError> {
     match host {
         "github.com" => Ok(ForgeType::Github),
         "gitlab.com" => Ok(ForgeType::Gitlab),

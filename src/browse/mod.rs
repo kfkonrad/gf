@@ -2,7 +2,7 @@
 //! Does NOT delegate to gh/glab/tea/fj (BROWSE-05).
 
 use crate::error::GfError;
-use crate::forge::{config_lookup, parse_remote_parts, ForgeType};
+use crate::forge::{config_lookup, match_known_host, parse_remote_parts, ForgeType};
 use clap::ArgMatches;
 
 // ── Public entry point ──────────────────────────────────────────────────────
@@ -127,16 +127,7 @@ fn resolve_forge_type(host: &str) -> Result<ForgeType, GfError> {
     if let Some(forge_type) = config_lookup(host)? {
         return Ok(forge_type);
     }
-    // Known public forges second
-    match host {
-        "github.com" => Ok(ForgeType::Github),
-        "gitlab.com" => Ok(ForgeType::Gitlab),
-        "gitea.com" => Ok(ForgeType::Gitea),
-        "codeberg.org" => Ok(ForgeType::Forgejo),
-        other => Err(GfError::ForgeNotDetected {
-            domain: other.to_string(),
-        }),
-    }
+    match_known_host(host)
 }
 
 /// Resolves the git ref to use in the URL.
