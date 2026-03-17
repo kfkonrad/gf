@@ -89,10 +89,17 @@ fn translate_repo_create(forge: ForgeType, repo_cmd: &str, matches: &ArgMatches)
         }
     }
 
-    // --homepage: gh supports it; others receive it as passthrough
+    // --homepage: only gh supports it; others silently omit
     if let Some(url) = matches.get_one::<String>("homepage") {
-        args.push("--homepage".to_string());
-        args.push(url.clone());
+        match forge {
+            ForgeType::Github => {
+                args.push("--homepage".to_string());
+                args.push(url.clone());
+            }
+            _ => {
+                // --homepage not supported on glab/tea/fj; silently omit
+            }
+        }
     }
 
     // Passthrough
@@ -147,7 +154,7 @@ fn translate_auth_login(forge: ForgeType, matches: &ArgMatches) -> Vec<String> {
         ForgeType::Forgejo => vec!["auth".to_string(), "add-key".to_string()],
     };
 
-    // --hostname: gh and glab use --hostname; tea uses --url; fj passthrough
+    // --hostname: gh and glab use --hostname; tea uses --url; fj does not support it
     if let Some(host) = matches.get_one::<String>("hostname") {
         match forge {
             ForgeType::Github | ForgeType::Gitlab => {
@@ -159,17 +166,23 @@ fn translate_auth_login(forge: ForgeType, matches: &ArgMatches) -> Vec<String> {
                 args.push(host.clone());
             }
             ForgeType::Forgejo => {
-                // fj: passthrough — push as-is
-                args.push("--hostname".to_string());
-                args.push(host.clone());
+                // fj auth add-key takes positional args, no --hostname; silently omit
             }
         }
     }
 
-    // --token: all CLIs accept --token
+    // --token: all CLIs accept --token except fj (positional args for add-key)
     if let Some(token) = matches.get_one::<String>("token") {
-        args.push("--token".to_string());
-        args.push(token.clone());
+        match forge {
+            ForgeType::Forgejo => {
+                // fj auth add-key <USER> [KEY] — token is positional, not --token flag
+                // Cannot map without username; silently omit
+            }
+            _ => {
+                args.push("--token".to_string());
+                args.push(token.clone());
+            }
+        }
     }
 
     // Passthrough
@@ -204,197 +217,4 @@ fn translate_auth_status(forge: ForgeType, matches: &ArgMatches) -> Vec<String> 
         args.extend(extra.cloned());
     }
     args
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::cmd::build_cli;
-
-    // ── Repo helpers ──────────────────────────────────────────────────────────
-
-    fn parse_repo_subcommand(verb: &str, extra_args: &[&str]) -> ArgMatches {
-        let mut cmd_args = vec!["gf", "repo", verb];
-        cmd_args.extend_from_slice(extra_args);
-        let matches = build_cli().try_get_matches_from(cmd_args).expect("parse ok");
-        let (_, repo_sub) = matches.subcommand().expect("repo subcommand");
-        let (_, verb_sub) = repo_sub.subcommand().expect("verb subcommand");
-        verb_sub.clone()
-    }
-
-    // ── Auth helpers ──────────────────────────────────────────────────────────
-
-    fn parse_auth_subcommand(verb: &str, extra_args: &[&str]) -> ArgMatches {
-        let mut cmd_args = vec!["gf", "auth", verb];
-        cmd_args.extend_from_slice(extra_args);
-        let matches = build_cli().try_get_matches_from(cmd_args).expect("parse ok");
-        let (_, auth_sub) = matches.subcommand().expect("auth subcommand");
-        let (_, verb_sub) = auth_sub.subcommand().expect("verb subcommand");
-        verb_sub.clone()
-    }
-
-    // ── REPO-01: view ─────────────────────────────────────────────────────────
-
-    #[test]
-    fn test_repo_view_github() {
-        let sub = parse_repo_subcommand("view", &[]);
-        let result = translate_repo_view(ForgeType::Github, "repo", &sub);
-        assert_eq!(result, vec!["repo", "view"]);
-    }
-
-    #[test]
-    fn test_repo_view_gitea_uses_repos() {
-        let matches = build_cli().try_get_matches_from(["gf", "repo", "view"]).unwrap();
-        let (_, s) = matches.subcommand().unwrap();
-        let result = translate_repo(ForgeType::Gitea, s);
-        assert_eq!(&result[0], "repos", "tea should use 'repos': {result:?}");
-    }
-
-    // ── REPO-02: create visibility ────────────────────────────────────────────
-
-    #[test]
-    fn test_repo_create_private_glab_visibility() {
-        let sub = parse_repo_subcommand("create", &["--private"]);
-        let result = translate_repo_create(ForgeType::Gitlab, "repo", &sub);
-        assert!(result.contains(&"--visibility".to_string()), "glab should use --visibility: {result:?}");
-        assert!(result.contains(&"private".to_string()));
-        assert!(!result.contains(&"--private".to_string()), "glab should NOT use --private: {result:?}");
-    }
-
-    #[test]
-    fn test_repo_create_private_github() {
-        let sub = parse_repo_subcommand("create", &["--private"]);
-        let result = translate_repo_create(ForgeType::Github, "repo", &sub);
-        assert!(result.contains(&"--private".to_string()), "gh uses --private: {result:?}");
-        assert!(!result.contains(&"--visibility".to_string()));
-    }
-
-    #[test]
-    fn test_repo_create_public_glab_visibility() {
-        let sub = parse_repo_subcommand("create", &["--public"]);
-        let result = translate_repo_create(ForgeType::Gitlab, "repo", &sub);
-        assert!(result.contains(&"--visibility".to_string()));
-        assert!(result.contains(&"public".to_string()));
-    }
-
-    #[test]
-    fn test_repo_create_name_positional_for_github() {
-        let sub = parse_repo_subcommand("create", &["--name", "myrepo"]);
-        let result = translate_repo_create(ForgeType::Github, "repo", &sub);
-        assert!(result.contains(&"myrepo".to_string()), "name should appear: {result:?}");
-        assert!(!result.contains(&"--name".to_string()), "gh uses positional, no --name flag: {result:?}");
-    }
-
-    #[test]
-    fn test_repo_create_name_flag_for_gitea() {
-        let sub = parse_repo_subcommand("create", &["--name", "myrepo"]);
-        let result = translate_repo_create(ForgeType::Gitea, "repos", &sub);
-        assert!(result.contains(&"--name".to_string()), "tea uses --name flag: {result:?}");
-        assert!(result.contains(&"myrepo".to_string()));
-    }
-
-    // ── REPO-03: fork ─────────────────────────────────────────────────────────
-
-    #[test]
-    fn test_repo_fork_github() {
-        let sub = parse_repo_subcommand("fork", &[]);
-        let result = translate_repo_fork(ForgeType::Github, "repo", &sub);
-        assert_eq!(&result[0..2], &["repo", "fork"]);
-    }
-
-    // ── AUTH-01: login ────────────────────────────────────────────────────────
-
-    #[test]
-    fn test_auth_login_github() {
-        let sub = parse_auth_subcommand("login", &[]);
-        let result = translate_auth_login(ForgeType::Github, &sub);
-        assert_eq!(&result[0..2], &["auth", "login"]);
-    }
-
-    #[test]
-    fn test_auth_login_gitlab() {
-        let sub = parse_auth_subcommand("login", &[]);
-        let result = translate_auth_login(ForgeType::Gitlab, &sub);
-        assert_eq!(&result[0..2], &["auth", "login"]);
-    }
-
-    #[test]
-    fn test_auth_login_tea_remaps_to_logins_add() {
-        let sub = parse_auth_subcommand("login", &[]);
-        let result = translate_auth_login(ForgeType::Gitea, &sub);
-        assert_eq!(&result[0..2], &["logins", "add"], "tea auth login → logins add: {result:?}");
-    }
-
-    #[test]
-    fn test_auth_login_fj_remaps_to_auth_add_key() {
-        let sub = parse_auth_subcommand("login", &[]);
-        let result = translate_auth_login(ForgeType::Forgejo, &sub);
-        assert_eq!(&result[0..2], &["auth", "add-key"], "fj auth login → auth add-key: {result:?}");
-    }
-
-    // ── AUTH-02: logout ───────────────────────────────────────────────────────
-
-    #[test]
-    fn test_auth_logout_tea_remaps_to_logins_rm() {
-        let sub = parse_auth_subcommand("logout", &[]);
-        let result = translate_auth_logout(ForgeType::Gitea, &sub);
-        assert_eq!(&result[0..2], &["logins", "rm"], "tea auth logout → logins rm: {result:?}");
-    }
-
-    #[test]
-    fn test_auth_logout_github() {
-        let sub = parse_auth_subcommand("logout", &[]);
-        let result = translate_auth_logout(ForgeType::Github, &sub);
-        assert_eq!(&result[0..2], &["auth", "logout"]);
-    }
-
-    // ── AUTH-03: status ───────────────────────────────────────────────────────
-
-    #[test]
-    fn test_auth_status_tea_remaps_to_logins_ls() {
-        let sub = parse_auth_subcommand("status", &[]);
-        let result = translate_auth_status(ForgeType::Gitea, &sub);
-        assert_eq!(&result[0..2], &["logins", "ls"], "tea auth status → logins ls: {result:?}");
-    }
-
-    #[test]
-    fn test_auth_status_fj_remaps_to_auth_list() {
-        let sub = parse_auth_subcommand("status", &[]);
-        let result = translate_auth_status(ForgeType::Forgejo, &sub);
-        assert_eq!(&result[0..2], &["auth", "list"], "fj auth status → auth list: {result:?}");
-    }
-
-    #[test]
-    fn test_auth_status_github() {
-        let sub = parse_auth_subcommand("status", &[]);
-        let result = translate_auth_status(ForgeType::Github, &sub);
-        assert_eq!(&result[0..2], &["auth", "status"]);
-    }
-
-    // ── Auth flag translation ─────────────────────────────────────────────────
-
-    #[test]
-    fn test_auth_login_hostname_github() {
-        let sub = parse_auth_subcommand("login", &["--hostname", "git.corp.com"]);
-        let result = translate_auth_login(ForgeType::Github, &sub);
-        assert!(result.contains(&"--hostname".to_string()));
-        assert!(result.contains(&"git.corp.com".to_string()));
-    }
-
-    #[test]
-    fn test_auth_login_hostname_tea_uses_url() {
-        let sub = parse_auth_subcommand("login", &["--hostname", "git.corp.com"]);
-        let result = translate_auth_login(ForgeType::Gitea, &sub);
-        assert!(result.contains(&"--url".to_string()), "tea uses --url not --hostname: {result:?}");
-        assert!(result.contains(&"git.corp.com".to_string()));
-        assert!(!result.contains(&"--hostname".to_string()), "tea should NOT have --hostname: {result:?}");
-    }
-
-    #[test]
-    fn test_auth_login_token_passthrough() {
-        let sub = parse_auth_subcommand("login", &["--token", "abc123"]);
-        let result = translate_auth_login(ForgeType::Github, &sub);
-        assert!(result.contains(&"--token".to_string()));
-        assert!(result.contains(&"abc123".to_string()));
-    }
 }

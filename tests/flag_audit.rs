@@ -144,6 +144,32 @@ translation_test!(pr_view_glab_no_number,
     expected: ["mr", "view"]
 );
 
+// --- PR view: Gitea (no "view" verb — tea uses "pulls <N>" directly) ---
+translation_test!(pr_view_tea_number,
+    input: ["gf", "pr", "view", "42"],
+    forge: ForgeType::Gitea,
+    expected: ["pulls", "42"]
+);
+
+translation_test!(pr_view_tea_no_number,
+    input: ["gf", "pr", "view"],
+    forge: ForgeType::Gitea,
+    expected: ["pulls"]
+);
+
+// --- PR create: --draft omitted for tea and fj (unsupported) ---
+translation_test!(pr_create_tea_draft_omitted,
+    input: ["gf", "pr", "create", "--draft"],
+    forge: ForgeType::Gitea,
+    expected: ["pulls", "create"]
+);
+
+translation_test!(pr_create_fj_draft_omitted,
+    input: ["gf", "pr", "create", "--draft"],
+    forge: ForgeType::Forgejo,
+    expected: ["pr", "create"]
+);
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // TRANSLATION TEST TABLE — Repo subcommand translations
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -198,6 +224,19 @@ translation_test!(repo_fork_github,
     input: ["gf", "repo", "fork"],
     forge: ForgeType::Github,
     expected: ["repo", "fork"]
+);
+
+// --- Repo create: --homepage (gh-only, omitted for others) ---
+translation_test!(repo_create_github_homepage,
+    input: ["gf", "repo", "create", "--homepage", "https://example.com"],
+    forge: ForgeType::Github,
+    expected: ["repo", "create", "--homepage", "https://example.com"]
+);
+
+translation_test!(repo_create_glab_homepage_omitted,
+    input: ["gf", "repo", "create", "--homepage", "https://example.com"],
+    forge: ForgeType::Gitlab,
+    expected: ["repo", "create"]
 );
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -278,6 +317,19 @@ translation_test!(auth_login_token_github,
     input: ["gf", "auth", "login", "--token", "abc123"],
     forge: ForgeType::Github,
     expected: ["auth", "login", "--token", "abc123"]
+);
+
+// --- Auth login: fj hostname and token silently omitted ---
+translation_test!(auth_login_fj_hostname_omitted,
+    input: ["gf", "auth", "login", "--hostname", "git.corp.com"],
+    forge: ForgeType::Forgejo,
+    expected: ["auth", "add-key"]
+);
+
+translation_test!(auth_login_fj_token_omitted,
+    input: ["gf", "auth", "login", "--token", "abc123"],
+    forge: ForgeType::Forgejo,
+    expected: ["auth", "add-key"]
 );
 
 // ═══════════════════════════════════════════════════════════════════════════════
