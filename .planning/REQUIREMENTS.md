@@ -78,13 +78,32 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| (populated by roadmapper) | | |
+| BROWSE-01 | Phase 6 | Pending |
+| BROWSE-02 | Phase 6 | Pending |
+| QUAL-01 | Phase 7 | Pending |
+| QUAL-02 | Phase 7 | Pending |
+| QUAL-03 | Phase 7 | Pending |
+| PR-01 | Phase 8 | Pending |
+| PR-02 | Phase 8 | Pending |
+| PR-03 | Phase 8 | Pending |
+| PR-04 | Phase 8 | Pending |
+| PR-05 | Phase 8 | Pending |
+| PR-06 | Phase 8 | Pending |
+| PR-07 | Phase 8 | Pending |
+| ISSUE-01 | Phase 9 | Pending |
+| ISSUE-02 | Phase 9 | Pending |
+| ISSUE-03 | Phase 9 | Pending |
+| ISSUE-04 | Phase 9 | Pending |
+| ISSUE-05 | Phase 9 | Pending |
+| ISSUE-06 | Phase 9 | Pending |
+| REPO-01 | Phase 9 | Pending |
+| CORE-04 | Phase 9 | Pending |
 
 **Coverage:**
 - v1.1 requirements: 20 total
-- Mapped to phases: 0
-- Unmapped: 20 ⚠️
+- Mapped to phases: 20
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-03-17*
-*Last updated: 2026-03-17 after initial definition*
+*Last updated: 2026-03-17 — traceability populated by roadmapper*
