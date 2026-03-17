@@ -1,284 +1,299 @@
 # Architecture Research
 
-**Domain:** Rust CLI forge wrapper / command router
-**Researched:** 2026-03-16
-**Confidence:** HIGH
+**Domain:** Rust CLI — unified git forge wrapper (v1.1 additions to existing v1.0 codebase)
+**Researched:** 2026-03-17
+**Confidence:** HIGH — based on direct source code analysis of the v1.0 implementation
 
 ## Standard Architecture
 
-### System Overview
+### System Overview (v1.0 Actual)
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                        Entry Point (main.rs)                     │
-│               clap parse → Cli struct → dispatch                 │
-├─────────────────────────────────────────────────────────────────┤
-│                        Command Layer                             │
-│  ┌──────────────┐  ┌──────────────┐  ┌────────────────────┐    │
-│  │  pr subcommand│  │ repo subcmd  │  │  browse subcommand │    │
-│  └──────┬───────┘  └──────┬───────┘  └────────┬───────────┘    │
-│         │                 │                   │                 │
-├─────────┴─────────────────┴───────────────────┴─────────────────┤
-│                        Core Layer                                │
-│  ┌──────────────┐  ┌──────────────┐  ┌────────────────────┐    │
-│  │ ForgeDetector│  │ CommandRouter│  │    UrlBuilder      │    │
-│  └──────┬───────┘  └──────┬───────┘  └────────┬───────────┘    │
-│         │                 │                   │                 │
-├─────────┴─────────────────┴───────────────────┴─────────────────┤
-│                        Forge Adapters                            │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌────────────────┐  │
-│  │  GitHub  │  │  GitLab  │  │  Gitea   │  │   Forgejo      │  │
-│  │  (gh)    │  │  (glab)  │  │  (tea)   │  │   (fj)         │  │
-│  └──────────┘  └──────────┘  └──────────┘  └────────────────┘  │
-├─────────────────────────────────────────────────────────────────┤
-│                      Infrastructure Layer                        │
-│  ┌──────────────────────┐  ┌──────────────────────────────────┐ │
-│  │   Git Remote Reader  │  │      Subprocess Runner           │ │
-│  │  (.git/config parse) │  │  (std::process::Command)         │ │
-│  └──────────────────────┘  └──────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│                          main.rs (entry point)                       │
+│  1. cmd::build_cli() → clap parse                                    │
+│  2. Early intercepts: completions (no repo), browse (native)         │
+│  3. forge::detect(remote) → ForgeType                                │
+│  4. adapter::translate(forge, matches) → Vec<String>                 │
+│  5. runner::run(forge.cli_name(), &args)                             │
+└─────────────────────────────────────────────────────────────────────┘
+         │                   │                   │
+         ▼                   ▼                   ▼
+┌──────────────┐   ┌──────────────────┐   ┌──────────────┐
+│  forge/      │   │  adapter/        │   │  browse/     │
+│  mod.rs      │   │  mod.rs          │   │  mod.rs      │
+│  - detect()  │   │  - translate()   │   │  - run()     │
+│  - ForgeType │   │  pr.rs           │   │  Native URL  │
+│  - config_   │   │  repo_auth.rs    │   │  construction│
+│    lookup()  │   │                  │   │  No CLI      │
+│  - parse_    │   │                  │   │  delegation  │
+│    remote_   │   │                  │   │              │
+│    parts()   │   │                  │   │              │
+└──────────────┘   └──────────────────┘   └──────────────┘
+                                │
+                                ▼
+                    ┌──────────────────────┐
+                    │  runner::run()        │
+                    │  Unix: exec() replaces│
+                    │  process (zero-cost)  │
+                    │  Windows: spawn+wait  │
+                    └──────────────────────┘
+                                │
+              ┌─────────────────┼─────────────────┐
+              ▼                 ▼                   ▼
+           gh CLI           glab CLI          tea / fj CLI
 ```
 
 ### Component Responsibilities
 
-| Component | Responsibility | Boundary |
-|-----------|----------------|----------|
-| `ForgeDetector` | Read git remote URL, classify forge type, extract host/owner/repo | Input: remote URL string. Output: `ForgeContext` struct |
-| `CommandRouter` | Map canonical subcommand + flags to forge-specific CLI argv | Input: `ForgeType` + canonical args. Output: `Vec<OsString>` |
-| `FlagNormalizer` | Translate known canonical flags to forge equivalents; pass through unknown flags unchanged | Input: canonical flags + forge type. Output: translated flag list |
-| `UrlBuilder` | Construct web URLs for browse command without delegating to underlying CLI | Input: `ForgeContext` + path/branch. Output: URL string |
-| `SubprocessRunner` | Exec the underlying CLI binary, inheriting stdin/stdout/stderr | Input: binary name + argv. Output: exit code (process replaces self via exec on Unix) |
-| `GitRemoteReader` | Shell out to `git remote get-url <remote>` or parse `.git/config` | Input: remote name (default: origin). Output: raw URL string |
-| Forge Adapters | Per-forge command and flag mapping tables | Static data: command maps, flag maps, binary name |
+| Component | Responsibility | v1.1 Impact |
+|-----------|----------------|-------------|
+| `cmd/mod.rs` | Defines the entire clap command tree with aliases via build_cli() | Add subcommands: `pr list/merge/checkout/review`, `repo clone`, `issue` group |
+| `forge/mod.rs` | ForgeType enum, detect(), config_lookup(), parse_remote_parts() | Optional: add CLI auth probe fallback for CORE-04 |
+| `adapter/mod.rs` | Routes subcommand name to per-module translator function | Add `issue` dispatch arm; forward `repo clone` to repo_auth |
+| `adapter/pr.rs` | Translates `gf pr *` matches into forge CLI args | Add translate_pr_list, translate_pr_merge, translate_pr_checkout, translate_pr_review; audit flag maps |
+| `adapter/repo_auth.rs` | Translates `gf repo/auth *` matches into forge CLI args | Add translate_repo_clone; audit existing flag mappings |
+| `adapter/issue.rs` | (NEW) Translates `gf issue *` matches into forge CLI args | New module, mirrors pr.rs structure |
+| `browse/mod.rs` | Native URL construction and browser open | Add line-range parsing: `file.rs:42-55` → append `#L42-L55` fragment |
+| `runner.rs` | exec() or spawn+wait the forge CLI binary | No changes expected |
+| `error.rs` | GfError enum and install-hint display | Possibly add CliAuthProbeFailed for CORE-04 |
 
 ## Recommended Project Structure
 
 ```
 src/
-├── main.rs                 # Entry: parse CLI args, run, propagate exit code
-├── cli.rs                  # clap Cli struct and subcommand enums
-├── error.rs                # AppError type (thiserror)
+├── adapter/
+│   ├── mod.rs          # MODIFIED: add issue dispatch arm
+│   ├── pr.rs           # MODIFIED: add list, merge, checkout, review; audit flags
+│   ├── repo_auth.rs    # MODIFIED: add clone translator; audit existing maps
+│   └── issue.rs        # NEW: translate gf issue * → forge CLI args
+├── browse/
+│   └── mod.rs          # MODIFIED: parse line-range from file arg; build fragment
+├── cmd/
+│   └── mod.rs          # MODIFIED: add pr subcommands, repo clone, issue group
 ├── forge/
-│   ├── mod.rs              # ForgeType enum, ForgeContext struct, pub re-exports
-│   ├── detector.rs         # ForgeDetector: remote URL → ForgeType + host/owner/repo
-│   ├── url_builder.rs      # Forge-specific web URL construction
-│   └── adapters/
-│       ├── mod.rs          # ForgeAdapter trait definition
-│       ├── github.rs       # gh command/flag maps
-│       ├── gitlab.rs       # glab command/flag maps
-│       ├── gitea.rs        # tea command/flag maps
-│       └── forgejo.rs      # fj command/flag maps
-├── router/
-│   ├── mod.rs              # CommandRouter: dispatch canonical cmd → adapter argv
-│   └── flags.rs            # FlagNormalizer: canonical flag → forge flag translation
-└── runner/
-    └── mod.rs              # SubprocessRunner: exec binary with args
+│   └── mod.rs          # MODIFIED (minimal): CORE-04 CLI auth probe as fallback tier
+├── error.rs            # possibly add new error variant for CORE-04
+├── lib.rs              # no change
+├── main.rs             # no change
+└── runner.rs           # no change
 ```
 
 ### Structure Rationale
 
-- **`forge/`:** All forge-awareness lives here. The detector and adapters form a closed set; adding a new forge means adding a new adapter file and a new `ForgeType` variant — nothing else changes.
-- **`router/`:** Separated from forge adapters because routing logic (argument reordering, subcommand aliasing) is distinct from per-forge flag translation.
-- **`runner/`:** Isolated so it can be swapped for a test double in unit tests and so exec semantics (Unix `execvp` vs Windows `spawn`) stay in one place.
+- **adapter/issue.rs (new):** Issue commands warrant their own module following the existing pattern. pr.rs and repo_auth.rs are the templates. Issue commands have their own flag-translation complexity (labels, assignees, state filters) that will grow.
+- **browse/mod.rs (modified in-place):** Line-range parsing is a small, contained addition to existing URL construction logic. No new module needed.
+- **forge/mod.rs (minimal CORE-04 change):** CLI auth probing is a new detection strategy fitting inside detect() as an additional fallback tier. If it grows complex, extract to forge/probe.rs.
+- **main.rs unchanged:** All new v1.1 commands follow the standard detect→translate→exec flow. No new early intercepts needed.
 
 ## Architectural Patterns
 
-### Pattern 1: ForgeAdapter Trait
+### Pattern 1: Subcommand Translator Function
 
-**What:** Each forge backend implements a shared trait that maps canonical commands and flags to forge-specific equivalents.
-**When to use:** Required. Provides the extensibility point for adding new forges without touching routing logic.
-**Trade-offs:** Static dispatch (enum match) is simpler for a fixed set of forges; a trait gives better modularity. Because the forge set is closed and small (4 forges), an enum dispatch with a `fn adapter(&self) -> &dyn ForgeAdapter` method is the right balance.
+**What:** Every new `gf` verb maps to a private function `translate_<subcommand>_<verb>(forge, cmd_name, matches) -> Vec<String>` inside the appropriate adapter module. The public function dispatches to these.
 
-**Example:**
+**When to use:** All new pr, repo, issue verbs follow this pattern exactly.
+
+**Trade-offs:** Straightforward to add, test, and audit. Slight verbosity but isolates translation logic cleanly.
+
+**Example for pr list:**
 ```rust
-pub trait ForgeAdapter {
-    fn binary_name(&self) -> &'static str;
-    fn map_subcommand(&self, canonical: &CanonicalCommand) -> Option<Vec<&'static str>>;
-    fn map_flag(&self, canonical: &str) -> Option<&'static str>;
-}
+fn translate_pr_list(forge: ForgeType, pr_cmd: &str, matches: &ArgMatches) -> Vec<String> {
+    let mut args = vec![pr_cmd.to_string(), "list".to_string()];
 
-pub enum ForgeType {
-    GitHub,
-    GitLab,
-    Gitea { host: String },
-    Forgejo { host: String },
+    if let Some(state) = matches.get_one::<String>("state") {
+        args.push("--state".to_string());
+        args.push(state.clone());
+    }
+
+    if let Some(extra) = matches.get_many::<String>("extra") {
+        args.extend(extra.cloned());
+    }
+    args
 }
 ```
 
-### Pattern 2: Transparent Passthrough for Unknown Flags
+### Pattern 2: Subcommand Name Remapping
 
-**What:** The flag normalizer only translates flags that appear in its known map; everything else is passed through unchanged to the underlying CLI.
-**When to use:** Always — this is what makes `gf` a thin wrapper rather than a full abstraction layer.
-**Trade-offs:** Users get the escape hatch they need for forge-specific flags. The risk is silent breakage if a canonical flag name collides with a forge-specific flag that means something different — document this in PITFALLS.
+**What:** Each forge CLI uses different command names for the same concept. A `*_subcommand_name(forge)` function is the single source of truth for that mapping.
 
-**Example:**
+**When to use:** Required for every new top-level concept.
+
+**Trade-offs:** Centralizes all divergence into one match block. Easy to audit. Adding a new forge requires only touching this function.
+
+**Example for issues:**
 ```rust
-fn normalize_flags(flags: &[String], adapter: &dyn ForgeAdapter) -> Vec<String> {
-    flags.iter().flat_map(|f| {
-        match adapter.map_flag(f) {
-            Some(translated) => vec![translated.to_string()],
-            None => vec![f.clone()],
-        }
-    }).collect()
+fn issue_subcommand_name(forge: ForgeType) -> &'static str {
+    match forge {
+        ForgeType::Github  => "issue",
+        ForgeType::Gitlab  => "issue",
+        ForgeType::Gitea   => "issues",   // tea uses plural — verify against tea docs
+        ForgeType::Forgejo => "issue",
+    }
 }
 ```
 
-### Pattern 3: exec() Replacement (Unix) / spawn-and-wait (Windows)
+### Pattern 3: Early Intercept in main.rs (do NOT extend)
 
-**What:** On Unix, replace the `gf` process with the underlying CLI using `exec` so that signals, TTY, and exit codes are all inherited transparently. On Windows, spawn and wait.
-**When to use:** For all delegated commands. Do not capture stdout/stderr — the underlying CLI should own the terminal directly.
-**Trade-offs:** `exec` means no cleanup code runs after delegation. This is correct behavior — `gf` is a transparent router, not a wrapper that post-processes output.
+**What:** Commands that bypass the detect→translate→exec flow are handled before forge detection via explicit `if let Some(("name", sub))` arms in main.rs.
 
-**Example:**
-```rust
-use std::os::unix::process::CommandExt;
+**When to use:** ONLY for truly native commands (browse) or non-repo commands (completions). All new v1.1 commands follow the standard flow.
 
-pub fn exec_forge(binary: &str, args: &[OsString]) -> Result<(), AppError> {
-    let err = std::process::Command::new(binary)
-        .args(args)
-        .exec();          // only returns if exec fails (binary not found)
-    Err(AppError::ExecFailed { binary: binary.to_string(), source: err })
-}
-```
+**Trade-offs:** Keeps special cases visible. Do not add new intercepts — extending this pattern creates maintenance surface.
+
+### Pattern 4: Passthrough for Unknown Flags
+
+**What:** All translator functions collect unknown flags in the `extra` arg (defined with `last(true)` in clap) and append them verbatim to the output Vec.
+
+**When to use:** Always — this is what makes gf a thin wrapper rather than a full abstraction layer.
+
+**Trade-offs:** Users get the escape hatch they need for forge-specific flags not in gf's canonical set.
 
 ## Data Flow
 
-### Command Execution Flow
+### Standard Command Flow (all new v1.1 delegated commands)
 
 ```
-User runs: gf pr create --title "Fix bug" --draft
+User: gf pr list --state open
 
-    ↓
-[cli.rs] clap parses → Cli { subcommand: Pr(PrCmd::Create { title: "Fix bug", draft: true, extra: [] }) }
+cmd::build_cli()
+  → ArgMatches{ subcommand: "pr", sub: { subcommand: "list", state: "open" } }
 
-    ↓
-[forge/detector.rs] git remote get-url origin
-    → "git@github.com:owner/repo.git"
-    → ForgeContext { forge: ForgeType::GitHub, host: "github.com", owner: "owner", repo: "repo" }
+forge::detect("origin")
+  → git remote get-url origin → "git@github.com:alice/repo.git"
+  → parse_host() → "github.com"
+  → config_lookup() → None
+  → match_known_host() → ForgeType::Github
 
-    ↓
-[forge/adapters/github.rs] map_subcommand(PrCreate)
-    → ["pr", "create"]
+adapter::translate(Github, matches)
+  → adapter::pr::translate_pr(Github, pr_sub)
+  → translate_pr_list(Github, "pr", list_sub)
+  → Vec["pr", "list", "--state", "open"]
 
-[router/flags.rs] normalize flags for GitHub adapter
-    → --title "Fix bug" (unchanged), --draft (unchanged, gh uses --draft)
-
-    ↓
-[runner/mod.rs] exec("gh", ["pr", "create", "--title", "Fix bug", "--draft"])
-    → process is replaced; gh owns the terminal
+runner::run("gh", &["pr", "list", "--state", "open"])
+  → exec() replaces process: gh pr list --state open
 ```
 
-### Browse Flow (native, no delegation)
+### Browse Line-Range Flow (native, no CLI delegation)
 
 ```
-User runs: gf browse src/main.rs
+User: gf browse src/main.rs:42-55
 
-    ↓
-[cli.rs] clap parses → Cli { subcommand: Browse { path: Some("src/main.rs"), branch: None } }
-
-    ↓
-[forge/detector.rs] → ForgeContext { forge: GitHub, host: "github.com", owner, repo }
-
-    ↓ (no adapter needed — URL construction is forge-specific but native)
-[forge/url_builder.rs] current_branch() from git
-    → branch = "main"
-
-    ↓
-[forge/url_builder.rs] build_url(ForgeContext, path="src/main.rs", branch="main")
-    → "https://github.com/owner/repo/blob/main/src/main.rs"
-
-    ↓
-open::that(url)  // opens in default browser
+browse::run(matches)
+  → file_arg = "src/main.rs:42-55"
+  → parse_line_range("src/main.rs:42-55")
+      → path = "src/main.rs", start = 42, end = Some(55)
+  → normalize_path("src/main.rs") → "src/main.rs"
+  → build_file_url(..., "src/main.rs")
+      → base URL: "https://github.com/alice/repo/blob/main/src/main.rs"
+      → append_line_fragment(forge, 42, Some(55))
+          GitHub/GitLab/Gitea/Forgejo: "#L42-L55"
+  → url = "https://github.com/alice/repo/blob/main/src/main.rs#L42-L55"
+  → println! + webbrowser::open()
 ```
 
-## Build Order
+### CORE-04 Self-Hosted Detection (optional extended detect())
 
-The components have strict dependency ordering. Build in this sequence:
-
-1. **`error.rs`** — All other components return `AppError`; needed first.
-2. **`runner/`** — No dependencies on forge logic; can be built and tested in isolation.
-3. **`forge/detector.rs`** + **`GitRemoteReader`** — Core detection logic; everything downstream depends on `ForgeContext`.
-4. **`forge/adapters/`** — Implement the `ForgeAdapter` trait per forge. Start with GitHub (most familiar), then GitLab, then Gitea/Forgejo.
-5. **`router/`** — Depends on adapters. Build after at least one adapter is working.
-6. **`forge/url_builder.rs`** — Independent of adapters; depends only on `ForgeContext`. Can be built in parallel with router.
-7. **`cli.rs`** + **`main.rs`** — Wire everything together last.
-
-This order enables integration-testing each component before the full pipeline exists.
-
-## Forgejo vs Gitea Detection
-
-This is the primary ambiguity in forge detection because both platforms use the same self-hosted model with arbitrary domain names.
-
-**Detection strategy (ordered by reliability):**
-
-| Signal | Reliability | Notes |
-|--------|-------------|-------|
-| Known public host (`codeberg.org`) | HIGH | Codeberg is the largest Forgejo instance; hard-code it as Forgejo |
-| Known public host (`gitea.com`) | HIGH | gitea.com is Gitea; hard-code it |
-| API endpoint probe (`/api/forgejo/v1/version`) | MEDIUM | Forgejo exposes this; Gitea does not. Requires network call — out of scope for v1 |
-| User config override (`~/.config/gf/forges.toml`) | HIGH | Escape hatch for private instances |
-| Default fallback | — | Unknown self-hosted hosts default to Gitea (conservative; `tea` works for both Forgejo and Gitea since Forgejo is API-compatible) |
-
-**v1 recommendation:** Hard-code `codeberg.org` → Forgejo. Hard-code `gitea.com` → Gitea. For all other unknown hosts, default to Gitea (`tea`) with a `--forge` flag override. Add a config file for persistent host→forge mappings. Defer API probing to v2.
-
-**Key fact:** Forgejo is API-compatible with Gitea. `tea` will work against a Forgejo instance. So the `tea`/`fj` choice is mostly about UX — `fj` may have Forgejo-specific features, but `tea` will function. This makes the default-to-Gitea fallback safe.
-
-## Anti-Patterns
-
-### Anti-Pattern 1: Capturing subprocess stdout
-
-**What people do:** Pipe subprocess stdout through `gf` to post-process or format output.
-**Why it's wrong:** Breaks TTY detection in `gh`/`glab` (they disable color when not attached to a TTY), breaks interactive prompts, and adds latency.
-**Do this instead:** Use `exec()` on Unix. On Windows, use `spawn().wait()` with inherited stdio — never capture.
-
-### Anti-Pattern 2: Implementing forge API calls in gf
-
-**What people do:** Call the GitHub/GitLab REST API directly to avoid shelling out.
-**Why it's wrong:** Duplicates auth management, token storage, and API client maintenance. The whole value proposition is delegation.
-**Do this instead:** Shell out to the existing CLI. If a CLI is missing a feature, file an issue upstream or add it to v2 scope.
-
-### Anti-Pattern 3: One giant match in main
-
-**What people do:** Single `match args.subcommand` with all forge logic inline.
-**Why it's wrong:** Untestable, unmaintainable when adding a 5th forge.
-**Do this instead:** The ForgeAdapter trait + per-forge adapter modules with static command/flag maps.
-
-### Anti-Pattern 4: Assuming SSH and HTTPS remote URLs parse identically
-
-**What people do:** Regex for `github.com` assuming HTTPS format.
-**Why it's wrong:** SSH remotes look like `git@github.com:owner/repo.git`. Both formats must be handled.
-**Do this instead:** Use the `git-url-parse` crate (Rust) or write a parser covering both formats explicitly. Test both.
+```
+forge::detect(remote)
+  → get_remote_url() → url
+  → parse_host() → "git.corp.com"
+  → config_lookup("git.corp.com") → None (not in config)
+  → match_known_host("git.corp.com") → Err(ForgeNotDetected)
+  → [NEW FALLBACK] cli_auth_probe("git.corp.com")
+      → try: gh auth status --hostname git.corp.com  (exit 0?) → Github
+      → try: glab auth status --hostname git.corp.com (exit 0?) → Gitlab
+      → ... (timeout fast — probes must not block)
+      → all fail → Err(ForgeNotDetected { domain })
+```
 
 ## Integration Points
 
-### External Processes
+### New Features → Existing Files
 
-| Process | Integration Pattern | Notes |
-|---------|---------------------|-------|
-| `git remote get-url origin` | `std::process::Command` with captured stdout | Used only during forge detection; not on hot path |
-| `git branch --show-current` | `std::process::Command` with captured stdout | Used only for browse; fallback to `git rev-parse HEAD` for detached HEAD |
-| `gh` / `glab` / `tea` / `fj` | `exec()` replacement (Unix) or `spawn().wait()` (Windows) | Inherits all stdio; must be on PATH |
-| Browser | `open` crate (`open::that(url)`) | Cross-platform; handles macOS `open`, Linux `xdg-open`, Windows `start` |
+| New Feature | Files Modified | Files Created | Key Integration |
+|-------------|----------------|---------------|-----------------|
+| `pr list` | `cmd/mod.rs`, `adapter/pr.rs` | none | Add to build_pr(); add match arm in translate_pr() |
+| `pr merge` | `cmd/mod.rs`, `adapter/pr.rs` | none | tea: `pulls merge`; glab: `mr merge`; verify fj |
+| `pr checkout` | `cmd/mod.rs`, `adapter/pr.rs` | none | gh: `pr checkout`; glab: `mr checkout`; tea: needs verification |
+| `pr review` | `cmd/mod.rs`, `adapter/pr.rs` | none | glab: `mr approve`; tea may not support — passthrough or error |
+| `repo clone` | `cmd/mod.rs`, `adapter/repo_auth.rs` | none | All CLIs: `repo clone <repo>`; flag audit needed for --depth etc. |
+| `issue` group | `cmd/mod.rs`, `adapter/mod.rs` | `adapter/issue.rs` | New dispatch arm in adapter::translate(); new module mirrors pr.rs |
+| Browse line-range | `browse/mod.rs` | none | parse_line_range() helper + fragment appended in build_file_url() |
+| CORE-04 probe | `forge/mod.rs` | possibly `forge/probe.rs` | New fallback tier in detect() after match_known_host fails |
+| Flag audit | `adapter/pr.rs`, `adapter/repo_auth.rs` | none | Systematic check of each forge CLI's current flag names |
 
-### Internal Boundaries
+### Internal Module Boundaries
 
 | Boundary | Communication | Notes |
 |----------|---------------|-------|
-| `detector` → `router` | `ForgeContext` struct (owned) | Detector produces; router consumes |
-| `router` → `runner` | `(String, Vec<OsString>)` — binary + argv | Router produces final argv; runner just execs |
-| `cli` → `detector` | remote name string (default "origin") | CLI can pass `--remote` override |
-| `url_builder` → `runner` | URL string → `open::that()` | Browse path never reaches subprocess runner |
+| `browse` ↔ `forge` | Direct calls: `forge::config_lookup()`, `forge::parse_remote_parts()` | Already coupled in v1.0; intentional for URL correctness |
+| `adapter` ↔ `forge` | `ForgeType` value passed as argument | Adapter is forge-aware but does not import forge module internals |
+| `main.rs` ↔ all | Orchestrates detect → translate → run pipeline | main.rs is the composition root; it is the only file that calls all three |
+| `cmd` ↔ adapters/browse | One-way import: adapter tests use `cmd::build_cli()` as parse helper | cmd has no runtime deps on other modules |
+
+### Known Duplication to Resolve
+
+The v1.0 codebase has one notable structural issue: `browse/mod.rs` duplicates the known-host match table from `forge/mod.rs` (browse lines 131-139, forge lines 193-203). v1.1 is a good time to fix this by making `forge::match_known_host()` pub(crate) and calling it from browse's `resolve_forge_type()`.
+
+## Build Order for v1.1
+
+Dependencies within the v1.1 scope:
+
+1. **Browse line-range** — self-contained modification to browse/mod.rs. No new dependencies. Build and ship first.
+2. **Flag audit** — modify existing translator functions. No new modules. Build alongside browse.
+3. **`pr list/merge/checkout/review`** — extend adapter/pr.rs and cmd/mod.rs. No new modules. Depends on: flag audit complete (clean baseline).
+4. **`repo clone`** — extend adapter/repo_auth.rs and cmd/mod.rs. Parallel with step 3.
+5. **`issue` group** — requires new adapter/issue.rs and cmd/mod.rs additions. Depends on: understanding the established pattern from steps 3-4.
+6. **CORE-04 self-hosted probe** — modifies forge::detect(). Must be added last; it touches the detection pipeline that all other commands rely on.
+
+## Anti-Patterns
+
+### Anti-Pattern 1: Adding Early Intercepts for Delegated Commands
+
+**What people do:** Add `if let Some(("pr", sub)) = matches.subcommand() { ... return; }` in main.rs for new commands that should use the standard flow.
+
+**Why it's wrong:** Bypasses forge detection. Forces duplication of detection logic. The early intercept pattern is ONLY for browse (native) and completions (no repo needed).
+
+**Do this instead:** Add the translator function in the appropriate adapter module, add the match arm in adapter::translate(), add the subcommand in cmd/mod.rs. main.rs stays unchanged.
+
+### Anti-Pattern 2: Making CORE-04 Probe Blocking on Every Invocation
+
+**What people do:** Call all four CLI auth probes on every `gf` invocation when the host is unknown, blocking until all probes time out.
+
+**Why it's wrong:** Probing 4 CLIs on every command invocation adds unacceptable latency. This is why CORE-04 was deferred from v1.0.
+
+**Do this instead:** Probe only when both config_lookup and match_known_host fail. Set tight timeouts on each probe subprocess. Consider caching the probe result in ~/.cache/gf/. Alternatively, make CORE-04 an explicit user action (`gf detect` command that writes to config) rather than fully automatic.
+
+### Anti-Pattern 3: Embedding Line-Range as Separate Flags
+
+**What people do:** Add `--line-start` and `--line-end` flags to build_browse() to handle line ranges separately.
+
+**Why it's wrong:** The natural user syntax is `gf browse file.rs:42-55` (same convention as gh browse, editors, etc.). Separate flags break ergonomics and established convention.
+
+**Do this instead:** Accept the colon syntax in the existing `file` positional arg. Parse `path:start[-end]` in browse::run() before calling normalize_path(). The `file` arg definition in cmd/mod.rs does not need to change.
+
+### Anti-Pattern 4: Silently Ignoring Unsupported Commands per Forge
+
+**What people do:** Return an empty Vec from a translator when a forge CLI does not support a canonical command (e.g., `tea` may not support `pr review`).
+
+**Why it's wrong:** Silently produces `exec("tea", [])` which shows tea help text with no error. User has no idea why.
+
+**Do this instead:** Return a meaningful error from the translator for commands that genuinely have no equivalent. Add a new GfError variant like `CommandNotSupported { forge, command }` and surface it before exec.
+
+### Anti-Pattern 5: Duplicating the Known-Host Table
+
+**What people do:** Copy the host→ForgeType match from forge/mod.rs into browse/mod.rs (this already happened in v1.0).
+
+**Why it's wrong:** Two sources of truth. Adding a new known host requires changing both. Adding a new forge requires finding all copies.
+
+**Do this instead:** In v1.1, expose `forge::match_known_host()` as `pub(crate)` and have browse::resolve_forge_type() call it instead of duplicating the match.
 
 ## Sources
 
-- [git-url-parse crate (Rust)](https://docs.rs/git-url-parse) — URL parsing for both SSH and HTTPS git remote formats
-- [std::process::Command (Rust std)](https://doc.rust-lang.org/std/process/struct.Command.html) — Standard subprocess API
-- [std::os::unix::process::CommandExt](https://doc.rust-lang.org/std/os/unix/process/trait.CommandExt.html) — Unix exec() replacement
-- [clap-rs/clap](https://github.com/clap-rs/clap) — CLI argument parsing; derive API recommended
-- [Rain's Rust CLI recommendations — handling arguments](https://rust-cli-recommendations.sunshowers.io/handling-arguments.html) — Community best practices
-- [Forgejo forking forward announcement (2024)](https://forgejo.org/2024-02-forking-forward/) — Forgejo/Gitea divergence context
-- [gitea/tea CLI](https://gitea.com/gitea/tea) — tea works against Forgejo instances (API compatible)
+- Direct source analysis of `/Users/derkev/tmp/gf-v2/src/` (v1.0, 2026-03-17)
+- Confidence: HIGH — all claims derived from the actual source code
 
 ---
-*Architecture research for: Rust CLI forge wrapper (gf)*
-*Researched: 2026-03-16*
+*Architecture research for: gf v1.1 — PR workflows, issues, clone, browse line-range, self-hosted detection*
+*Researched: 2026-03-17*

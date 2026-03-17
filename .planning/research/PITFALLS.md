@@ -1,8 +1,8 @@
 # Pitfalls Research
 
 **Domain:** Rust CLI forge wrapper (subprocess delegation, remote URL detection, TTY passthrough)
-**Researched:** 2026-03-16
-**Confidence:** HIGH (subprocess/signal/TTY mechanics verified via official Rust docs + community; URL edge cases verified via Git docs + real bug reports)
+**Researched:** 2026-03-16 (v1.0) · 2026-03-17 (v1.1 additions)
+**Confidence:** HIGH (subprocess/signal/TTY mechanics verified via official Rust docs + community; URL edge cases verified via Git docs + real bug reports; v1.1 pitfalls derived from codebase inspection + forge CLI documentation)
 
 ---
 
@@ -239,6 +239,152 @@ Separately: when gf itself is run non-interactively (stdin is not a TTY), this s
 
 ---
 
+## v1.1-Specific Pitfalls
+
+The following pitfalls are specific to the features being added in v1.1: PR list/merge/checkout/review, issues, clone, line-range browse, self-hosted CLI probing, and the flag normalization audit.
+
+---
+
+### Pitfall 11: Flag Declared in clap But Not Wired in Adapter — Silent Drop
+
+**What goes wrong:**
+A new flag (e.g., `--assignee` for `pr list`) is added to the clap definition in `cmd/` but never handled in the adapter translator. clap captures the value, the translator ignores it, and the flag is silently dropped before the forge CLI sees it. The reverse also happens: a flag is translated in the adapter but never declared in clap, so it ends up in the `extra` passthrough bucket instead of being normalized.
+
+**Why it happens:**
+Adding a canonical flag requires touching two locations: the clap definition AND the adapter translation. There is no compile-time enforcement that the two sides are in sync. Tests that only test parsing or only test translation (not both together) will not catch the mismatch.
+
+**How to avoid:**
+For every new canonical flag, write the test starting from `build_cli().try_get_matches_from(...)` all the way through the full `translate_*()` call and assert the flag appears in the output `Vec<String>`. This is exactly what `test_pr_create_github_full` does. Never test parsing and translation in separate functions without also having an end-to-end test that connects both.
+
+**Warning signs:**
+- A flag accepted by `gf` silently vanishes from the generated forge CLI invocation
+- Tests that construct `ArgMatches` directly (bypassing `build_cli()`) only prove the translator works, not that clap will ever deliver the value
+
+**Phase to address:** Flag normalization audit phase and every new adapter module.
+
+---
+
+### Pitfall 12: `tea` Subcommand Surface Diverges at the Noun Level, Not Just Flags
+
+**What goes wrong:**
+`tea` diverges from `gh`/`glab`/`fj` at the subcommand level. v1.0 already handles `auth` → `logins add/rm/ls` and `repo` → `repos`. For v1.1, `tea` uses `pulls` for PRs (already mapped), `issues` for issues, and may not have a top-level `clone` equivalent at all. Treating `tea` as "same as gh with different flags" produces wrong subcommand strings that cause runtime errors in the underlying CLI with no useful message.
+
+**Why it happens:**
+`gh`, `glab`, and `fj` share enough surface area that developers form a mental model of "small flag differences." `tea` is an outlier built independently and its CLI structure predates the gh/glab API design.
+
+**How to avoid:**
+For every new command domain (issues, clone), verify `tea help <subcommand>` output before writing the adapter. The existing `pr_subcommand_name()` / `repo_subcommand_name()` pattern is correct — apply it to every new command. Do not assume `tea <noun> <verb>` exists; confirm it or plan an explicit error with a clear message.
+
+**Warning signs:**
+- `tea <subcommand>` returns "unknown command" at runtime even though all other forges work
+- The test matrix for a new adapter covers GitHub/GitLab but tea tests are absent
+
+**Phase to address:** Issues adapter phase and clone adapter phase — include a tea-specific subcommand verification step before writing the translator.
+
+---
+
+### Pitfall 13: `pr merge` Merge Strategy Flags Have Different Forge CLI Semantics
+
+**What goes wrong:**
+`gh pr merge` accepts `--merge`, `--squash`, `--rebase` as mutually exclusive flags. `glab mr merge` accepts `--squash` but its rebase behavior is controlled differently depending on glab version. `tea` may not support all strategies via CLI flag. If the adapter maps `--squash` universally without verifying forge support, users on unsupported forges get a confusing underlying CLI error rather than a clear `gf` error.
+
+**Why it happens:**
+Merge strategy flags look like simple booleans but encode server-side capabilities that differ per forge instance configuration, not just per forge CLI version.
+
+**How to avoid:**
+Map only flags confirmed to work across all four forge CLIs. For flags that only some forges support, either pass them through with a note in help text that forge support varies, or explicitly reject them with a "use -- to pass forge-specific flags" message. Do not silently remap a flag to something the user did not intend.
+
+**Warning signs:**
+- `gf pr merge --squash` works on GitHub but silently produces a regular merge on tea
+- The adapter has a forge branch that remaps a flag to a different name without a test proving the target flag actually works
+
+**Phase to address:** PR merge adapter phase.
+
+---
+
+### Pitfall 14: `glab mr approve` Is a Separate Subcommand, Not a Flag of `glab mr review`
+
+**What goes wrong:**
+`gh pr review --approve` normalizes cleanly. `glab` uses a separate subcommand: `glab mr approve`. If the `gf pr review` adapter maps `--approve` as a flag translation without accounting for this, it produces `glab mr review --approve` which glab does not recognize, and the user's approval silently fails or errors.
+
+**Why it happens:**
+gh and glab use fundamentally different structures for review actions. It is easy to assume "it is just a flag difference" without checking glab's actual CLI surface.
+
+**How to avoid:**
+For `pr review`, implement forge-specific subcommand routing — not just flag remapping. For Gitlab: `--approve` → subcommand `approve`; `--request-changes` → check if glab has an equivalent. Verify against `glab mr --help` before implementing.
+
+**Warning signs:**
+- The `translate_pr_review` function only has flag remapping, no subcommand routing for GitLab
+- No test covers `gf pr review --approve` on GitLab producing `glab mr approve`
+
+**Phase to address:** PR review adapter phase.
+
+---
+
+### Pitfall 15: Line-Range Browse Fragment Format Differs for GitLab
+
+**What goes wrong:**
+Line-range linking (`file.rs:42-55`) appends a URL fragment. GitHub, Gitea, and Forgejo use `#L42-L55`. GitLab uses `#L42-55` (the second line number has no `L` prefix). Getting this wrong produces a URL that opens the file but ignores the line range — no error, the page just does not scroll to the correct line.
+
+**Why it happens:**
+The existing `build_file_url()` function does not yet handle line ranges. When added, the natural implementation is to append a fragment — but the GitLab format is a subtle exception that is only discovered if GitLab is tested specifically.
+
+**How to avoid:**
+Test each forge's fragment format before implementing. Correct formats:
+- GitHub: `#L42-L55`
+- GitLab: `#L42-55` (no `L` before end line)
+- Gitea: `#L42-L55`
+- Forgejo: `#L42-L55`
+
+Write unit tests for `build_file_url()` with line range arguments asserting the exact fragment string for all four forges.
+
+**Warning signs:**
+- Only GitHub fragment format tested; GitLab not covered
+- Single test asserts the fragment "looks right" without checking the exact string
+
+**Phase to address:** Line-range browse phase.
+
+---
+
+### Pitfall 16: `repo clone` Must Handle Both Shorthand and Full URL Input
+
+**What goes wrong:**
+`gh repo clone alice/myrepo` and `gh repo clone https://github.com/alice/myrepo` both work for gh. For `tea`, `glab`, and `fj`, accepted input formats may differ. If `gf repo clone` only normalizes the `owner/repo` shorthand form, users who paste a full URL get an unexpected error on some forges.
+
+**Why it happens:**
+The happy path is `gf repo clone alice/myrepo`. Full URLs are only discovered when users paste from a browser. The difference is not caught in tests that only exercise the shorthand.
+
+**How to avoid:**
+Make an explicit design decision before implementing: pure delegation (accept whatever the forge CLI accepts), or normalize to shorthand. If normalizing, transform full-URL input to `owner/repo` before delegating. Document the decision and test both input forms.
+
+**Warning signs:**
+- Only `alice/myrepo` form tested; `https://host/alice/myrepo` not covered
+- The clone adapter has no forge-based branching (may be fine if all CLIs accept identical forms, but this should be verified)
+
+**Phase to address:** Clone adapter phase.
+
+---
+
+### Pitfall 17: Self-Hosted CLI Auth Probing Is Fragile in the Hot Path
+
+**What goes wrong:**
+CORE-04 (self-hosted forge detection via CLI auth probing) was deferred in v1.0 as "too fragile." If re-attempted in v1.1, probing `gh auth status`, `glab auth status`, etc. and parsing their stdout to detect which forge manages a given host has multiple failure modes: CLI misconfiguration, output format changes between CLI versions, a host authenticated under multiple CLIs, and brittle text scraping. If probing runs on every `gf` invocation, it adds 200–500ms of subprocess overhead.
+
+**Why it happens:**
+Probing feels like zero-config user experience. But the config file mechanism (already in v1.0) is strictly better for reliability. The temptation is to eliminate the config file requirement for self-hosted users.
+
+**How to avoid:**
+Keep the config file as the primary mechanism. If CORE-04 probing is added, it must be: (a) only run when config lookup returns None, (b) gated behind an explicit opt-in or marked experimental, and (c) tested by mocking subprocess output rather than requiring a configured forge CLI to pass. Never call auth CLIs in the hot path of forge detection.
+
+**Warning signs:**
+- `forge::detect()` execution time increases noticeably
+- Probing code parses `auth status` stdout with `contains()` checks on human-readable strings without version pinning
+- Tests for probing require an installed and configured forge CLI to pass
+
+**Phase to address:** Self-hosted detection phase.
+
+---
+
 ## Technical Debt Patterns
 
 | Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
@@ -248,6 +394,9 @@ Separately: when gf itself is run non-interactively (stdin is not a TTY), this s
 | Using `Command::output()` for delegation | Easy to test | Disables TTY, breaks interactive CLIs, strips color | Never for delegation; only for explicit capture (e.g., `git remote get-url`) |
 | No signal forwarding / no re-raise | Simpler code | Exit codes wrong in scripts; orphaned child processes | Never |
 | Skip `--` passthrough support | Simpler arg parsing | Users can't escape to child CLI's raw flags | Never — this is core to the product |
+| Adding canonical flag without end-to-end test (clap → translate) | Faster to write | Flag silently dropped on one forge, discovered by user | Never |
+| `_ =>` catch-all in forge match arms without a comment | Less code | New forge added later gets wrong behavior silently | Only if the arm is an explicit no-op and commented as such |
+| Probing auth CLIs for self-hosted detection in hot path | Zero config for user | 200-500ms overhead per invocation, brittle to CLI version changes | Never in hot path; acceptable as opt-in fallback only |
 
 ---
 
@@ -257,9 +406,12 @@ Separately: when gf itself is run non-interactively (stdin is not a TTY), this s
 |-------------|----------------|------------------|
 | `gh` CLI | Spawning with captured stdout breaks interactive prompts (e.g., `gh auth login`) | Always use `Stdio::inherit()` for delegation; only capture for explicit read commands |
 | `glab` CLI | Self-hosted GitLab URL has no standard hostname pattern | Probe `glab auth status` output to detect configured hosts |
+| `glab mr review` | Assuming `--approve` is a flag like gh | `glab mr approve` is a separate subcommand; route subcommand, not flag |
 | `tea` / `fj` | Assuming these CLIs have parity with `gh`/`glab` flags | Test each CLI's actual flag names; normalization map must be verified per-CLI |
+| `tea issues` | Using `tea issue` (singular) | tea uses `issues` (plural); verify with `tea help` before writing adapter |
 | `git remote` | Calling `git remote get-url` from wrong working directory | Always set `Command::current_dir()` to the repo root when shelling out to git |
 | browse / URL construction | Assuming path is always `owner/repo` | Some self-hosted Gitea instances use non-standard root paths; `ROOT_URL` in Forgejo config can have a subpath |
+| Line-range fragment | Using `#L42-L55` for GitLab | GitLab uses `#L42-55` (no second `L`); test specifically |
 
 ---
 
@@ -272,6 +424,7 @@ This project is a thin CLI wrapper. Performance traps are minor but worth noting
 | Running `git remote get-url` twice (once for detection, once for browse) | Adds ~10ms per extra subprocess | Cache the remote URL in the current invocation | Not a real threshold issue — just sloppy |
 | Probing all 4 CLIs at startup to detect forge | Adds 40–100ms per invocation | Only probe the CLI for the detected forge; detect forge from URL first | Any usage — always avoid |
 | `which gh` / `which glab` at every invocation | Adds subprocess overhead | Check PATH presence once at startup and cache, or just let the exec fail with a clear error | Any usage |
+| Self-hosted auth probing on every invocation | Adds 200-500ms | Config lookup first; probing only as opt-in fallback | Day one if added to hot path |
 
 ---
 
@@ -282,6 +435,8 @@ This project is a thin CLI wrapper. Performance traps are minor but worth noting
 | Shell-interpolating remote URL into a command string | Remote URL could contain shell metacharacters; code injection | Always pass args as `Vec<String>` to `Command::args()`, never via shell string interpolation |
 | Trusting `gf.forge` git config without validation | A malicious `.git/config` in a repo could set `gf.forge` to an unexpected value | Validate that the config value is one of the known forge identifiers; log when using config override |
 | Passing unvalidated file paths to browse URL construction | Path traversal in constructed URLs (low severity but surprising) | Canonicalize file paths relative to repo root before embedding in URLs |
+| Logging `--token` flag value | Token leaked to terminal history / logs | Never log the value of `--token`; only log that the flag was present |
+| Line-range fragment from unvalidated user input | URL injection producing wrong link | Validate that line numbers are integers before appending fragment |
 
 ---
 
@@ -294,6 +449,8 @@ This project is a thin CLI wrapper. Performance traps are minor but worth noting
 | Silent fallthrough when forge unknown | User runs command, nothing happens | Always exit non-zero with a clear message when forge detection fails |
 | `--help` shows gf stub instead of child CLI help | Users can't discover child CLI flags | Delegate `--help` to child CLI after brief gf header |
 | Forge detected incorrectly, no override visible | User stuck with wrong forge | Document `gf.forge` config and `--forge` flag prominently in error messages |
+| Self-hosted forge with no config entry gives `ForgeNotDetected` error | Confusing for new users | Error message must include the config file path and example entry |
+| `gf pr list` with no canonical flags shows different output per forge | Users on different forges see different columns/formats | Document in help text that output format is forge-native; do not normalize in v1.1 |
 
 ---
 
@@ -309,6 +466,13 @@ This project is a thin CLI wrapper. Performance traps are minor but worth noting
 - [ ] **browse with subpath:** Self-hosted Gitea with a `ROOT_URL` subpath generates correct browse URLs
 - [ ] **Detached HEAD branch:** `gf browse` with detached HEAD uses commit hash, not a branch name
 - [ ] **Missing CLI install hint:** Running `gf` in a Forgejo repo without `fj` installed shows clear error + install command
+- [ ] **PR list:** `--limit` / `--max` flag names checked against all four forge CLIs before mapping
+- [ ] **PR checkout:** `glab mr checkout` syntax verified — may require `--branch <name>` explicitly
+- [ ] **PR review:** `glab mr approve` is a separate subcommand from `glab mr review` — not just a flag remap
+- [ ] **Issues:** `tea issues` (plural) verified, not `tea issue` (singular)
+- [ ] **Clone:** `fj repo clone` existence confirmed before writing the adapter
+- [ ] **Line-range:** GitLab fragment `#L42-55` (not `#L42-L55`) tested against GitLab specifically
+- [ ] **Flag audit:** Every flag in adapter match arms has an end-to-end test going through `build_cli()`
 
 ---
 
@@ -322,6 +486,11 @@ This project is a thin CLI wrapper. Performance traps are minor but worth noting
 | Self-hosted detection missing | MEDIUM | Requires `glab/gh auth status` probe + `gf.forge` override; needs design + implementation |
 | clap eating passthrough flags | MEDIUM | Requires refactoring subcommand definitions to use `trailing_var_arg`; may need clap API changes |
 | browse subpath URLs wrong | LOW | URL construction fix; unit testable |
+| Flag silently dropped (clap/adapter mismatch) | LOW | Add end-to-end test, fix missing declaration or missing translation arm, release patch |
+| Wrong subcommand name for tea (e.g., `issue` vs `issues`) | LOW | Fix string constant in `*_subcommand_name()`, update tests, release patch |
+| Wrong line-range fragment for GitLab | LOW | Fix the match arm in `build_file_url()`, tests already exist as scaffolding |
+| `pr merge` strategy flag remapped incorrectly | MEDIUM | Roll back flag mapping, add forge capability check, document which strategies are safe |
+| `glab mr approve` wired as flag instead of subcommand | MEDIUM | Refactor translate_pr_review to route subcommand for GitLab, add tests |
 
 ---
 
@@ -339,23 +508,30 @@ This project is a thin CLI wrapper. Performance traps are minor but worth noting
 | `--help` ambiguity | CLI UX / subcommand wiring | Manual test: `gf pr create --help` shows gh's help |
 | Self-hosted detection | Forge detection | Test: forge detected from `gh auth status` output for custom hostname |
 | Stdin not forwarded | Core subprocess delegation | Test: `echo x | gf pr create` delivers stdin to child |
+| Flag declared in clap but not wired in adapter | Flag normalization audit + every new adapter | End-to-end test from `build_cli()` through `translate_*()` asserting flag in output Vec |
+| `tea` subcommand noun divergence | Issues and clone phases | `tea <noun> help` reviewed before writing adapter |
+| `pr merge` strategy mismatch | PR merge phase | Test against glab + tea CLI docs for `--squash` and `--rebase` support |
+| `glab mr approve` is a subcommand | PR review phase | Test: `gf pr review --approve` on GitLab produces `glab mr approve` |
+| Line-range GitLab fragment `#L42-55` | Line-range browse phase | Unit test asserting exact fragment string for all four forges |
+| Self-hosted probing in hot path | Self-hosted detection phase | config_lookup() called first; probing only if result is None and opt-in |
+| Clone input form (shorthand vs full URL) | Clone phase | Tests for both `alice/myrepo` and `https://host/alice/myrepo` forms |
 
 ---
 
 ## Sources
 
+- Codebase inspection: `/Users/derkev/tmp/gf-v2/src/` — v1.0 adapter pattern, existing flag translation, test structure
+- v1.0 key decisions documented in `.planning/PROJECT.md` (CORE-04 deferred as "too fragile")
 - [ExitStatusExt::signal() — Rust std docs](https://doc.rust-lang.org/std/os/unix/process/trait.ExitStatusExt.html)
 - [ExitStatus::code() — Rust std docs](https://doc.rust-lang.org/std/process/struct.ExitStatus.html)
 - [Signal handling — Rust CLI book](https://rust-cli.github.io/book/in-depth/signals.html)
-- [Dealing with process termination in Linux (Rust examples)](https://iximiuz.com/en/posts/dealing-with-processes-termination-in-Linux/)
 - [TTY passthrough Rust forum discussion](https://users.rust-lang.org/t/how-to-fool-a-subprocess-into-thinking-its-stdout-stderr-was-a-tty-while-still-reading-output-of-its-stdout-stderr/79810)
 - [Cannot parse SCP-style git URLs — rust-url issue #220](https://github.com/servo/rust-url/issues/220)
-- [Cannot parse SCP-style git URLs — cargo issue #3014](https://github.com/rust-lang/cargo/issues/3014)
-- [git-lfs insteadOf not honored in submodules](https://github.com/git-lfs/git-lfs/issues/5665)
 - [clap TrailingVarArg doesn't work without -- issue #1538](https://github.com/clap-rs/clap/issues/1538)
-- [Leleat/git-forge — comparable project](https://github.com/Leleat/git-forge)
 - [git-scm: The Protocols — URL format reference](https://git-scm.com/book/en/v2/Git-on-the-Server-The-Protocols)
+- GitLab line anchor format: verified against gitlab.com source view URL patterns (HIGH confidence)
+- `glab mr approve` as separate subcommand: known from glab CLI design (MEDIUM confidence — verify against glab docs before implementing PR review phase)
 
 ---
-*Pitfalls research for: Rust CLI forge wrapper (gf)*
-*Researched: 2026-03-16*
+*Pitfalls research for: gf v1.0 (Rust CLI forge wrapper) + v1.1 (PR workflows, issues, clone, line-range browse, self-hosted detection, flag audit)*
+*Researched: 2026-03-16 (v1.0) · 2026-03-17 (v1.1 additions)*

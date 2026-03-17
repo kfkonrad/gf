@@ -1,8 +1,8 @@
 # Feature Research
 
-**Domain:** Unified git forge CLI wrapper (gh, glab, tea, fj)
-**Researched:** 2026-03-16
-**Confidence:** HIGH (command structures verified against official docs and man pages)
+**Domain:** Unified git forge CLI wrapper (PR workflows, issues, clone, browse)
+**Researched:** 2026-03-17
+**Confidence:** HIGH (verified against live gh, glab, tea, fj CLIs)
 
 ## Feature Landscape
 
@@ -12,20 +12,15 @@ Features users assume exist. Missing these = product feels incomplete.
 
 | Feature | Why Expected | Complexity | Notes |
 |---------|--------------|------------|-------|
-| `gf pr create` | Core reason to use the tool — creating PRs/MRs is the highest-frequency operation | MEDIUM | Must normalize --title, --body/--description, --draft, --base across all four forges |
-| `gf pr list` | Second most common operation — checking open PRs | LOW | Passthrough works well here |
-| `gf pr view [number]` | Inspecting a specific PR before acting on it | LOW | Passthrough; tea uses pulls not pr |
-| `gf pr merge [number]` | Closing the loop on reviewed PRs | LOW | gh/glab/tea/fj all support this |
-| `gf repo clone <url>` | Universal entry point for working on a new project | LOW | All four CLIs support clone |
-| `gf repo fork` | Fork-and-clone workflow is standard across all forges | LOW | Direct passthrough per forge |
-| `gf repo create` | Creating new repos from CLI is expected | LOW | Passthrough |
-| `gf repo view` | Viewing repo details in terminal | LOW | Passthrough |
-| `gf auth login` | Users must authenticate before any operation | LOW | Fully delegated to underlying CLI |
-| `gf auth logout` | Clean session termination | LOW | Fully delegated |
-| `gf auth status` | Verifying which account/token is active | LOW | Fully delegated |
-| `gf browse` | Opening repo or file in browser — ubiquitous in gh, expected in a wrapper | MEDIUM | Native implementation required (tea's is broken); must construct URL from remote |
-| Forge auto-detection | The defining feature — users expect `gf` to just work on any repo | MEDIUM | Parse git remote URL; detect github.com, gitlab.com, *.gitea.*, *.forgejo.* or custom hosts |
-| Clear error + install hint | When underlying CLI is absent, a cryptic error is worse than useless | LOW | Check PATH at startup for required binary |
+| `gf pr list` | Core PR workflow — first thing engineers do after `pr create` | LOW | All 4 CLIs support; flag shapes differ (see dependency notes) |
+| `gf pr merge` | Completing PRs is the whole point of the workflow | LOW | All 4 CLIs support; strategy flags differ significantly |
+| `gf pr checkout` | Review-driven development requires checking out peers' PRs | LOW | All 4 CLIs support; branch naming flag differs |
+| `gf pr review` | Approve/request-changes is a universal forge operation | MEDIUM | Asymmetric: gh has unified `review` command; glab splits into `approve` and `mr note`; tea/fj lack a full review command |
+| `gf repo clone` | Cloning is how every project starts | LOW | Asymmetric: gh/glab/fj use `repo clone`; tea uses top-level `clone` command |
+| `gf issue list` | Issues are the other half of forge workflows | LOW | All 4 CLIs support; flag shapes differ |
+| `gf issue view` | Reading issue details is table stakes alongside listing | LOW | All 4 CLIs support |
+| `gf issue create` | Creating issues is as common as creating PRs | LOW | All 4 CLIs support |
+| Line-range browse (`gf browse src/main.rs:42-55`) | Deep-linking to code is a daily workflow for code review | MEDIUM | Browse is already native; need to parse `:start-end` suffix and append forge-specific anchor |
 
 ### Differentiators (Competitive Advantage)
 
@@ -33,11 +28,9 @@ Features that set the product apart. Not required, but valued.
 
 | Feature | Value Proposition | Complexity | Notes |
 |---------|-------------------|------------|-------|
-| Flag normalization (known flags) | Users learn one flag set (`--body` not `--description`); biggest friction point in switching forges | MEDIUM | Map canonical flags to forge equivalents at dispatch time; unknown flags pass through untouched |
-| `gf browse` with file deep-link | `gh browse path/to/file.rs` is beloved; tea doesn't support it reliably; making it work everywhere adds real value | MEDIUM | Parse git remote + current branch + file path; construct forge-specific URL pattern |
-| `--remote` override flag | Power users have multi-remote repos (upstream + fork); explicit routing is safer than guessing | LOW | Accept `--remote <name>` as global flag; resolve that remote instead of origin |
-| Single binary distribution | Rust produces a static binary; no runtime, no dependency manager, instant install | LOW | Design constraint already chosen; just do it right |
-| Informative passthrough | When delegating, optionally show users what command was actually run (--verbose or env var) | LOW | Useful for debugging and learning; debug log what `gf pr create` expanded to |
+| Self-hosted forge detection via CLI auth probing (CORE-04) | Removes config.toml manual step for self-hosted users; zero-setup experience | HIGH | Probe `gh auth status`, `glab auth status`, `tea logins list` output for non-public hosts; fragile by design — treat as fallback only |
+| Flag normalization audit across all forge CLIs | Prevents silent wrong-flag passthrough bugs; builds user trust | MEDIUM | Systematically verify `--state`, `--assignee`, `--label`, `--limit`, `--squash`, `--rebase`, `--delete-branch` across all 4 CLIs for all new commands |
+| `gf pr list --state merged` canonical form | gh uses `--state merged`; glab uses `--merged` (separate flag); normalizing this avoids user confusion | LOW | Part of flag audit; worth explicit attention |
 
 ### Anti-Features (Commonly Requested, Often Problematic)
 
@@ -45,173 +38,130 @@ Features that seem good but create problems.
 
 | Feature | Why Requested | Why Problematic | Alternative |
 |---------|---------------|-----------------|-------------|
-| Own config file / token store | Users want `gf` to handle all auth in one place | Duplicates auth state with gh/glab/tea/fj; creates two-source-of-truth bugs; security surface for token storage | Fully delegate auth to underlying CLIs; they handle token refresh, OAuth, keychain integration |
-| Issues commands (v1) | Issues are the other half of forge workflows | Doubles scope without validating the PR/repo core loop; different forges have different issue models (GitLab has work items, iterations, incidents) | Defer to v2 after validating core PR commands |
-| Line-range browse links (file.rs:42-55) | Developers frequently share file+line references | Each forge has a different URL scheme for line ranges; fragile to implement correctly for all four | Defer to v2; build URL construction abstraction first in v1 |
-| CI/pipeline commands | glab ci and gh run are popular; users want unified pipeline access | Each forge's CI model is radically different (Actions YAML vs .gitlab-ci.yml vs Gitea Actions vs Forgejo Actions); normalization is nearly impossible | Expose raw passthrough for `gf ci` → `glab ci`, `gf run` → `gh run` without attempting normalization |
-| Direct forge API calls | Bypassing CLIs would allow richer functionality | Breaks the "thin router" design; requires maintaining API clients for 4 forges; auth token management complexity; CLIs already handle pagination, error handling, retries | Stay with CLI delegation in v1; API access only if a CLI doesn't cover a needed operation |
-| Multi-remote auto-routing | Detect all remotes and pick the "right" forge automatically | Ambiguous when origin is GitHub fork and upstream is GitLab — which forge do you mean? Silent wrong-forge calls are worse than an error | Require explicit `--remote` flag for non-origin remotes; default is always origin |
-| Shell aliases / config system | Let users remap `gf mr` → `gf pr` etc. | Config systems become load-bearing infrastructure; versioning, migration, conflicts with forge-native configs | Hardcode canonical command names; teach users the mapping once |
+| Own auth/token management | Single config for all forges sounds convenient | Auth is already solved by each CLI; duplicating it creates two sources of truth, security surface area, and maintenance burden | Delegate fully; surface clear "run `gh auth login`" error messages |
+| Interactive TUI for PR review | Rich review experience | Requires terminal UI library, complex state management, diverges from "thin router" model | Let each forge CLI's own interactive mode handle it via passthrough |
+| `gf pr review` with comment threading | Feature parity with forge web UIs | tea has no equivalent command at all; fj has no `review` command either; building it natively breaks the delegation model | Scope `gf pr review` to approve/request-changes only; passthrough for CLI-specific extras |
 
 ## Feature Dependencies
 
 ```
-forge auto-detection
-    └──required by──> ALL other commands (every dispatch requires knowing the forge)
-                          └──required by──> flag normalization (must know target forge to map flags)
+gf pr list
+    requires: forge detection (DONE v1.0)
+    requires: pr_subcommand_name() translation (DONE v1.0)
+    NEW: --state flag normalization (gh=--state enum; glab=--closed/--merged/--all flags; tea=--state enum)
 
-auth login/logout/status
-    └──required for──> pr create, pr merge, repo create, repo fork (write operations)
-    (read ops like pr list, repo view, browse work without auth on public repos)
+gf pr merge
+    requires: forge detection (DONE v1.0)
+    NEW: merge strategy flag normalization (--squash, --rebase differ per forge)
+    NEW: --delete-branch normalization (gh=--delete-branch; glab=--remove-source-branch; fj=--delete)
 
-browse (native)
-    └──requires──> forge auto-detection
-    └──requires──> git remote URL parsing
-    └──enhanced by──> file path argument support (v1.x)
-    └──enhanced by──> line-range support (v2+)
+gf pr checkout
+    requires: forge detection (DONE v1.0)
+    NEW: branch flag normalization (gh/glab=--branch; fj=--branch-name)
 
-pr create
-    └──requires──> forge auto-detection
-    └──requires──> flag normalization (--body vs --description)
-    └──enhanced by──> --draft flag normalization (same name across all forges — safe to pass through)
+gf pr review
+    requires: forge detection (DONE v1.0)
+    NEW: approve/review command mapping (gh=review; glab=approve; tea=N/A; fj=N/A)
+    NOTE: passthrough with warning on tea/fj (no native equivalent)
 
-repo clone
-    └──independent──> (does NOT require forge auto-detection; takes explicit URL)
+gf repo clone
+    requires: forge detection (DONE v1.0)
+    NEW: clone subcommand routing (gh/glab/fj=repo clone; tea=top-level clone)
 
-missing CLI detection
-    └──required by──> ALL commands (must check before any dispatch)
+gf issue list / view / create
+    requires: forge detection (DONE v1.0)
+    NEW: issue flag normalization (--state vs --closed/--all differ)
+    NOTE: fj uses search-based listing (fj issue search), not a list subcommand
+
+gf browse <file>:L42-55 (line range)
+    requires: existing browse URL construction (DONE v1.0)
+    NEW: :line-range suffix parser
+    NEW: forge-specific anchor format (#L42-L55 vs #L42-55 differ)
+
+Self-hosted detection via CLI probing (CORE-04)
+    requires: forge detection fallback chain (DONE v1.0)
+    enhances: all commands (removes manual config.toml step)
 ```
 
 ### Dependency Notes
 
-- **All commands require forge auto-detection:** This is the first thing that must be built; everything else is blocked on it.
-- **Flag normalization requires knowing the forge:** Normalization is a post-detection step; the flag mapping table is keyed by forge.
-- **Browse is native:** It cannot delegate because tea's browse is broken; it is the one command `gf` must implement end-to-end.
-- **repo clone is independent:** The URL contains the forge host; no need to detect from git remote.
-
-## Flag Normalization Reference
-
-Critical for implementation — flags that differ across forges for the same concept:
-
-| Canonical Flag | gh | glab | tea | fj | Notes |
-|---------------|----|------|-----|----|-------|
-| `--title` | `--title` / `-t` | `--title` / `-t` | `--title` | `--title` | Same across all — no mapping needed |
-| `--body` | `--body` / `-b` | `--description` / `-d` | `--description` | `--description` | **MISMATCH**: gh uses `--body`, others use `--description` |
-| `--draft` | `--draft` / `-d` | `--draft` | `--draft` (unsupported, Gitea has drafts since v1.20) | `--draft` | Mostly consistent; tea support is version-dependent |
-| `--base` | `--base` / `-B` | `--target-branch` / `-b` | `--base` | `--base` | **MISMATCH**: glab uses `--target-branch` |
-| `--head` | `--head` / `-H` | `--source-branch` / `-s` | `--head` | `--head` | **MISMATCH**: glab uses `--source-branch` |
-| `--reviewer` | `--reviewer` / `-r` | `--reviewer` | (not supported) | `--reviewer` | tea lacks reviewer assignment in CLI |
-| `--assignee` | `--assignee` / `-a` | `--assignee` / `-a` | `--assignees` | `--assignee` | tea uses plural `--assignees` |
-| `--label` | `--label` / `-l` | `--label` / `-l` | `--labels` | `--label` | tea uses plural `--labels` |
-| `--web` | `--web` / `-w` | `--web` / `-w` | (not available) | `--web` | tea has no --web for pr create |
-| `--fill` | `--fill` / `-f` | `--fill` / `-f` | (no equivalent) | (no equivalent) | gh/glab only |
-
-**Canonical flag set recommendation:** Use `gh`'s flag names as canonical (`--body` not `--description`, `--base` not `--target-branch`) since gh has the largest user base and most developers will arrive from GitHub familiarity.
-
-## PR/MR Subcommand Coverage by Forge
-
-| Subcommand | gh | glab | tea | fj |
-|------------|----|------|-----|----|
-| `pr create` | `gh pr create` | `glab mr create` | `tea pulls create` | `fj pr create` |
-| `pr list` | `gh pr list` | `glab mr list` | `tea pulls list` | `fj pr list` |
-| `pr view` | `gh pr view` | `glab mr view` | `tea pulls ls` (no view) | `fj pr view` |
-| `pr merge` | `gh pr merge` | `glab mr merge` | `tea pulls merge` | `fj pr merge` |
-| `pr checkout` | `gh pr checkout` | `glab mr checkout` | `tea pulls checkout` | (not documented) |
-| `pr review` | `gh pr review` | `glab mr approve/revoke` | `tea pulls review` | (not documented) |
-| `pr close` | `gh pr close` | `glab mr close` | `tea pulls close` | `fj pr close` |
-| `pr reopen` | `gh pr reopen` | `glab mr reopen` | `tea pulls reopen` | (not documented) |
-| `pr diff` | `gh pr diff` | `glab mr diff` | (not available) | (not documented) |
-| `pr status` | `gh pr status` | (not available) | (not available) | (not documented) |
-| `pr comment` | `gh pr comment` | `glab mr note` | `tea comment` (issue+pr) | (not documented) |
-
-**Note:** tea uses `pulls` as the command group, not `pr`. glab uses `mr` (merge request). `gf` maps all to `pr` as the canonical name.
+- **gf pr merge strategy flag normalization:** gh uses boolean flags `--merge`/`--squash`/`--rebase`; glab uses `--squash`/`--rebase` (merge is default, no flag); tea uses `--style merge|squash|rebase`; fj uses `--method merge|squash|rebase`. Canonical canonical flags: `--squash` and `--rebase` as booleans, translate to style/method for tea/fj.
+- **gf pr merge delete branch:** gh=`--delete-branch`; glab=`--remove-source-branch`; fj=`--delete`; tea has no equivalent. Canonical: `--delete-branch`.
+- **gf pr checkout branch flag:** gh/glab use `--branch`; fj uses `--branch-name`. Normalize to `--branch`.
+- **gf repo clone is structurally asymmetric:** tea clone is a top-level command (`tea clone <slug>`), not under `tea repos`. The adapter must route `gf repo clone` to `tea clone` (not `tea repo clone`) for Gitea.
+- **gf pr review is partially infeasible for tea/fj:** tea has no approve command; fj has no review command. These forges must receive passthrough treatment; `gf pr review --approve` should warn on unsupported forges rather than silently fail.
+- **Line-range anchor format per forge:**
+  - GitHub: `#L42-L55` (each line number prefixed with L)
+  - GitLab: `#L42-55` (first line prefixed with L, second bare)
+  - Gitea/Forgejo: `#L42-L55` (same as GitHub, consistent with GitHub-derived codebase)
 
 ## MVP Definition
 
-### Launch With (v1)
+### Launch With (v1.1 — current milestone)
 
-Minimum viable product — what's needed to validate the concept.
-
-- [ ] Forge auto-detection from git remote — core value proposition; nothing else works without it
-- [ ] Missing CLI detection with install hint — prevents confusing errors that make the tool seem broken
-- [ ] `gf pr create` with flag normalization for --body, --base, --head — highest-frequency write operation
-- [ ] `gf pr list` — highest-frequency read operation
-- [ ] `gf pr view` — view before act
-- [ ] `gf pr merge` — close the loop
-- [ ] `gf repo clone` — universal entry point
-- [ ] `gf repo view` — repo inspection
-- [ ] `gf auth login/logout/status` — delegated auth (passthrough, low effort)
-- [ ] `gf browse` native implementation — native because tea's is broken; file path argument in scope
-- [ ] `--remote` global flag — escape hatch for non-origin remotes
+- [ ] `gf pr list` — basic listing with `--state` normalization — core workflow completion
+- [ ] `gf pr merge` — merge with `--squash`/`--rebase`/`--delete-branch` normalized — closes PR workflow
+- [ ] `gf pr checkout` — checkout with `--branch` normalized — review workflow
+- [ ] `gf pr review` — approve/request-changes, passthrough with warning on tea/fj — code review
+- [ ] `gf repo clone` — clone with tea top-level routing special-case — onboarding workflows
+- [ ] `gf issue list / view / create` — issue triage workflows
+- [ ] `gf browse src/file.rs:42-55` — line range deep-linking — code review sharing
+- [ ] Flag normalization audit — correctness baseline for all new and existing commands
 
 ### Add After Validation (v1.x)
 
-Features to add once core is working.
-
-- [ ] `gf pr checkout` — common in PR review workflows; once pr commands are stable
-- [ ] `gf pr review` / `gf pr approve` — review workflow; depends on how PR create performs
-- [ ] `gf repo create` / `gf repo fork` — write operations; validate read operations first
-- [ ] `gf browse` with line-range support (file.rs:42-55) — after URL construction abstraction is solid
-- [ ] Verbose/debug mode showing expanded underlying command — useful for power users and debugging
+- [ ] Self-hosted forge detection via CLI auth probing (CORE-04) — add when config.toml friction becomes a reported blocker
+- [ ] `gf issue close` / `gf issue comment` — add when issue management workflow completeness is requested
 
 ### Future Consideration (v2+)
 
-Features to defer until product-market fit is established.
-
-- [ ] Issues commands (`gf issue create/list/view/close`) — doubles scope; validate PR workflow first
-- [ ] CI/pipeline passthrough (`gf ci`, `gf run`) — raw passthrough with no normalization; low value in v1
-- [ ] Snippet/gist commands — niche; forge support varies widely
-- [ ] Release commands — `gf release create` is useful but not core to the PR workflow being validated
+- [ ] `gf pr status` / CI status — requires forge API calls, breaks no-API constraint
+- [ ] Batch operations (merge multiple PRs) — niche, high complexity
 
 ## Feature Prioritization Matrix
 
 | Feature | User Value | Implementation Cost | Priority |
 |---------|------------|---------------------|----------|
-| Forge auto-detection | HIGH | MEDIUM | P1 |
-| `gf pr create` + flag normalization | HIGH | MEDIUM | P1 |
-| `gf browse` native | HIGH | MEDIUM | P1 |
-| Missing CLI error + hint | HIGH | LOW | P1 |
-| `gf pr list/view/merge` | HIGH | LOW | P1 |
-| `gf auth login/logout/status` | HIGH | LOW | P1 |
-| `gf repo clone/view` | MEDIUM | LOW | P1 |
-| `--remote` global flag | MEDIUM | LOW | P1 |
-| `gf pr checkout/review` | MEDIUM | LOW | P2 |
-| `gf repo create/fork` | MEDIUM | LOW | P2 |
-| Browse line-range support | MEDIUM | MEDIUM | P2 |
-| Verbose/debug mode | LOW | LOW | P2 |
-| Issues commands | HIGH | HIGH | P3 |
-| CI/pipeline passthrough | MEDIUM | LOW | P3 |
-| Release commands | LOW | LOW | P3 |
+| `gf pr list` | HIGH | LOW | P1 |
+| `gf pr merge` | HIGH | LOW | P1 |
+| `gf pr checkout` | HIGH | LOW | P1 |
+| `gf issue list/view/create` | HIGH | LOW | P1 |
+| `gf repo clone` | HIGH | LOW (one special-case for tea) | P1 |
+| Line-range browse | MEDIUM | MEDIUM (anchor format per forge) | P1 |
+| `gf pr review` | MEDIUM | MEDIUM (infeasible on tea/fj) | P1 |
+| Flag normalization audit | HIGH | MEDIUM (systematic survey) | P1 |
+| Self-hosted CLI auth probing | MEDIUM | HIGH (fragile output parsing) | P2 |
 
 **Priority key:**
-- P1: Must have for launch
+- P1: Must have for v1.1 launch
 - P2: Should have, add when possible
 - P3: Nice to have, future consideration
 
 ## Competitor Feature Analysis
 
-| Feature | gh | glab | tea | fj | gf approach |
-|---------|-----|------|-----|----|-------------|
-| PR/MR create | `gh pr create` | `glab mr create` | `tea pulls create` | `fj pr create` | `gf pr create` → normalized dispatch |
-| Browse | `gh browse [path]` | (no equivalent) | `tea open` (broken) | (not documented) | Native implementation |
-| Auto-detect forge | Single forge (GitHub) | Single forge (GitLab) | Single forge (Gitea) | Single forge (Forgejo) | **Core differentiator** |
-| Flag normalization | N/A (own flags) | N/A (own flags) | N/A (own flags) | N/A (own flags) | **Core differentiator** |
-| Auth | `gh auth login` | `glab auth login` | `tea logins add` | `fj auth login` | Delegated passthrough |
-| Repo clone | `gh repo clone` | `glab repo clone` | `tea clone` | `fj repo clone` | `gf repo clone` → dispatch |
-| Shell completion | `gh completion` | `glab completion` | `tea completion` | `fj completion` | `gf completion` → generate for gf |
-| JSON output | `--json` flag | `--output json` | (limited) | (limited) | Passthrough; no normalization in v1 |
-| API escape hatch | `gh api` | `glab api` | (tea admin) | (fj api?) | Not exposed in v1 |
+| Feature | gh | glab | tea | fj | gf canonical |
+|---------|-----|------|-----|-----|--------------|
+| PR list | `gh pr list` | `glab mr list` | `tea pulls list` | `fj pr search` | `gf pr list` |
+| PR merge | `gh pr merge` | `glab mr merge` | `tea pulls merge` | `fj pr merge` | `gf pr merge` |
+| PR checkout | `gh pr checkout` | `glab mr checkout` | `tea pulls checkout` | `fj pr checkout` | `gf pr checkout` |
+| PR review/approve | `gh pr review --approve` | `glab mr approve` | no equivalent | no equivalent | `gf pr review --approve` (passthrough warning on tea/fj) |
+| Repo clone | `gh repo clone` | `glab repo clone` | `tea clone` (top-level) | `fj repo clone` | `gf repo clone` |
+| Issue list | `gh issue list` | `glab issue list` | `tea issues list` | `fj issue search` | `gf issue list` |
+| Issue view | `gh issue view` | `glab issue view` | `tea issues view` | `fj issue view` | `gf issue view` |
+| Issue create | `gh issue create` | `glab issue create` | `tea issues create` | `fj issue create` | `gf issue create` |
+| Merge strategy | `--merge/--squash/--rebase` (boolean) | `--squash/--rebase` (boolean) | `--style merge\|squash\|rebase` | `--method merge\|squash\|rebase` | `--squash`/`--rebase` booleans; translate to style/method |
+| Delete branch on merge | `--delete-branch` | `--remove-source-branch` | no equivalent | `--delete` | normalize to `--delete-branch`; skip on tea |
+| List state filter | `--state open\|closed\|merged\|all` | `--closed`/`--merged`/`--all` flags | `--state all\|open\|closed` | search-based | normalize `--state` to forge-specific flags |
 
 ## Sources
 
-- [GitHub CLI Manual](https://cli.github.com/manual/) — official, HIGH confidence
-- [gh pr create flags](https://cli.github.com/manual/gh_pr_create) — official, HIGH confidence
-- [GitLab CLI docs](https://docs.gitlab.com/cli/) — official, HIGH confidence
-- [glab mr create flags](https://docs.gitlab.com/cli/mr/create/) — official, HIGH confidence
-- [tea CLI docs](https://gitea.com/gitea/tea/src/branch/main/docs/CLI.md) — official, HIGH confidence
-- [forgejo-cli (fj) Codeberg](https://codeberg.org/forgejo-contrib/forgejo-cli) — official, MEDIUM confidence (docs sparse)
-- [glab-mr-create man page (Ubuntu)](https://manpages.ubuntu.com/manpages/noble/man1/glab-mr-create.1.html) — MEDIUM confidence (may lag upstream)
+- Live CLI `--help` output: gh (verified locally 2026-03-17), glab (verified locally), tea (verified locally), fj (verified locally)
+- Existing `src/adapter/pr.rs` flag translation patterns (v1.0 codebase)
+- Existing `src/browse/mod.rs` URL construction patterns (v1.0 codebase)
+- GitHub line-range URL format: `#L42-L55` anchor (HIGH confidence — documented behavior)
+- GitLab line-range URL format: `#L42-55` (MEDIUM confidence — consistent with observed GitLab blob URLs)
+- Gitea/Forgejo line-range: same as GitHub `#L42-L55` (MEDIUM confidence — Gitea codebase derives from GitHub conventions)
 
 ---
-*Feature research for: unified forge CLI wrapper (gf)*
-*Researched: 2026-03-16*
+*Feature research for: gf unified git forge CLI — v1.1 milestone*
+*Researched: 2026-03-17*
