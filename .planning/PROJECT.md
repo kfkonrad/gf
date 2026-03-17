@@ -24,11 +24,16 @@ One `gf` command syntax that works on any forge, with zero knowledge of which fo
 
 ### Active
 
+#### Current Milestone: v1.1 Feature Completeness & Quality
+
+**Goal:** Complete the core command surface (PR workflows, issues, clone) and harden flag mappings across all forges.
+
 - [ ] PR list, merge, checkout, review commands
 - [ ] Repo clone command
 - [ ] Issues commands
 - [ ] Line-range deep-linking in browse (file.rs:42-55)
 - [ ] Self-hosted forge detection via CLI auth probing (CORE-04)
+- [ ] Audit and fix flag normalization mappings across all forge CLIs
 
 ### Out of Scope
 
@@ -63,4 +68,4 @@ Shipped v1.0 with 2,689 LOC Rust. Tech stack: Rust, clap 4, webbrowser, toml, se
 | CORE-04 deferred | Self-hosted CLI auth probing too fragile for v1; config file covers the use case | ✓ Good — simpler, more reliable |
 
 ---
-*Last updated: 2026-03-17 after v1.0 milestone*
+*Last updated: 2026-03-17 after v1.1 milestone start*
