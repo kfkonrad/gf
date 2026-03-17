@@ -65,7 +65,12 @@ Plans:
   3. `gf pr checkout` checks out a PR/MR branch locally on all four forges
   4. `gf pr review` / `gf pr approve` works on GitHub/GitLab and surfaces a clear unsupported error on tea/fj
   5. `gf browse --pr 123` opens the correct PR/MR URL in the browser for all four forges
-**Plans**: TBD
+**Plans:** 4 plans
+Plans:
+- [ ] 08-01-PLAN.md — Foundation: Result signature + UnsupportedFeature error + clap subcommands + test macros (PR-06)
+- [ ] 08-02-PLAN.md — PR list + checkout + merge adapters + config schema (PR-01, PR-02, PR-03)
+- [ ] 08-03-PLAN.md — PR review + approve adapters (PR-04, PR-05)
+- [ ] 08-04-PLAN.md — Browse --pr/--mr/--issue URL builders (PR-07)
 
 ### Phase 9: Issues, Clone, and Self-Hosted Detection
 **Goal**: Users can manage issues, clone repos, and have unknown self-hosted domains detected automatically via CLI auth probing
