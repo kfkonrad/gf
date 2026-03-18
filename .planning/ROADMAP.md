@@ -26,7 +26,7 @@
 - [ ] **Phase 7: Flag Normalization Audit** — Audit and verify all flag translations against live forge CLI help texts
 - [x] **Phase 8: PR Workflow Commands** — Complete PR lifecycle: list, merge, checkout, review, approve, view, browse (completed 2026-03-18)
 - [ ] **Phase 9: Issues, Clone, and Self-Hosted Detection** — Issue commands, repo clone, and CORE-04 forge probing
-- [ ] **Phase 10: Cleanup — Dead Code and Test Gaps** — Remove dead code, add missing tests, close audit gaps
+- [x] **Phase 10: Cleanup — Dead Code and Test Gaps** — Remove dead code, add missing tests, close audit gaps (completed 2026-03-18)
 
 ## Phase Details
 
@@ -101,7 +101,7 @@ Plans:
   3. `translation_test!` exists for Forgejo `gf issue list --author` → `--creator` remap
   4. `audit_test!` entries exist for `fj issue search --labels` and `fj issue search --creator`
   5. `cargo build --release` produces zero warnings
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 Plans:
 - [ ] 10-01-PLAN.md — Remove dead code, fix warnings, add missing Forgejo issue test coverage
 
@@ -118,4 +118,4 @@ Plans:
 | 7. Flag Normalization Audit | 1/2 | In Progress|  | - |
 | 8. PR Workflow Commands | 4/4 | Complete   | 2026-03-18 | - |
 | 9. Issues, Clone, and Self-Hosted Detection | 3/4 | In Progress|  | - |
-| 10. Cleanup — Dead Code and Test Gaps | 0/1 | Pending |  | - |
+| 10. Cleanup — Dead Code and Test Gaps | 1/1 | Complete   | 2026-03-18 | - |

@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Feature Completeness & Quality
 status: in-progress
-stopped_at: Completed 09-03-PLAN.md
-last_updated: "2026-03-18T13:42:12.700Z"
-last_activity: 2026-03-18 — Phase 9 Plan 03 completed (self-hosted auto-detection via CLI probing)
+stopped_at: Completed 10-01-PLAN.md
+last_updated: "2026-03-18T14:13:09.511Z"
+last_activity: 2026-03-18 — Phase 10 Plan 01 completed (dead code removal and test gap closure)
 progress:
-  total_phases: 4
-  completed_phases: 4
-  total_plans: 12
-  completed_plans: 12
-  percent: 58
+  total_phases: 5
+  completed_phases: 5
+  total_plans: 13
+  completed_plans: 13
+  percent: 100
 ---
 
 # Project State
@@ -21,21 +21,21 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-17)
 
 **Core value:** One `gf` command syntax that works on any forge, with zero knowledge of which forge you're on
-**Current focus:** Phase 6 — Browse Enhancements
+**Current focus:** Phase 10 — Cleanup Dead Code and Test Gaps
 
 ## Current Position
 
-Phase: 9 of 9 (Issues, Clone, and Self-Hosted Detection)
-Plan: 4 of 4 in current phase
-Status: in-progress
-Last activity: 2026-03-18 — Phase 9 Plan 03 completed (self-hosted auto-detection via CLI probing)
+Phase: 10 of 10 (Cleanup Dead Code and Test Gaps)
+Plan: 1 of 1 in current phase
+Status: complete
+Last activity: 2026-03-18 — Phase 10 Plan 01 completed (dead code removal and test gap closure)
 
-Progress: [██████░░░░] 58% (v1.1 phase 9 plan 3 done)
+Progress: [██████████] 100% (v1.1 all phases complete)
 
 ## Session Continuity
 
-Last session: 2026-03-18T13:36:34Z
-Stopped at: Completed 09-03-PLAN.md
+Last session: 2026-03-18T14:13:09.508Z
+Stopped at: Completed 10-01-PLAN.md
 Resume file: None
 
 ## Accumulated Context
@@ -54,3 +54,6 @@ Resume file: None
 - Phase 7: v11_translation_test! pre-maps 45 flag translations for Phase 8; 30 audit tests verify target flags
 - Phase 7: glab state uses boolean flags (--closed/--merged/--all) not --state value pattern
 - Phase 7: tea has no review/approve and no repo clone — hard UNSUPPORTED combinations
+- Phase 10: cfg_attr(not(windows), allow(dead_code)) for platform-specific SpawnFailed variant
+- Phase 10: LineRange changed to pub (binary crate, no type leak risk)
+- Phase 10: v11_translation_test! macro fully removed (zero definitions, zero invocations)
