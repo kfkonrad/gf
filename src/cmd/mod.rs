@@ -30,6 +30,7 @@ pub fn build_cli() -> Command {
         .subcommand(build_auth())
         .subcommand(build_completions())
         .subcommand(build_browse())
+        .subcommand(build_issue())
 }
 
 fn build_pr() -> Command {
@@ -299,6 +300,49 @@ fn build_browse() -> Command {
                 .value_name("NUMBER")
                 .conflicts_with_all(["pr", "file", "branch"])
                 .help("Open issue in browser"),
+        )
+}
+
+fn build_issue() -> Command {
+    Command::new("issue")
+        .about("Issue commands")
+        .visible_alias("i")
+        .subcommand_required(false)
+        .subcommand(
+            Command::new("list")
+                .about("List issues (aliases: l)")
+                .visible_alias("l")
+                .arg(Arg::new("state").long("state").value_name("STATE").help("Filter by state (open, closed, all)"))
+                .arg(Arg::new("author").long("author").value_name("USER").help("Filter by author"))
+                .arg(Arg::new("label").long("label").value_name("LABEL").help("Filter by label"))
+                .arg(Arg::new("extra").num_args(0..).allow_hyphen_values(true).last(true).help("Additional flags passed through")),
+        )
+        .subcommand(
+            Command::new("view")
+                .about("View an issue (aliases: v)")
+                .visible_alias("v")
+                .arg(Arg::new("number").value_name("NUMBER").required(true).help("Issue number"))
+                .arg(Arg::new("extra").num_args(0..).allow_hyphen_values(true).last(true).help("Additional flags passed through")),
+        )
+        .subcommand(
+            Command::new("create")
+                .about("Create a new issue (aliases: c)")
+                .visible_alias("c")
+                .arg(Arg::new("title").long("title").short('t').value_name("TITLE").help("Issue title"))
+                .arg(Arg::new("body").long("body").short('b').value_name("BODY").help("Issue body"))
+                .arg(Arg::new("extra").num_args(0..).allow_hyphen_values(true).last(true).help("Additional flags passed through")),
+        )
+        .subcommand(
+            Command::new("close")
+                .about("Close an issue")
+                .arg(Arg::new("number").value_name("NUMBER").required(true).help("Issue number"))
+                .arg(Arg::new("extra").num_args(0..).allow_hyphen_values(true).last(true).help("Additional flags passed through")),
+        )
+        .subcommand(
+            Command::new("reopen")
+                .about("Reopen a closed issue")
+                .arg(Arg::new("number").value_name("NUMBER").required(true).help("Issue number"))
+                .arg(Arg::new("extra").num_args(0..).allow_hyphen_values(true).last(true).help("Additional flags passed through")),
         )
 }
 
