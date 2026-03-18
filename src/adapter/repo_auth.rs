@@ -1,11 +1,12 @@
 // src/adapter/repo_auth.rs — Repo and Auth translation
+use crate::error::GfError;
 use crate::forge::ForgeType;
 use clap::ArgMatches;
 
 // ─── Repo ────────────────────────────────────────────────────────────────────
 
 /// Translate `gf repo ...` ArgMatches into forge-specific args.
-pub fn translate_repo(forge: ForgeType, matches: &ArgMatches) -> Vec<String> {
+pub fn translate_repo(forge: ForgeType, matches: &ArgMatches) -> Result<Vec<String>, GfError> {
     let repo_cmd = repo_subcommand_name(forge);
 
     match matches.subcommand() {
@@ -17,9 +18,9 @@ pub fn translate_repo(forge: ForgeType, matches: &ArgMatches) -> Vec<String> {
             if let Some(extra) = sub.get_many::<String>("extra") {
                 args.extend(extra.cloned());
             }
-            args
+            Ok(args)
         }
-        None => vec![repo_cmd.to_string()],
+        None => Ok(vec![repo_cmd.to_string()]),
     }
 }
 
@@ -32,16 +33,16 @@ fn repo_subcommand_name(forge: ForgeType) -> &'static str {
     }
 }
 
-fn translate_repo_view(forge: ForgeType, repo_cmd: &str, matches: &ArgMatches) -> Vec<String> {
+fn translate_repo_view(forge: ForgeType, repo_cmd: &str, matches: &ArgMatches) -> Result<Vec<String>, GfError> {
     let _ = forge;
     let mut args = vec![repo_cmd.to_string(), "view".to_string()];
     if let Some(extra) = matches.get_many::<String>("extra") {
         args.extend(extra.cloned());
     }
-    args
+    Ok(args)
 }
 
-fn translate_repo_create(forge: ForgeType, repo_cmd: &str, matches: &ArgMatches) -> Vec<String> {
+fn translate_repo_create(forge: ForgeType, repo_cmd: &str, matches: &ArgMatches) -> Result<Vec<String>, GfError> {
     let mut args = vec![repo_cmd.to_string(), "create".to_string()];
 
     // --name: positional for gh and glab; --name flag for tea and fj (REPO-02)
@@ -107,16 +108,16 @@ fn translate_repo_create(forge: ForgeType, repo_cmd: &str, matches: &ArgMatches)
         args.extend(extra.cloned());
     }
 
-    args
+    Ok(args)
 }
 
-fn translate_repo_fork(forge: ForgeType, repo_cmd: &str, matches: &ArgMatches) -> Vec<String> {
+fn translate_repo_fork(forge: ForgeType, repo_cmd: &str, matches: &ArgMatches) -> Result<Vec<String>, GfError> {
     let _ = forge;
     let mut args = vec![repo_cmd.to_string(), "fork".to_string()];
     if let Some(extra) = matches.get_many::<String>("extra") {
         args.extend(extra.cloned());
     }
-    args
+    Ok(args)
 }
 
 // ─── Auth ────────────────────────────────────────────────────────────────────
@@ -129,7 +130,7 @@ fn translate_repo_fork(forge: ForgeType, repo_cmd: &str, matches: &ArgMatches) -
 ///   gf auth status → tea logins ls
 ///
 /// Forgejo uses `auth add-key` for login, `auth list` for status.
-pub fn translate_auth(forge: ForgeType, matches: &ArgMatches) -> Vec<String> {
+pub fn translate_auth(forge: ForgeType, matches: &ArgMatches) -> Result<Vec<String>, GfError> {
     match matches.subcommand() {
         Some(("login", sub)) => translate_auth_login(forge, sub),
         Some(("logout", sub)) => translate_auth_logout(forge, sub),
@@ -139,13 +140,13 @@ pub fn translate_auth(forge: ForgeType, matches: &ArgMatches) -> Vec<String> {
             if let Some(extra) = sub.get_many::<String>("extra") {
                 args.extend(extra.cloned());
             }
-            args
+            Ok(args)
         }
-        None => vec!["auth".to_string()],
+        None => Ok(vec!["auth".to_string()]),
     }
 }
 
-fn translate_auth_login(forge: ForgeType, matches: &ArgMatches) -> Vec<String> {
+fn translate_auth_login(forge: ForgeType, matches: &ArgMatches) -> Result<Vec<String>, GfError> {
     // Subcommand remap per forge
     let mut args = match forge {
         ForgeType::Github => vec!["auth".to_string(), "login".to_string()],
@@ -190,10 +191,10 @@ fn translate_auth_login(forge: ForgeType, matches: &ArgMatches) -> Vec<String> {
         args.extend(extra.cloned());
     }
 
-    args
+    Ok(args)
 }
 
-fn translate_auth_logout(forge: ForgeType, matches: &ArgMatches) -> Vec<String> {
+fn translate_auth_logout(forge: ForgeType, matches: &ArgMatches) -> Result<Vec<String>, GfError> {
     let mut args = match forge {
         ForgeType::Github => vec!["auth".to_string(), "logout".to_string()],
         ForgeType::Gitlab => vec!["auth".to_string(), "logout".to_string()],
@@ -203,10 +204,10 @@ fn translate_auth_logout(forge: ForgeType, matches: &ArgMatches) -> Vec<String> 
     if let Some(extra) = matches.get_many::<String>("extra") {
         args.extend(extra.cloned());
     }
-    args
+    Ok(args)
 }
 
-fn translate_auth_status(forge: ForgeType, matches: &ArgMatches) -> Vec<String> {
+fn translate_auth_status(forge: ForgeType, matches: &ArgMatches) -> Result<Vec<String>, GfError> {
     let mut args = match forge {
         ForgeType::Github => vec!["auth".to_string(), "status".to_string()],
         ForgeType::Gitlab => vec!["auth".to_string(), "status".to_string()],
@@ -216,5 +217,5 @@ fn translate_auth_status(forge: ForgeType, matches: &ArgMatches) -> Vec<String> 
     if let Some(extra) = matches.get_many::<String>("extra") {
         args.extend(extra.cloned());
     }
-    args
+    Ok(args)
 }

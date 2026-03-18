@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use std::io;
 use thiserror::Error;
 
@@ -41,6 +39,13 @@ pub enum GfError {
 
     #[error("cannot construct browse URL: {0}")]
     BrowseUrlConstructionFailed(String),
+
+    #[error("`gf {feature}` is not supported on {forge}\n\n{forge_cli} does not have an equivalent for this command/flag.")]
+    UnsupportedFeature {
+        feature: String,
+        forge: String,
+        forge_cli: String,
+    },
 }
 
 /// Known forge CLI info for install hints.

@@ -14,7 +14,10 @@ fn main() {
     // Handle the hidden `gf completions --shell <shell>` subcommand (CORE-12).
     // Must be handled before forge detection — completions don't need a git repo.
     if let Some(("completions", sub)) = matches.subcommand() {
-        let shell = sub.get_one::<Shell>("shell").copied().unwrap_or(Shell::Bash);
+        let shell = sub
+            .get_one::<Shell>("shell")
+            .copied()
+            .unwrap_or(Shell::Bash);
         generate(shell, &mut cli_cmd, "gf", &mut std::io::stdout());
         return;
     }
@@ -45,7 +48,13 @@ fn main() {
     };
 
     // Translate canonical gf args → forge-specific args (Phase 3)
-    let translated: Vec<String> = adapter::translate(forge_type, &matches);
+    let translated = match adapter::translate(forge_type, &matches) {
+        Ok(args) => args,
+        Err(e) => {
+            eprintln!("{e}");
+            std::process::exit(1);
+        }
+    };
 
     // runner::run takes &[&str] — convert Vec<String> to temporary &[&str]
     let args_refs: Vec<&str> = translated.iter().map(|s| s.as_str()).collect();

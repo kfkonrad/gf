@@ -1,10 +1,11 @@
 // src/adapter/pr.rs — PR/MR subcommand and flag translation
+use crate::error::GfError;
 use crate::forge::ForgeType;
 use clap::ArgMatches;
 
 /// Translate `gf pr ...` ArgMatches into forge-specific args.
 /// Called by adapter::translate() when the matched subcommand is "pr" (or "mr" alias).
-pub fn translate_pr(forge: ForgeType, matches: &ArgMatches) -> Vec<String> {
+pub fn translate_pr(forge: ForgeType, matches: &ArgMatches) -> Result<Vec<String>, GfError> {
     // The PR subcommand name differs per forge (PR-03)
     let pr_cmd = pr_subcommand_name(forge);
 
@@ -17,9 +18,9 @@ pub fn translate_pr(forge: ForgeType, matches: &ArgMatches) -> Vec<String> {
             if let Some(extra) = sub.get_many::<String>("extra") {
                 args.extend(extra.cloned());
             }
-            args
+            Ok(args)
         }
-        None => vec![pr_cmd.to_string()],
+        None => Ok(vec![pr_cmd.to_string()]),
     }
 }
 
@@ -34,7 +35,7 @@ fn pr_subcommand_name(forge: ForgeType) -> &'static str {
 }
 
 /// Translate `gf pr create` with canonical flags (PR-01, PR-02, PR-04).
-fn translate_pr_create(forge: ForgeType, pr_cmd: &str, matches: &ArgMatches) -> Vec<String> {
+fn translate_pr_create(forge: ForgeType, pr_cmd: &str, matches: &ArgMatches) -> Result<Vec<String>, GfError> {
     let mut args = vec![pr_cmd.to_string(), "create".to_string()];
 
     // --title: canonical flag name matches all forges
@@ -80,13 +81,13 @@ fn translate_pr_create(forge: ForgeType, pr_cmd: &str, matches: &ArgMatches) -> 
         args.extend(extra.cloned());
     }
 
-    args
+    Ok(args)
 }
 
 /// Translate `gf pr view [<number>]` (PR-05, PR-06).
 /// Delegates to the underlying CLI with or without number.
 /// Current-branch PR lookup is handled natively by gh/glab/tea/fj.
-fn translate_pr_view(forge: ForgeType, pr_cmd: &str, matches: &ArgMatches) -> Vec<String> {
+fn translate_pr_view(forge: ForgeType, pr_cmd: &str, matches: &ArgMatches) -> Result<Vec<String>, GfError> {
     let mut args = vec![pr_cmd.to_string()];
 
     // tea does not have "pulls view" — use "pulls <N>" directly
@@ -104,5 +105,5 @@ fn translate_pr_view(forge: ForgeType, pr_cmd: &str, matches: &ArgMatches) -> Ve
         args.extend(extra.cloned());
     }
 
-    args
+    Ok(args)
 }
