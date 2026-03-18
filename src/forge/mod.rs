@@ -26,10 +26,18 @@ impl ForgeType {
     }
 }
 
+#[derive(Debug, Deserialize, Default)]
+struct MergeConfig {
+    #[serde(default)]
+    delete_branch: Option<bool>,
+}
+
 #[derive(Debug, Deserialize)]
 struct GfConfig {
     #[serde(default)]
     forge: Vec<ForgeEntry>,
+    #[serde(default)]
+    merge: MergeConfig,
 }
 
 #[derive(Debug, Deserialize)]
@@ -38,6 +46,8 @@ struct ForgeEntry {
     /// TOML key is `type` (Rust keyword — must use rename)
     #[serde(rename = "type")]
     forge_type: ForgeType,
+    #[serde(default)]
+    delete_branch: Option<bool>,
 }
 
 /// Returns the path to ~/.config/gf/config.toml using $HOME env var.
@@ -66,6 +76,26 @@ fn load_config() -> Result<Option<GfConfig>, GfError> {
     toml::from_str(&text)
         .map(Some)
         .map_err(|e| GfError::ConfigParseError(e.to_string()))
+}
+
+/// Resolves delete-branch behavior for merge.
+/// Priority: per-forge config > global [merge] config > built-in default (false).
+/// CLI flag override is handled by the caller (adapter).
+pub fn resolve_delete_branch(domain: &str) -> bool {
+    let config = match load_config() {
+        Ok(Some(cfg)) => cfg,
+        _ => return false, // no config = default false
+    };
+
+    // Per-forge override
+    if let Some(entry) = config.forge.iter().find(|e| e.domain == domain) {
+        if let Some(val) = entry.delete_branch {
+            return val;
+        }
+    }
+
+    // Global [merge] section
+    config.merge.delete_branch.unwrap_or(false)
 }
 
 /// Top-level forge detection entry point.
@@ -152,7 +182,10 @@ pub fn parse_remote_parts(url: &str) -> Result<(String, String, String), GfError
         let host = host_with_port.split(':').next().unwrap_or("").to_string();
         let owner = parts.next().unwrap_or("").to_string();
         let repo_raw = parts.next().unwrap_or("");
-        let repo = repo_raw.strip_suffix(".git").unwrap_or(repo_raw).to_string();
+        let repo = repo_raw
+            .strip_suffix(".git")
+            .unwrap_or(repo_raw)
+            .to_string();
         if !host.is_empty() && !owner.is_empty() && !repo.is_empty() {
             return Ok((host, owner, repo));
         }
@@ -166,7 +199,10 @@ pub fn parse_remote_parts(url: &str) -> Result<(String, String, String), GfError
             let mut path_parts = path.splitn(2, '/');
             let owner = path_parts.next().unwrap_or("").to_string();
             let repo_raw = path_parts.next().unwrap_or("");
-            let repo = repo_raw.strip_suffix(".git").unwrap_or(repo_raw).to_string();
+            let repo = repo_raw
+                .strip_suffix(".git")
+                .unwrap_or(repo_raw)
+                .to_string();
             if !host.is_empty() && !owner.is_empty() && !repo.is_empty() {
                 return Ok((host, owner, repo));
             }
@@ -371,7 +407,8 @@ type = "forgejo"
 
     #[test]
     fn test_parse_remote_parts_https_github() {
-        let (host, owner, repo) = parse_remote_parts("https://github.com/alice/myrepo.git").unwrap();
+        let (host, owner, repo) =
+            parse_remote_parts("https://github.com/alice/myrepo.git").unwrap();
         assert_eq!(host, "github.com");
         assert_eq!(owner, "alice");
         assert_eq!(repo, "myrepo");
@@ -387,7 +424,8 @@ type = "forgejo"
 
     #[test]
     fn test_parse_remote_parts_https_with_port() {
-        let (host, owner, repo) = parse_remote_parts("https://git.company.com:8443/org/proj.git").unwrap();
+        let (host, owner, repo) =
+            parse_remote_parts("https://git.company.com:8443/org/proj.git").unwrap();
         assert_eq!(host, "git.company.com");
         assert_eq!(owner, "org");
         assert_eq!(repo, "proj");
@@ -405,6 +443,44 @@ type = "forgejo"
     fn test_parse_remote_parts_unrecognized() {
         let result = parse_remote_parts("not-a-url");
         assert!(matches!(result, Err(GfError::RemoteUrlUnrecognized(_))));
+    }
+
+    #[test]
+    fn test_config_with_merge_section() {
+        let toml_str = r#"
+[merge]
+delete_branch = true
+
+[[forge]]
+domain = "github.com"
+type = "github"
+"#;
+        let cfg: GfConfig = toml::from_str(toml_str).expect("valid TOML");
+        assert_eq!(cfg.merge.delete_branch, Some(true));
+    }
+
+    #[test]
+    fn test_config_forge_entry_delete_branch() {
+        let toml_str = r#"
+[[forge]]
+domain = "github.com"
+type = "github"
+delete_branch = true
+"#;
+        let cfg: GfConfig = toml::from_str(toml_str).expect("valid TOML");
+        assert_eq!(cfg.forge[0].delete_branch, Some(true));
+    }
+
+    #[test]
+    fn test_config_without_merge_section_defaults() {
+        let toml_str = r#"
+[[forge]]
+domain = "github.com"
+type = "github"
+"#;
+        let cfg: GfConfig = toml::from_str(toml_str).expect("valid TOML");
+        assert_eq!(cfg.merge.delete_branch, None);
+        assert_eq!(cfg.forge[0].delete_branch, None);
     }
 
     #[test]
