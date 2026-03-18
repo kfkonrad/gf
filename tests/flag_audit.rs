@@ -374,25 +374,6 @@ audit_test!(audit_tea_logins_add_url,    cli: "tea",  args: ["logins", "add"],  
 audit_test!(audit_tea_logins_add_token,  cli: "tea",  args: ["logins", "add"],  contains: "--token");
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// v11_translation_test! — like translation_test! but #[ignore]d until Phase 8
-// ═══════════════════════════════════════════════════════════════════════════════
-
-macro_rules! v11_translation_test {
-    ($name:ident, input: [$($arg:expr),+ $(,)?], forge: $forge:expr, expected: [$($exp:expr),+ $(,)?]) => {
-        #[test]
-        #[ignore] // Phase 8: remove #[ignore] when adapter is implemented
-        fn $name() {
-            let matches = gf::cmd::build_cli()
-                .try_get_matches_from([$($arg),+])
-                .unwrap_or_else(|e| panic!("clap parse failed: {e}"));
-            let result = gf::adapter::translate($forge, &matches).unwrap_or_else(|e| panic!("translate returned error: {e}"));
-            let expected: Vec<String> = vec![$($exp.to_string()),+];
-            assert_eq!(result, expected, "forge={:?}", $forge);
-        }
-    };
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
 // unsupported_test! — verifies that an unsupported command/flag returns GfError::UnsupportedFeature
 // ═══════════════════════════════════════════════════════════════════════════════
 
