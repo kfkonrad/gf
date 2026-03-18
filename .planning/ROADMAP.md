@@ -3,7 +3,7 @@
 ## Milestones
 
 - ✅ **v1.0 MVP** — Phases 1-5 (shipped 2026-03-17)
-- 🚧 **v1.1 Feature Completeness & Quality** — Phases 6-9 (in progress)
+- 🚧 **v1.1 Feature Completeness & Quality** — Phases 6-10 (in progress)
 
 ## Phases
 
@@ -26,6 +26,7 @@
 - [ ] **Phase 7: Flag Normalization Audit** — Audit and verify all flag translations against live forge CLI help texts
 - [x] **Phase 8: PR Workflow Commands** — Complete PR lifecycle: list, merge, checkout, review, approve, view, browse (completed 2026-03-18)
 - [ ] **Phase 9: Issues, Clone, and Self-Hosted Detection** — Issue commands, repo clone, and CORE-04 forge probing
+- [ ] **Phase 10: Cleanup — Dead Code and Test Gaps** — Remove dead code, add missing tests, close audit gaps
 
 ## Phase Details
 
@@ -89,6 +90,19 @@ Plans:
 - [x] 09-02-PLAN.md — Repo clone with [defaults] config and tea UnsupportedFeature (REPO-01)
 - [ ] 09-03-PLAN.md — CORE-04 CLI auth probing with cache for self-hosted detection (CORE-04, ISSUE-06)
 
+### Phase 10: Cleanup — Dead Code and Test Gaps
+**Goal**: Remove dead code paths and close test coverage gaps identified by milestone audit
+**Depends on**: Phase 9
+**Requirements**: REPO-01, QUAL-02, QUAL-03, ISSUE-01
+**Gap Closure:** Closes all non-critical gaps from v1.1-MILESTONE-AUDIT.md
+**Success Criteria** (what must be TRUE):
+  1. `get_default_clone_host()` and `CloneHostNotConfigured` are either wired into `translate_repo_clone` or removed — no dead code
+  2. `v11_translation_test!` macro is removed (0 invocations)
+  3. `translation_test!` exists for Forgejo `gf issue list --author` → `--creator` remap
+  4. `audit_test!` entries exist for `fj issue search --labels` and `fj issue search --creator`
+  5. `cargo build --release` produces zero warnings
+Plans: 0/1 plans
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -102,3 +116,4 @@ Plans:
 | 7. Flag Normalization Audit | 1/2 | In Progress|  | - |
 | 8. PR Workflow Commands | 4/4 | Complete   | 2026-03-18 | - |
 | 9. Issues, Clone, and Self-Hosted Detection | 3/4 | In Progress|  | - |
+| 10. Cleanup — Dead Code and Test Gaps | 0/1 | Pending |  | - |
