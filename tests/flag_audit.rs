@@ -841,6 +841,34 @@ v11_translation_test!(v11_issue_close_fj,
     expected: ["issue", "close", "42"]
 );
 
+// ── ISSUE REOPEN (ISSUE-05): gf issue reopen → gh issue reopen / glab issue reopen / tea issues reopen ──
+// fj: UNSUPPORTED (Forgejo CLI has no issue reopen command)
+
+v11_translation_test!(v11_issue_reopen_github,
+    input: ["gf", "issue", "reopen", "42"],
+    forge: ForgeType::Github,
+    expected: ["issue", "reopen", "42"]
+);
+
+v11_translation_test!(v11_issue_reopen_glab,
+    input: ["gf", "issue", "reopen", "42"],
+    forge: ForgeType::Gitlab,
+    expected: ["issue", "reopen", "42"]
+);
+
+v11_translation_test!(v11_issue_reopen_tea,
+    input: ["gf", "issue", "reopen", "42"],
+    forge: ForgeType::Gitea,
+    expected: ["issues", "reopen", "42"]
+);
+// tea: uses "issues" (plural) subcommand
+
+unsupported_test!(issue_reopen_fj_unsupported,
+    input: ["gf", "issue", "reopen", "42"],
+    forge: ForgeType::Forgejo,
+    feature_contains: "issue reopen"
+);
+
 // ── REPO CLONE (REPO-01): gf repo clone → gh repo clone / glab repo clone / fj repo clone ──
 
 v11_translation_test!(v11_repo_clone_github,
