@@ -285,6 +285,21 @@ fn build_browse() -> Command {
                 .action(ArgAction::SetTrue)
                 .help("Print URL without opening browser (for scripting/CI)"),
         )
+        .arg(
+            Arg::new("pr")
+                .long("pr")
+                .visible_alias("mr")
+                .value_name("NUMBER")
+                .conflicts_with_all(["issue", "file", "branch"])
+                .help("Open PR/MR in browser (--mr is an alias)"),
+        )
+        .arg(
+            Arg::new("issue")
+                .long("issue")
+                .value_name("NUMBER")
+                .conflicts_with_all(["pr", "file", "branch"])
+                .help("Open issue in browser"),
+        )
 }
 
 /// Hidden subcommand: `gf completions --shell <bash|zsh|fish|...>`

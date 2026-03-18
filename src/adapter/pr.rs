@@ -12,6 +12,9 @@ pub fn translate_pr(forge: ForgeType, matches: &ArgMatches) -> Result<Vec<String
     match matches.subcommand() {
         Some(("create", sub)) => translate_pr_create(forge, pr_cmd, sub),
         Some(("view", sub)) => translate_pr_view(forge, pr_cmd, sub),
+        Some(("list", sub)) => translate_pr_list(forge, pr_cmd, sub),
+        Some(("checkout", sub)) => translate_pr_checkout(forge, pr_cmd, sub),
+        Some(("merge", sub)) => translate_pr_merge(forge, pr_cmd, sub),
         Some((verb, sub)) => {
             // Unknown verb: pass through as-is with any extra args
             let mut args = vec![pr_cmd.to_string(), verb.to_string()];
@@ -81,6 +84,91 @@ fn translate_pr_create(forge: ForgeType, pr_cmd: &str, matches: &ArgMatches) -> 
         args.extend(extra.cloned());
     }
 
+    Ok(args)
+}
+
+/// Translate `gf pr list` (PR state/author/label filters).
+fn translate_pr_list(forge: ForgeType, pr_cmd: &str, matches: &ArgMatches) -> Result<Vec<String>, GfError> {
+    let mut args = vec![pr_cmd.to_string(), "list".to_string()];
+
+    // --state: glab uses boolean flags (--closed/--merged/--all), others use --state value
+    if let Some(state) = matches.get_one::<String>("state") {
+        match forge {
+            ForgeType::Gitlab => match state.as_str() {
+                "closed" => args.push("--closed".to_string()),
+                "merged" => args.push("--merged".to_string()),
+                "all" => args.push("--all".to_string()),
+                _ => { args.push("--state".to_string()); args.push(state.clone()); }
+            },
+            _ => { args.push("--state".to_string()); args.push(state.clone()); }
+        }
+    }
+
+    if let Some(author) = matches.get_one::<String>("author") {
+        args.push("--author".to_string());
+        args.push(author.clone());
+    }
+
+    if let Some(label) = matches.get_one::<String>("label") {
+        args.push("--label".to_string());
+        args.push(label.clone());
+    }
+
+    if let Some(extra) = matches.get_many::<String>("extra") {
+        args.extend(extra.cloned());
+    }
+
+    Ok(args)
+}
+
+/// Translate `gf pr checkout [<number>]`.
+fn translate_pr_checkout(forge: ForgeType, pr_cmd: &str, matches: &ArgMatches) -> Result<Vec<String>, GfError> {
+    let mut args = vec![pr_cmd.to_string(), "checkout".to_string()];
+
+    if let Some(number) = matches.get_one::<String>("number") {
+        args.push(number.clone());
+    }
+
+    if let Some(extra) = matches.get_many::<String>("extra") {
+        args.extend(extra.cloned());
+    }
+
+    let _ = forge; // forge-specific routing may be added later
+    Ok(args)
+}
+
+/// Translate `gf pr merge [<number>]` with merge strategy flags.
+fn translate_pr_merge(forge: ForgeType, pr_cmd: &str, matches: &ArgMatches) -> Result<Vec<String>, GfError> {
+    let mut args = vec![pr_cmd.to_string(), "merge".to_string()];
+
+    if let Some(number) = matches.get_one::<String>("number") {
+        args.push(number.clone());
+    }
+
+    if matches.get_flag("squash") {
+        args.push("--squash".to_string());
+    }
+    if matches.get_flag("rebase") {
+        args.push("--rebase".to_string());
+    }
+    if matches.get_flag("merge") {
+        args.push("--merge".to_string());
+    }
+    if matches.get_flag("delete-branch") {
+        args.push("--delete-branch".to_string());
+    }
+    if matches.get_flag("no-delete-branch") {
+        match forge {
+            ForgeType::Github => args.push("--repo".to_string()), // gh uses no equivalent; omit silently
+            _ => {} // silently omit unsupported flag
+        }
+    }
+
+    if let Some(extra) = matches.get_many::<String>("extra") {
+        args.extend(extra.cloned());
+    }
+
+    let _ = forge;
     Ok(args)
 }
 
