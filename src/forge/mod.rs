@@ -2,6 +2,9 @@
 
 use crate::error::GfError;
 use serde::Deserialize;
+use std::sync::mpsc;
+use std::thread;
+use std::time::Duration;
 
 /// The four supported forge types.
 #[derive(Debug, PartialEq, Clone, Copy, Deserialize)]
@@ -253,6 +256,50 @@ pub fn match_known_host(host: &str) -> Result<ForgeType, GfError> {
         other => Err(GfError::ForgeNotDetected {
             domain: other.to_string(),
         }),
+    }
+}
+
+/// Probe forge CLIs for auth status containing the given hostname.
+/// Returns the first matching ForgeType, or None if no CLI matches.
+/// Checks in order: gh, glab, tea, fj (market share priority per CONTEXT.md).
+fn probe_auth(hostname: &str) -> Option<ForgeType> {
+    let probes: [(ForgeType, &str, &[&str]); 4] = [
+        (ForgeType::Github, "gh", &["auth", "status"]),
+        (ForgeType::Gitlab, "glab", &["auth", "status"]),
+        (ForgeType::Gitea, "tea", &["logins", "ls"]),
+        (ForgeType::Forgejo, "fj", &["auth", "list"]),
+    ];
+
+    for (forge, cli, args) in probes {
+        if let Some(output) = run_with_timeout(cli, args, Duration::from_secs(5)) {
+            // Check if hostname appears in stdout or stderr (some CLIs output to stderr)
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            if stdout.contains(hostname) || stderr.contains(hostname) {
+                return Some(forge);
+            }
+        }
+    }
+    None
+}
+
+/// Run a command with a timeout. Returns None if timeout expires, command not found, or fails.
+fn run_with_timeout(cmd: &str, args: &[&str], timeout: Duration) -> Option<std::process::Output> {
+    let (tx, rx) = mpsc::channel();
+
+    let cmd_owned = cmd.to_string();
+    let args_owned: Vec<String> = args.iter().map(|s| s.to_string()).collect();
+
+    thread::spawn(move || {
+        let result = std::process::Command::new(&cmd_owned)
+            .args(&args_owned)
+            .output();
+        let _ = tx.send(result);
+    });
+
+    match rx.recv_timeout(timeout) {
+        Ok(Ok(output)) => Some(output),
+        _ => None, // Timeout, command not found, or execution failed
     }
 }
 
