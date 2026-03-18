@@ -101,7 +101,9 @@ Plans:
   3. `translation_test!` exists for Forgejo `gf issue list --author` → `--creator` remap
   4. `audit_test!` entries exist for `fj issue search --labels` and `fj issue search --creator`
   5. `cargo build --release` produces zero warnings
-Plans: 0/1 plans
+**Plans:** 1 plan
+Plans:
+- [ ] 10-01-PLAN.md — Remove dead code, fix warnings, add missing Forgejo issue test coverage
 
 ## Progress
 
