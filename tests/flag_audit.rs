@@ -723,43 +723,43 @@ unsupported_test!(pr_approve_fj_unsupported,
 
 // ── ISSUE LIST (ISSUE-01): gf issue list → gh issue list / glab issue list / tea issues list / fj issue search ──
 
-v11_translation_test!(v11_issue_list_github_state,
+translation_test!(issue_list_github_state,
     input: ["gf", "issue", "list", "--state", "closed"],
     forge: ForgeType::Github,
     expected: ["issue", "list", "--state", "closed"]
 );
 
-v11_translation_test!(v11_issue_list_glab_state_closed,
+translation_test!(issue_list_glab_state_closed,
     input: ["gf", "issue", "list", "--state", "closed"],
     forge: ForgeType::Gitlab,
     expected: ["issue", "list", "--closed"]
 );
 
-v11_translation_test!(v11_issue_list_tea_state,
+translation_test!(issue_list_tea_state,
     input: ["gf", "issue", "list", "--state", "closed"],
     forge: ForgeType::Gitea,
     expected: ["issues", "list", "--state", "closed"]
 );
 
-v11_translation_test!(v11_issue_list_fj_state,
+translation_test!(issue_list_fj_state,
     input: ["gf", "issue", "list", "--state", "closed"],
     forge: ForgeType::Forgejo,
     expected: ["issue", "search", "--state", "closed"]
 );
 
-v11_translation_test!(v11_issue_list_github_label,
+translation_test!(issue_list_github_label,
     input: ["gf", "issue", "list", "--label", "bug"],
     forge: ForgeType::Github,
     expected: ["issue", "list", "--label", "bug"]
 );
 
-v11_translation_test!(v11_issue_list_tea_label,
+translation_test!(issue_list_tea_label,
     input: ["gf", "issue", "list", "--label", "bug"],
     forge: ForgeType::Gitea,
     expected: ["issues", "list", "--labels", "bug"]
 );
 
-v11_translation_test!(v11_issue_list_fj_label,
+translation_test!(issue_list_fj_label,
     input: ["gf", "issue", "list", "--label", "bug"],
     forge: ForgeType::Forgejo,
     expected: ["issue", "search", "--labels", "bug"]
@@ -767,26 +767,26 @@ v11_translation_test!(v11_issue_list_fj_label,
 
 // ── ISSUE VIEW (ISSUE-02): gf issue view → gh issue view / glab issue view / tea issues <N> / fj issue view ──
 
-v11_translation_test!(v11_issue_view_github,
+translation_test!(issue_view_github,
     input: ["gf", "issue", "view", "42"],
     forge: ForgeType::Github,
     expected: ["issue", "view", "42"]
 );
 
-v11_translation_test!(v11_issue_view_glab,
+translation_test!(issue_view_glab,
     input: ["gf", "issue", "view", "42"],
     forge: ForgeType::Gitlab,
     expected: ["issue", "view", "42"]
 );
 
-v11_translation_test!(v11_issue_view_tea,
+translation_test!(issue_view_tea,
     input: ["gf", "issue", "view", "42"],
     forge: ForgeType::Gitea,
     expected: ["issues", "42"]
 );
 // tea has no "view" verb — uses `tea issues <number>` directly
 
-v11_translation_test!(v11_issue_view_fj,
+translation_test!(issue_view_fj,
     input: ["gf", "issue", "view", "42"],
     forge: ForgeType::Forgejo,
     expected: ["issue", "view", "42"]
@@ -871,13 +871,13 @@ unsupported_test!(issue_reopen_fj_unsupported,
 
 // ── REPO CLONE (REPO-01): gf repo clone → gh repo clone / glab repo clone / fj repo clone ──
 
-v11_translation_test!(v11_repo_clone_github,
+translation_test!(repo_clone_github,
     input: ["gf", "repo", "clone", "owner/repo"],
     forge: ForgeType::Github,
     expected: ["repo", "clone", "owner/repo"]
 );
 
-v11_translation_test!(v11_repo_clone_glab,
+translation_test!(repo_clone_glab,
     input: ["gf", "repo", "clone", "owner/repo"],
     forge: ForgeType::Gitlab,
     expected: ["repo", "clone", "owner/repo"]
@@ -891,7 +891,7 @@ unsupported_test!(repo_clone_tea_unsupported,
     feature_contains: "repo clone"
 );
 
-v11_translation_test!(v11_repo_clone_fj,
+translation_test!(repo_clone_fj,
     input: ["gf", "repo", "clone", "owner/repo"],
     forge: ForgeType::Forgejo,
     expected: ["repo", "clone", "owner/repo"]
