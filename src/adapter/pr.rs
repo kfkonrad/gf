@@ -15,6 +15,8 @@ pub fn translate_pr(forge: ForgeType, matches: &ArgMatches) -> Result<Vec<String
         Some(("list", sub)) => translate_pr_list(forge, pr_cmd, sub),
         Some(("checkout", sub)) => translate_pr_checkout(forge, pr_cmd, sub),
         Some(("merge", sub)) => translate_pr_merge(forge, pr_cmd, sub),
+        Some(("review", sub)) => translate_pr_review(forge, pr_cmd, sub),
+        Some(("approve", sub)) => translate_pr_approve(forge, pr_cmd, sub),
         Some((verb, sub)) => {
             // Unknown verb: pass through as-is with any extra args
             let mut args = vec![pr_cmd.to_string(), verb.to_string()];
@@ -243,6 +245,126 @@ fn translate_pr_merge(forge: ForgeType, pr_cmd: &str, matches: &ArgMatches) -> R
     }
 
     Ok(args)
+}
+
+/// Translate `gf pr review [<number>] [--comment --body <text>] [--approve]` (PR-04, PR-05).
+///
+/// Comment mapping:
+///   gh: pr review <N> --comment --body <text>
+///   glab: mr comment <N> --message <text>  (subcommand remap: review → comment, --body → --message)
+///   fj: pr comment <N> <text>  (subcommand remap, body is positional)
+///   tea: UNSUPPORTED
+///
+/// Approve mapping:
+///   gh: pr review <N> --approve
+///   glab: mr approve <N>  (subcommand remap: review → approve, flag removed)
+///   tea: UNSUPPORTED
+///   fj: UNSUPPORTED
+fn translate_pr_review(forge: ForgeType, pr_cmd: &str, matches: &ArgMatches) -> Result<Vec<String>, GfError> {
+    let number = matches.get_one::<String>("number");
+    let is_approve = matches.get_flag("approve");
+    let is_comment = matches.get_flag("comment");
+    let body = matches.get_one::<String>("body");
+
+    if is_approve {
+        match forge {
+            ForgeType::Github => {
+                let mut args = vec![pr_cmd.to_string(), "review".to_string()];
+                if let Some(n) = number { args.push(n.clone()); }
+                args.push("--approve".to_string());
+                Ok(args)
+            }
+            ForgeType::Gitlab => {
+                // glab mr approve <N> — subcommand remap
+                let mut args = vec![pr_cmd.to_string(), "approve".to_string()];
+                if let Some(n) = number { args.push(n.clone()); }
+                Ok(args)
+            }
+            ForgeType::Gitea => Err(GfError::UnsupportedFeature {
+                feature: "pr review --approve".to_string(),
+                forge: "Gitea".to_string(),
+                forge_cli: "tea".to_string(),
+            }),
+            ForgeType::Forgejo => Err(GfError::UnsupportedFeature {
+                feature: "pr review --approve".to_string(),
+                forge: "Forgejo".to_string(),
+                forge_cli: "fj".to_string(),
+            }),
+        }
+    } else if is_comment {
+        match forge {
+            ForgeType::Github => {
+                let mut args = vec![pr_cmd.to_string(), "review".to_string()];
+                if let Some(n) = number { args.push(n.clone()); }
+                args.push("--comment".to_string());
+                if let Some(b) = body {
+                    args.push("--body".to_string());
+                    args.push(b.clone());
+                }
+                Ok(args)
+            }
+            ForgeType::Gitlab => {
+                // glab mr comment <N> --message <text>
+                let mut args = vec![pr_cmd.to_string(), "comment".to_string()];
+                if let Some(n) = number { args.push(n.clone()); }
+                if let Some(b) = body {
+                    args.push("--message".to_string());
+                    args.push(b.clone());
+                }
+                Ok(args)
+            }
+            ForgeType::Forgejo => {
+                // fj pr comment <N> <body> — body is positional
+                let mut args = vec![pr_cmd.to_string(), "comment".to_string()];
+                if let Some(n) = number { args.push(n.clone()); }
+                if let Some(b) = body { args.push(b.clone()); }
+                Ok(args)
+            }
+            ForgeType::Gitea => Err(GfError::UnsupportedFeature {
+                feature: "pr review --comment".to_string(),
+                forge: "Gitea".to_string(),
+                forge_cli: "tea".to_string(),
+            }),
+        }
+    } else {
+        // No --approve or --comment — pass through as generic review
+        let mut args = vec![pr_cmd.to_string(), "review".to_string()];
+        if let Some(n) = number { args.push(n.clone()); }
+        if let Some(extra) = matches.get_many::<String>("extra") {
+            args.extend(extra.cloned());
+        }
+        Ok(args)
+    }
+}
+
+/// Translate `gf pr approve [<number>]` — syntactic sugar for `gf pr review --approve`.
+/// Produces the same output as translate_pr_review with --approve flag.
+fn translate_pr_approve(forge: ForgeType, pr_cmd: &str, matches: &ArgMatches) -> Result<Vec<String>, GfError> {
+    let number = matches.get_one::<String>("number");
+
+    match forge {
+        ForgeType::Github => {
+            let mut args = vec![pr_cmd.to_string(), "review".to_string()];
+            if let Some(n) = number { args.push(n.clone()); }
+            args.push("--approve".to_string());
+            Ok(args)
+        }
+        ForgeType::Gitlab => {
+            let mut args = vec![pr_cmd.to_string(), "approve".to_string()];
+            if let Some(n) = number { args.push(n.clone()); }
+            Ok(args)
+        }
+        ForgeType::Gitea => Err(GfError::UnsupportedFeature {
+            feature: "pr approve".to_string(),
+            forge: "Gitea".to_string(),
+            forge_cli: "tea".to_string(),
+        }),
+        ForgeType::Forgejo => Err(GfError::UnsupportedFeature {
+            feature: "pr approve".to_string(),
+            forge: "Forgejo".to_string(),
+            forge_cli: "fj".to_string(),
+        }),
+    }
 }
 
 /// Translate `gf pr view [<number>]` (PR-05, PR-06).

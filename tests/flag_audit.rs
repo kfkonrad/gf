@@ -639,13 +639,13 @@ translation_test!(v11_pr_checkout_fj,
 
 // ── PR REVIEW (PR-04, PR-05): gf pr review → gh pr review / glab mr comment|approve / fj pr comment ──
 
-v11_translation_test!(v11_pr_review_comment_github,
+translation_test!(v11_pr_review_comment_github,
     input: ["gf", "pr", "review", "42", "--comment", "--body", "looks good"],
     forge: ForgeType::Github,
     expected: ["pr", "review", "42", "--comment", "--body", "looks good"]
 );
 
-v11_translation_test!(v11_pr_review_comment_glab,
+translation_test!(v11_pr_review_comment_glab,
     input: ["gf", "pr", "review", "42", "--comment", "--body", "looks good"],
     forge: ForgeType::Gitlab,
     expected: ["mr", "comment", "42", "--message", "looks good"]
@@ -654,20 +654,20 @@ v11_translation_test!(v11_pr_review_comment_glab,
 
 // tea pr review --comment: UNSUPPORTED (tea has no pulls review subcommand)
 
-v11_translation_test!(v11_pr_review_comment_fj,
+translation_test!(v11_pr_review_comment_fj,
     input: ["gf", "pr", "review", "42", "--comment", "--body", "looks good"],
     forge: ForgeType::Forgejo,
     expected: ["pr", "comment", "42", "looks good"]
 );
 // fj uses positional body: `fj pr comment <N> <body>`
 
-v11_translation_test!(v11_pr_review_approve_github,
+translation_test!(v11_pr_review_approve_github,
     input: ["gf", "pr", "review", "42", "--approve"],
     forge: ForgeType::Github,
     expected: ["pr", "review", "42", "--approve"]
 );
 
-v11_translation_test!(v11_pr_review_approve_glab,
+translation_test!(v11_pr_review_approve_glab,
     input: ["gf", "pr", "review", "42", "--approve"],
     forge: ForgeType::Gitlab,
     expected: ["mr", "approve", "42"]
@@ -676,6 +676,50 @@ v11_translation_test!(v11_pr_review_approve_glab,
 
 // tea pr review --approve: UNSUPPORTED (tea has no pulls review/approve)
 // fj pr review --approve: UNSUPPORTED (fj has no pr approve subcommand)
+
+// --- PR review/approve: tea/fj unsupported (Phase 8 hard-error policy) ---
+unsupported_test!(pr_review_comment_tea_unsupported,
+    input: ["gf", "pr", "review", "42", "--comment", "--body", "text"],
+    forge: ForgeType::Gitea,
+    feature_contains: "pr review --comment"
+);
+
+unsupported_test!(pr_review_approve_tea_unsupported,
+    input: ["gf", "pr", "review", "42", "--approve"],
+    forge: ForgeType::Gitea,
+    feature_contains: "pr review --approve"
+);
+
+unsupported_test!(pr_review_approve_fj_unsupported,
+    input: ["gf", "pr", "review", "42", "--approve"],
+    forge: ForgeType::Forgejo,
+    feature_contains: "pr review --approve"
+);
+
+// --- PR approve: syntactic sugar for review --approve ---
+translation_test!(pr_approve_github,
+    input: ["gf", "pr", "approve", "42"],
+    forge: ForgeType::Github,
+    expected: ["pr", "review", "42", "--approve"]
+);
+
+translation_test!(pr_approve_glab,
+    input: ["gf", "pr", "approve", "42"],
+    forge: ForgeType::Gitlab,
+    expected: ["mr", "approve", "42"]
+);
+
+unsupported_test!(pr_approve_tea_unsupported,
+    input: ["gf", "pr", "approve", "42"],
+    forge: ForgeType::Gitea,
+    feature_contains: "pr approve"
+);
+
+unsupported_test!(pr_approve_fj_unsupported,
+    input: ["gf", "pr", "approve", "42"],
+    forge: ForgeType::Forgejo,
+    feature_contains: "pr approve"
+);
 
 // ── ISSUE LIST (ISSUE-01): gf issue list → gh issue list / glab issue list / tea issues list / fj issue search ──
 
