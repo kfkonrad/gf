@@ -290,7 +290,9 @@ fn test_browse_no_browser_prints_url() {
         .env("PATH", &git_only)
         .assert()
         .success()
-        .stdout(predicates::str::starts_with("https://github.com/test/repo/tree/"));
+        .stdout(predicates::str::starts_with(
+            "https://github.com/test/repo/tree/",
+        ));
 }
 
 /// gf browse --no-browser from a GitLab repo includes the /-/ infix in the URL.
@@ -430,7 +432,9 @@ fn test_browse_alias_b_works() {
         .env("PATH", &git_only)
         .assert()
         .success()
-        .stdout(predicates::str::starts_with("https://github.com/test/repo/tree/"));
+        .stdout(predicates::str::starts_with(
+            "https://github.com/test/repo/tree/",
+        ));
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -528,14 +532,20 @@ mod alias_routing {
     #[test]
     fn test_help_contains_mr_alias() {
         let help = build_cli().render_help().to_string();
-        assert!(help.contains("mr"), "help should mention 'mr' alias; help output:\n{help}");
+        assert!(
+            help.contains("mr"),
+            "help should mention 'mr' alias; help output:\n{help}"
+        );
     }
 
     // CORE-11: --help output contains "r" alias for repo
     #[test]
     fn test_help_contains_r_alias() {
         let help = build_cli().render_help().to_string();
-        assert!(help.contains('['), "help should contain alias brackets; got:\n{help}");
+        assert!(
+            help.contains('['),
+            "help should contain alias brackets; got:\n{help}"
+        );
     }
 
     // CORE-12: completions generate output containing "gf"
@@ -545,7 +555,11 @@ mod alias_routing {
         generate(Shell::Bash, &mut build_cli(), "gf", &mut buf);
         let output = String::from_utf8(buf).expect("valid UTF-8");
         assert!(!output.is_empty(), "completion output should not be empty");
-        assert!(output.contains("gf"), "completion script should reference 'gf'; got length {}", output.len());
+        assert!(
+            output.contains("gf"),
+            "completion script should reference 'gf'; got length {}",
+            output.len()
+        );
     }
 
     // CORE-12: completions for zsh also work

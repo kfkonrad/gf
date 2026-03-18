@@ -8,9 +8,9 @@
 //   adapter::pr         — PR/MR subcommand + flag translation
 //   adapter::repo_auth  — Repo and Auth subcommand + flag translation
 
+mod issue;
 mod pr;
 mod repo_auth;
-mod issue;
 
 use crate::error::GfError;
 use crate::forge::ForgeType;

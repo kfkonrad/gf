@@ -40,7 +40,11 @@ fn pr_subcommand_name(forge: ForgeType) -> &'static str {
 }
 
 /// Translate `gf pr create` with canonical flags (PR-01, PR-02, PR-04).
-fn translate_pr_create(forge: ForgeType, pr_cmd: &str, matches: &ArgMatches) -> Result<Vec<String>, GfError> {
+fn translate_pr_create(
+    forge: ForgeType,
+    pr_cmd: &str,
+    matches: &ArgMatches,
+) -> Result<Vec<String>, GfError> {
     let mut args = vec![pr_cmd.to_string(), "create".to_string()];
 
     // --title: canonical flag name matches all forges
@@ -93,7 +97,11 @@ fn translate_pr_create(forge: ForgeType, pr_cmd: &str, matches: &ArgMatches) -> 
 /// Forgejo uses `pr search` instead of `pr list`, `--creator` instead of `--author`, `--labels` instead of `--label`.
 /// GitLab uses boolean flags (--closed/--merged/--all) instead of `--state <value>`.
 /// Gitea (tea) does not support --author or --label → hard error.
-fn translate_pr_list(forge: ForgeType, pr_cmd: &str, matches: &ArgMatches) -> Result<Vec<String>, GfError> {
+fn translate_pr_list(
+    forge: ForgeType,
+    pr_cmd: &str,
+    matches: &ArgMatches,
+) -> Result<Vec<String>, GfError> {
     let mut args = vec![pr_cmd.to_string()];
 
     // Verb: fj uses "search" instead of "list"
@@ -110,20 +118,28 @@ fn translate_pr_list(forge: ForgeType, pr_cmd: &str, matches: &ArgMatches) -> Re
                 "merged" => args.push("--merged".to_string()),
                 "all" => args.push("--all".to_string()),
                 "open" => {} // glab default, no flag needed
-                _ => { args.push("--state".to_string()); args.push(state.clone()); }
+                _ => {
+                    args.push("--state".to_string());
+                    args.push(state.clone());
+                }
             },
-            _ => { args.push("--state".to_string()); args.push(state.clone()); }
+            _ => {
+                args.push("--state".to_string());
+                args.push(state.clone());
+            }
         }
     }
 
     // --author: tea UNSUPPORTED, fj remaps to --creator
     if let Some(author) = matches.get_one::<String>("author") {
         match forge {
-            ForgeType::Gitea => return Err(GfError::UnsupportedFeature {
-                feature: "pr list --author".to_string(),
-                forge: "Gitea".to_string(),
-                forge_cli: "tea".to_string(),
-            }),
+            ForgeType::Gitea => {
+                return Err(GfError::UnsupportedFeature {
+                    feature: "pr list --author".to_string(),
+                    forge: "Gitea".to_string(),
+                    forge_cli: "tea".to_string(),
+                })
+            }
             ForgeType::Forgejo => {
                 args.push("--creator".to_string());
                 args.push(author.clone());
@@ -138,11 +154,13 @@ fn translate_pr_list(forge: ForgeType, pr_cmd: &str, matches: &ArgMatches) -> Re
     // --label: tea UNSUPPORTED, fj remaps to --labels
     if let Some(label) = matches.get_one::<String>("label") {
         match forge {
-            ForgeType::Gitea => return Err(GfError::UnsupportedFeature {
-                feature: "pr list --label".to_string(),
-                forge: "Gitea".to_string(),
-                forge_cli: "tea".to_string(),
-            }),
+            ForgeType::Gitea => {
+                return Err(GfError::UnsupportedFeature {
+                    feature: "pr list --label".to_string(),
+                    forge: "Gitea".to_string(),
+                    forge_cli: "tea".to_string(),
+                })
+            }
             ForgeType::Forgejo => {
                 args.push("--labels".to_string());
                 args.push(label.clone());
@@ -162,7 +180,11 @@ fn translate_pr_list(forge: ForgeType, pr_cmd: &str, matches: &ArgMatches) -> Re
 }
 
 /// Translate `gf pr checkout [<number>]`.
-fn translate_pr_checkout(forge: ForgeType, pr_cmd: &str, matches: &ArgMatches) -> Result<Vec<String>, GfError> {
+fn translate_pr_checkout(
+    forge: ForgeType,
+    pr_cmd: &str,
+    matches: &ArgMatches,
+) -> Result<Vec<String>, GfError> {
     let mut args = vec![pr_cmd.to_string(), "checkout".to_string()];
 
     if let Some(number) = matches.get_one::<String>("number") {
@@ -186,7 +208,11 @@ fn translate_pr_checkout(forge: ForgeType, pr_cmd: &str, matches: &ArgMatches) -
 ///
 /// Delete-branch mapping:
 ///   gh: --delete-branch, glab: --remove-source-branch, fj: --delete, tea: UNSUPPORTED
-fn translate_pr_merge(forge: ForgeType, pr_cmd: &str, matches: &ArgMatches) -> Result<Vec<String>, GfError> {
+fn translate_pr_merge(
+    forge: ForgeType,
+    pr_cmd: &str,
+    matches: &ArgMatches,
+) -> Result<Vec<String>, GfError> {
     let mut args = vec![pr_cmd.to_string(), "merge".to_string()];
 
     // Number (optional positional)
@@ -201,14 +227,26 @@ fn translate_pr_merge(forge: ForgeType, pr_cmd: &str, matches: &ArgMatches) -> R
     if squash {
         match forge {
             ForgeType::Github | ForgeType::Gitlab => args.push("--squash".to_string()),
-            ForgeType::Gitea => { args.push("--style".to_string()); args.push("squash".to_string()); }
-            ForgeType::Forgejo => { args.push("--method".to_string()); args.push("squash".to_string()); }
+            ForgeType::Gitea => {
+                args.push("--style".to_string());
+                args.push("squash".to_string());
+            }
+            ForgeType::Forgejo => {
+                args.push("--method".to_string());
+                args.push("squash".to_string());
+            }
         }
     } else if rebase {
         match forge {
             ForgeType::Github | ForgeType::Gitlab => args.push("--rebase".to_string()),
-            ForgeType::Gitea => { args.push("--style".to_string()); args.push("rebase".to_string()); }
-            ForgeType::Forgejo => { args.push("--method".to_string()); args.push("rebase".to_string()); }
+            ForgeType::Gitea => {
+                args.push("--style".to_string());
+                args.push("rebase".to_string());
+            }
+            ForgeType::Forgejo => {
+                args.push("--method".to_string());
+                args.push("rebase".to_string());
+            }
         }
     } else {
         // Default or explicit --merge: explicitly pass merge strategy per forge
@@ -216,8 +254,14 @@ fn translate_pr_merge(forge: ForgeType, pr_cmd: &str, matches: &ArgMatches) -> R
         match forge {
             ForgeType::Github => args.push("--merge".to_string()),
             ForgeType::Gitlab => {} // glab default is merge, no flag needed
-            ForgeType::Gitea => { args.push("--style".to_string()); args.push("merge".to_string()); }
-            ForgeType::Forgejo => { args.push("--method".to_string()); args.push("merge".to_string()); }
+            ForgeType::Gitea => {
+                args.push("--style".to_string());
+                args.push("merge".to_string());
+            }
+            ForgeType::Forgejo => {
+                args.push("--method".to_string());
+                args.push("merge".to_string());
+            }
         }
     }
 
@@ -232,11 +276,13 @@ fn translate_pr_merge(forge: ForgeType, pr_cmd: &str, matches: &ArgMatches) -> R
             ForgeType::Github => args.push("--delete-branch".to_string()),
             ForgeType::Gitlab => args.push("--remove-source-branch".to_string()),
             ForgeType::Forgejo => args.push("--delete".to_string()),
-            ForgeType::Gitea => return Err(GfError::UnsupportedFeature {
-                feature: "pr merge --delete-branch".to_string(),
-                forge: "Gitea".to_string(),
-                forge_cli: "tea".to_string(),
-            }),
+            ForgeType::Gitea => {
+                return Err(GfError::UnsupportedFeature {
+                    feature: "pr merge --delete-branch".to_string(),
+                    forge: "Gitea".to_string(),
+                    forge_cli: "tea".to_string(),
+                })
+            }
         }
     }
 
@@ -260,7 +306,11 @@ fn translate_pr_merge(forge: ForgeType, pr_cmd: &str, matches: &ArgMatches) -> R
 ///   glab: mr approve <N>  (subcommand remap: review → approve, flag removed)
 ///   tea: UNSUPPORTED
 ///   fj: UNSUPPORTED
-fn translate_pr_review(forge: ForgeType, pr_cmd: &str, matches: &ArgMatches) -> Result<Vec<String>, GfError> {
+fn translate_pr_review(
+    forge: ForgeType,
+    pr_cmd: &str,
+    matches: &ArgMatches,
+) -> Result<Vec<String>, GfError> {
     let number = matches.get_one::<String>("number");
     let is_approve = matches.get_flag("approve");
     let is_comment = matches.get_flag("comment");
@@ -270,14 +320,18 @@ fn translate_pr_review(forge: ForgeType, pr_cmd: &str, matches: &ArgMatches) -> 
         match forge {
             ForgeType::Github => {
                 let mut args = vec![pr_cmd.to_string(), "review".to_string()];
-                if let Some(n) = number { args.push(n.clone()); }
+                if let Some(n) = number {
+                    args.push(n.clone());
+                }
                 args.push("--approve".to_string());
                 Ok(args)
             }
             ForgeType::Gitlab => {
                 // glab mr approve <N> — subcommand remap
                 let mut args = vec![pr_cmd.to_string(), "approve".to_string()];
-                if let Some(n) = number { args.push(n.clone()); }
+                if let Some(n) = number {
+                    args.push(n.clone());
+                }
                 Ok(args)
             }
             ForgeType::Gitea => Err(GfError::UnsupportedFeature {
@@ -295,7 +349,9 @@ fn translate_pr_review(forge: ForgeType, pr_cmd: &str, matches: &ArgMatches) -> 
         match forge {
             ForgeType::Github => {
                 let mut args = vec![pr_cmd.to_string(), "review".to_string()];
-                if let Some(n) = number { args.push(n.clone()); }
+                if let Some(n) = number {
+                    args.push(n.clone());
+                }
                 args.push("--comment".to_string());
                 if let Some(b) = body {
                     args.push("--body".to_string());
@@ -306,7 +362,9 @@ fn translate_pr_review(forge: ForgeType, pr_cmd: &str, matches: &ArgMatches) -> 
             ForgeType::Gitlab => {
                 // glab mr comment <N> --message <text>
                 let mut args = vec![pr_cmd.to_string(), "comment".to_string()];
-                if let Some(n) = number { args.push(n.clone()); }
+                if let Some(n) = number {
+                    args.push(n.clone());
+                }
                 if let Some(b) = body {
                     args.push("--message".to_string());
                     args.push(b.clone());
@@ -316,8 +374,12 @@ fn translate_pr_review(forge: ForgeType, pr_cmd: &str, matches: &ArgMatches) -> 
             ForgeType::Forgejo => {
                 // fj pr comment <N> <body> — body is positional
                 let mut args = vec![pr_cmd.to_string(), "comment".to_string()];
-                if let Some(n) = number { args.push(n.clone()); }
-                if let Some(b) = body { args.push(b.clone()); }
+                if let Some(n) = number {
+                    args.push(n.clone());
+                }
+                if let Some(b) = body {
+                    args.push(b.clone());
+                }
                 Ok(args)
             }
             ForgeType::Gitea => Err(GfError::UnsupportedFeature {
@@ -329,7 +391,9 @@ fn translate_pr_review(forge: ForgeType, pr_cmd: &str, matches: &ArgMatches) -> 
     } else {
         // No --approve or --comment — pass through as generic review
         let mut args = vec![pr_cmd.to_string(), "review".to_string()];
-        if let Some(n) = number { args.push(n.clone()); }
+        if let Some(n) = number {
+            args.push(n.clone());
+        }
         if let Some(extra) = matches.get_many::<String>("extra") {
             args.extend(extra.cloned());
         }
@@ -339,19 +403,27 @@ fn translate_pr_review(forge: ForgeType, pr_cmd: &str, matches: &ArgMatches) -> 
 
 /// Translate `gf pr approve [<number>]` — syntactic sugar for `gf pr review --approve`.
 /// Produces the same output as translate_pr_review with --approve flag.
-fn translate_pr_approve(forge: ForgeType, pr_cmd: &str, matches: &ArgMatches) -> Result<Vec<String>, GfError> {
+fn translate_pr_approve(
+    forge: ForgeType,
+    pr_cmd: &str,
+    matches: &ArgMatches,
+) -> Result<Vec<String>, GfError> {
     let number = matches.get_one::<String>("number");
 
     match forge {
         ForgeType::Github => {
             let mut args = vec![pr_cmd.to_string(), "review".to_string()];
-            if let Some(n) = number { args.push(n.clone()); }
+            if let Some(n) = number {
+                args.push(n.clone());
+            }
             args.push("--approve".to_string());
             Ok(args)
         }
         ForgeType::Gitlab => {
             let mut args = vec![pr_cmd.to_string(), "approve".to_string()];
-            if let Some(n) = number { args.push(n.clone()); }
+            if let Some(n) = number {
+                args.push(n.clone());
+            }
             Ok(args)
         }
         ForgeType::Gitea => Err(GfError::UnsupportedFeature {
@@ -370,7 +442,11 @@ fn translate_pr_approve(forge: ForgeType, pr_cmd: &str, matches: &ArgMatches) ->
 /// Translate `gf pr view [<number>]` (PR-05, PR-06).
 /// Delegates to the underlying CLI with or without number.
 /// Current-branch PR lookup is handled natively by gh/glab/tea/fj.
-fn translate_pr_view(forge: ForgeType, pr_cmd: &str, matches: &ArgMatches) -> Result<Vec<String>, GfError> {
+fn translate_pr_view(
+    forge: ForgeType,
+    pr_cmd: &str,
+    matches: &ArgMatches,
+) -> Result<Vec<String>, GfError> {
     let mut args = vec![pr_cmd.to_string()];
 
     // tea does not have "pulls view" — use "pulls <N>" directly

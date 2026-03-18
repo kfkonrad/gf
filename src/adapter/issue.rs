@@ -40,7 +40,11 @@ fn issue_subcommand_name(forge: ForgeType) -> &'static str {
 /// - GitLab uses boolean flags (--closed/--all) instead of --state <value>
 /// - Forgejo remaps --author to --creator, --label to --labels
 /// - Gitea remaps --label to --labels
-fn translate_issue_list(forge: ForgeType, issue_cmd: &str, matches: &ArgMatches) -> Result<Vec<String>, GfError> {
+fn translate_issue_list(
+    forge: ForgeType,
+    issue_cmd: &str,
+    matches: &ArgMatches,
+) -> Result<Vec<String>, GfError> {
     let mut args = vec![issue_cmd.to_string()];
 
     // Verb: fj uses "search" instead of "list"
@@ -56,9 +60,15 @@ fn translate_issue_list(forge: ForgeType, issue_cmd: &str, matches: &ArgMatches)
                 "closed" => args.push("--closed".to_string()),
                 "all" => args.push("--all".to_string()),
                 "open" => {} // glab default, no flag needed
-                _ => { args.push("--state".to_string()); args.push(state.clone()); }
+                _ => {
+                    args.push("--state".to_string());
+                    args.push(state.clone());
+                }
             },
-            _ => { args.push("--state".to_string()); args.push(state.clone()); }
+            _ => {
+                args.push("--state".to_string());
+                args.push(state.clone());
+            }
         }
     }
 
@@ -100,7 +110,11 @@ fn translate_issue_list(forge: ForgeType, issue_cmd: &str, matches: &ArgMatches)
 /// Translate `gf issue view <number>`.
 /// - Tea does not have "issues view" — use "issues <N>" directly
 /// - All others use standard "issue view <N>" pattern
-fn translate_issue_view(forge: ForgeType, issue_cmd: &str, matches: &ArgMatches) -> Result<Vec<String>, GfError> {
+fn translate_issue_view(
+    forge: ForgeType,
+    issue_cmd: &str,
+    matches: &ArgMatches,
+) -> Result<Vec<String>, GfError> {
     let mut args = vec![issue_cmd.to_string()];
 
     // tea does not have "issues view" — use "issues <N>" directly
@@ -123,7 +137,11 @@ fn translate_issue_view(forge: ForgeType, issue_cmd: &str, matches: &ArgMatches)
 /// Translate `gf issue create [--title <title>] [--body <body>]`.
 /// - GitLab and Gitea map --body to --description
 /// - GitHub and Forgejo use --body natively
-fn translate_issue_create(forge: ForgeType, issue_cmd: &str, matches: &ArgMatches) -> Result<Vec<String>, GfError> {
+fn translate_issue_create(
+    forge: ForgeType,
+    issue_cmd: &str,
+    matches: &ArgMatches,
+) -> Result<Vec<String>, GfError> {
     let mut args = vec![issue_cmd.to_string(), "create".to_string()];
 
     // --title: canonical flag name matches all forges
@@ -151,7 +169,11 @@ fn translate_issue_create(forge: ForgeType, issue_cmd: &str, matches: &ArgMatche
 
 /// Translate `gf issue close <number>`.
 /// All forges support this with standard pattern: [issue_cmd] close <number>
-fn translate_issue_close(forge: ForgeType, issue_cmd: &str, matches: &ArgMatches) -> Result<Vec<String>, GfError> {
+fn translate_issue_close(
+    forge: ForgeType,
+    issue_cmd: &str,
+    matches: &ArgMatches,
+) -> Result<Vec<String>, GfError> {
     let mut args = vec![issue_cmd.to_string(), "close".to_string()];
 
     // Number is required
@@ -170,7 +192,11 @@ fn translate_issue_close(forge: ForgeType, issue_cmd: &str, matches: &ArgMatches
 /// Translate `gf issue reopen <number>`.
 /// - Forgejo does NOT support reopen — returns UnsupportedFeature error
 /// - GitHub, GitLab, and Gitea all support standard reopen pattern
-fn translate_issue_reopen(forge: ForgeType, issue_cmd: &str, matches: &ArgMatches) -> Result<Vec<String>, GfError> {
+fn translate_issue_reopen(
+    forge: ForgeType,
+    issue_cmd: &str,
+    matches: &ArgMatches,
+) -> Result<Vec<String>, GfError> {
     // Forgejo CLI has no issue reopen command
     if matches!(forge, ForgeType::Forgejo) {
         return Err(GfError::UnsupportedFeature {

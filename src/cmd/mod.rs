@@ -99,44 +99,150 @@ fn build_pr() -> Command {
             Command::new("list")
                 .about("List pull/merge requests (aliases: l, mr list)")
                 .visible_alias("l")
-                .arg(Arg::new("state").long("state").value_name("STATE").help("Filter by state (open, closed, merged, all)"))
-                .arg(Arg::new("author").long("author").value_name("USER").help("Filter by author"))
-                .arg(Arg::new("label").long("label").value_name("LABEL").help("Filter by label"))
-                .arg(Arg::new("extra").num_args(0..).allow_hyphen_values(true).last(true).help("Additional flags passed through to the underlying CLI")),
+                .arg(
+                    Arg::new("state")
+                        .long("state")
+                        .value_name("STATE")
+                        .help("Filter by state (open, closed, merged, all)"),
+                )
+                .arg(
+                    Arg::new("author")
+                        .long("author")
+                        .value_name("USER")
+                        .help("Filter by author"),
+                )
+                .arg(
+                    Arg::new("label")
+                        .long("label")
+                        .value_name("LABEL")
+                        .help("Filter by label"),
+                )
+                .arg(
+                    Arg::new("extra")
+                        .num_args(0..)
+                        .allow_hyphen_values(true)
+                        .last(true)
+                        .help("Additional flags passed through to the underlying CLI"),
+                ),
         )
         .subcommand(
             Command::new("merge")
                 .about("Merge a pull/merge request (aliases: m, mr merge)")
                 .visible_alias("m")
-                .arg(Arg::new("number").value_name("NUMBER").required(false).help("PR number"))
-                .arg(Arg::new("squash").long("squash").action(ArgAction::SetTrue).help("Squash merge"))
-                .arg(Arg::new("rebase").long("rebase").action(ArgAction::SetTrue).help("Rebase merge"))
-                .arg(Arg::new("merge").long("merge").action(ArgAction::SetTrue).help("Merge commit (default strategy)"))
-                .arg(Arg::new("delete-branch").long("delete-branch").action(ArgAction::SetTrue).help("Delete branch after merge"))
-                .arg(Arg::new("no-delete-branch").long("no-delete-branch").action(ArgAction::SetTrue).help("Keep branch after merge"))
-                .arg(Arg::new("extra").num_args(0..).allow_hyphen_values(true).last(true).help("Additional flags passed through to the underlying CLI")),
+                .arg(
+                    Arg::new("number")
+                        .value_name("NUMBER")
+                        .required(false)
+                        .help("PR number"),
+                )
+                .arg(
+                    Arg::new("squash")
+                        .long("squash")
+                        .action(ArgAction::SetTrue)
+                        .help("Squash merge"),
+                )
+                .arg(
+                    Arg::new("rebase")
+                        .long("rebase")
+                        .action(ArgAction::SetTrue)
+                        .help("Rebase merge"),
+                )
+                .arg(
+                    Arg::new("merge")
+                        .long("merge")
+                        .action(ArgAction::SetTrue)
+                        .help("Merge commit (default strategy)"),
+                )
+                .arg(
+                    Arg::new("delete-branch")
+                        .long("delete-branch")
+                        .action(ArgAction::SetTrue)
+                        .help("Delete branch after merge"),
+                )
+                .arg(
+                    Arg::new("no-delete-branch")
+                        .long("no-delete-branch")
+                        .action(ArgAction::SetTrue)
+                        .help("Keep branch after merge"),
+                )
+                .arg(
+                    Arg::new("extra")
+                        .num_args(0..)
+                        .allow_hyphen_values(true)
+                        .last(true)
+                        .help("Additional flags passed through to the underlying CLI"),
+                ),
         )
         .subcommand(
             Command::new("checkout")
                 .about("Checkout a pull/merge request branch (aliases: co, mr checkout)")
                 .visible_alias("co")
-                .arg(Arg::new("number").value_name("NUMBER").required(false).help("PR number"))
-                .arg(Arg::new("extra").num_args(0..).allow_hyphen_values(true).last(true).help("Additional flags passed through to the underlying CLI")),
+                .arg(
+                    Arg::new("number")
+                        .value_name("NUMBER")
+                        .required(false)
+                        .help("PR number"),
+                )
+                .arg(
+                    Arg::new("extra")
+                        .num_args(0..)
+                        .allow_hyphen_values(true)
+                        .last(true)
+                        .help("Additional flags passed through to the underlying CLI"),
+                ),
         )
         .subcommand(
             Command::new("review")
                 .about("Review a pull/merge request (mr review)")
-                .arg(Arg::new("number").value_name("NUMBER").required(false).help("PR number"))
-                .arg(Arg::new("comment").long("comment").action(ArgAction::SetTrue).help("Add a review comment"))
-                .arg(Arg::new("approve").long("approve").action(ArgAction::SetTrue).help("Approve the PR"))
-                .arg(Arg::new("body").long("body").short('b').value_name("TEXT").help("Comment body text"))
-                .arg(Arg::new("extra").num_args(0..).allow_hyphen_values(true).last(true).help("Additional flags passed through to the underlying CLI")),
+                .arg(
+                    Arg::new("number")
+                        .value_name("NUMBER")
+                        .required(false)
+                        .help("PR number"),
+                )
+                .arg(
+                    Arg::new("comment")
+                        .long("comment")
+                        .action(ArgAction::SetTrue)
+                        .help("Add a review comment"),
+                )
+                .arg(
+                    Arg::new("approve")
+                        .long("approve")
+                        .action(ArgAction::SetTrue)
+                        .help("Approve the PR"),
+                )
+                .arg(
+                    Arg::new("body")
+                        .long("body")
+                        .short('b')
+                        .value_name("TEXT")
+                        .help("Comment body text"),
+                )
+                .arg(
+                    Arg::new("extra")
+                        .num_args(0..)
+                        .allow_hyphen_values(true)
+                        .last(true)
+                        .help("Additional flags passed through to the underlying CLI"),
+                ),
         )
         .subcommand(
             Command::new("approve")
                 .about("Approve a pull/merge request (shorthand for review --approve)")
-                .arg(Arg::new("number").value_name("NUMBER").required(false).help("PR number"))
-                .arg(Arg::new("extra").num_args(0..).allow_hyphen_values(true).last(true).help("Additional flags passed through to the underlying CLI")),
+                .arg(
+                    Arg::new("number")
+                        .value_name("NUMBER")
+                        .required(false)
+                        .help("PR number"),
+                )
+                .arg(
+                    Arg::new("extra")
+                        .num_args(0..)
+                        .allow_hyphen_values(true)
+                        .last(true)
+                        .help("Additional flags passed through to the underlying CLI"),
+                ),
         )
 }
 
@@ -328,37 +434,109 @@ fn build_issue() -> Command {
             Command::new("list")
                 .about("List issues (aliases: l)")
                 .visible_alias("l")
-                .arg(Arg::new("state").long("state").value_name("STATE").help("Filter by state (open, closed, all)"))
-                .arg(Arg::new("author").long("author").value_name("USER").help("Filter by author"))
-                .arg(Arg::new("label").long("label").value_name("LABEL").help("Filter by label"))
-                .arg(Arg::new("extra").num_args(0..).allow_hyphen_values(true).last(true).help("Additional flags passed through")),
+                .arg(
+                    Arg::new("state")
+                        .long("state")
+                        .value_name("STATE")
+                        .help("Filter by state (open, closed, all)"),
+                )
+                .arg(
+                    Arg::new("author")
+                        .long("author")
+                        .value_name("USER")
+                        .help("Filter by author"),
+                )
+                .arg(
+                    Arg::new("label")
+                        .long("label")
+                        .value_name("LABEL")
+                        .help("Filter by label"),
+                )
+                .arg(
+                    Arg::new("extra")
+                        .num_args(0..)
+                        .allow_hyphen_values(true)
+                        .last(true)
+                        .help("Additional flags passed through"),
+                ),
         )
         .subcommand(
             Command::new("view")
                 .about("View an issue (aliases: v)")
                 .visible_alias("v")
-                .arg(Arg::new("number").value_name("NUMBER").required(true).help("Issue number"))
-                .arg(Arg::new("extra").num_args(0..).allow_hyphen_values(true).last(true).help("Additional flags passed through")),
+                .arg(
+                    Arg::new("number")
+                        .value_name("NUMBER")
+                        .required(true)
+                        .help("Issue number"),
+                )
+                .arg(
+                    Arg::new("extra")
+                        .num_args(0..)
+                        .allow_hyphen_values(true)
+                        .last(true)
+                        .help("Additional flags passed through"),
+                ),
         )
         .subcommand(
             Command::new("create")
                 .about("Create a new issue (aliases: c)")
                 .visible_alias("c")
-                .arg(Arg::new("title").long("title").short('t').value_name("TITLE").help("Issue title"))
-                .arg(Arg::new("body").long("body").short('b').value_name("BODY").help("Issue body"))
-                .arg(Arg::new("extra").num_args(0..).allow_hyphen_values(true).last(true).help("Additional flags passed through")),
+                .arg(
+                    Arg::new("title")
+                        .long("title")
+                        .short('t')
+                        .value_name("TITLE")
+                        .help("Issue title"),
+                )
+                .arg(
+                    Arg::new("body")
+                        .long("body")
+                        .short('b')
+                        .value_name("BODY")
+                        .help("Issue body"),
+                )
+                .arg(
+                    Arg::new("extra")
+                        .num_args(0..)
+                        .allow_hyphen_values(true)
+                        .last(true)
+                        .help("Additional flags passed through"),
+                ),
         )
         .subcommand(
             Command::new("close")
                 .about("Close an issue")
-                .arg(Arg::new("number").value_name("NUMBER").required(true).help("Issue number"))
-                .arg(Arg::new("extra").num_args(0..).allow_hyphen_values(true).last(true).help("Additional flags passed through")),
+                .arg(
+                    Arg::new("number")
+                        .value_name("NUMBER")
+                        .required(true)
+                        .help("Issue number"),
+                )
+                .arg(
+                    Arg::new("extra")
+                        .num_args(0..)
+                        .allow_hyphen_values(true)
+                        .last(true)
+                        .help("Additional flags passed through"),
+                ),
         )
         .subcommand(
             Command::new("reopen")
                 .about("Reopen a closed issue")
-                .arg(Arg::new("number").value_name("NUMBER").required(true).help("Issue number"))
-                .arg(Arg::new("extra").num_args(0..).allow_hyphen_values(true).last(true).help("Additional flags passed through")),
+                .arg(
+                    Arg::new("number")
+                        .value_name("NUMBER")
+                        .required(true)
+                        .help("Issue number"),
+                )
+                .arg(
+                    Arg::new("extra")
+                        .num_args(0..)
+                        .allow_hyphen_values(true)
+                        .last(true)
+                        .help("Additional flags passed through"),
+                ),
         )
 }
 

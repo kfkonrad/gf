@@ -47,7 +47,6 @@ pub enum GfError {
         forge: String,
         forge_cli: String,
     },
-
 }
 
 /// Known forge CLI info for install hints.
