@@ -814,6 +814,33 @@ v11_translation_test!(v11_issue_create_tea,
 );
 // tea: --body → --description
 
+// ── ISSUE CLOSE (ISSUE-04): gf issue close → gh issue close / glab issue close / tea issues close / fj issue close ──
+
+v11_translation_test!(v11_issue_close_github,
+    input: ["gf", "issue", "close", "42"],
+    forge: ForgeType::Github,
+    expected: ["issue", "close", "42"]
+);
+
+v11_translation_test!(v11_issue_close_glab,
+    input: ["gf", "issue", "close", "42"],
+    forge: ForgeType::Gitlab,
+    expected: ["issue", "close", "42"]
+);
+
+v11_translation_test!(v11_issue_close_tea,
+    input: ["gf", "issue", "close", "42"],
+    forge: ForgeType::Gitea,
+    expected: ["issues", "close", "42"]
+);
+// tea: uses "issues" (plural) subcommand
+
+v11_translation_test!(v11_issue_close_fj,
+    input: ["gf", "issue", "close", "42"],
+    forge: ForgeType::Forgejo,
+    expected: ["issue", "close", "42"]
+);
+
 // ── REPO CLONE (REPO-01): gf repo clone → gh repo clone / glab repo clone / fj repo clone ──
 
 v11_translation_test!(v11_repo_clone_github,
