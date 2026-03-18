@@ -130,16 +130,36 @@ pub fn get_default_clone_host() -> Result<Option<String>, GfError> {
 /// Top-level forge detection entry point.
 /// Determines which forge a git repo lives on, given a remote name.
 ///
-/// Priority: config file → known host table → error
+/// Priority: config file → known host → cached probe → live probe → error
 ///
 /// `remote` — git remote name (typically "origin", overridden by --remote flag)
 pub fn detect(remote: &str) -> Result<ForgeType, GfError> {
     let url = get_remote_url(remote)?;
     let host = parse_host(&url)?;
+
+    // Priority 1: Config file (user explicit mapping, always wins)
     if let Some(forge) = config_lookup(&host)? {
         return Ok(forge);
     }
-    match_known_host(&host)
+
+    // Priority 2: Known public hosts (github.com, gitlab.com, gitea.com, codeberg.org)
+    if let Ok(forge) = match_known_host(&host) {
+        return Ok(forge);
+    }
+
+    // Priority 3: Cached probe result (previously auto-detected)
+    if let Some(forge) = cache_lookup(&host) {
+        return Ok(forge);
+    }
+
+    // Priority 4: Live probe — try all forge CLIs for auth status
+    if let Some(forge) = probe_auth(&host) {
+        save_probe_cache(&host, forge);
+        return Ok(forge);
+    }
+
+    // Priority 5: No match — error with config hint
+    Err(GfError::ForgeNotDetected { domain: host })
 }
 
 /// Runs `git remote get-url <remote>` and returns the URL string.
@@ -636,5 +656,43 @@ type = "github"
             cfg.defaults.clone_host,
             Some("gitlab.mycompany.com".to_string())
         );
+    }
+
+    // --- Probe cache tests ---
+
+    #[test]
+    fn test_cache_path_with_home() {
+        // Just verify the function returns Some when HOME is set
+        // (it should be set in test environment)
+        let path = cache_path();
+        assert!(
+            path.is_some(),
+            "cache_path should return Some when HOME is set"
+        );
+        let path = path.unwrap();
+        assert!(path.to_string_lossy().contains("probes.toml"));
+    }
+
+    #[test]
+    fn test_probe_cache_roundtrip() {
+        // Create a temporary cache by setting XDG_CACHE_HOME
+        let temp_dir = std::env::temp_dir().join("gf_test_cache");
+        let _ = std::fs::remove_dir_all(&temp_dir); // Clean up any previous test
+        unsafe {
+            std::env::set_var("XDG_CACHE_HOME", &temp_dir);
+        }
+
+        // Cache should be empty initially
+        assert!(cache_lookup("test.example.com").is_none());
+
+        // Save a probe result
+        save_probe_cache("test.example.com", ForgeType::Gitlab);
+
+        // Should be able to read it back
+        let result = cache_lookup("test.example.com");
+        assert_eq!(result, Some(ForgeType::Gitlab));
+
+        // Clean up
+        let _ = std::fs::remove_dir_all(&temp_dir);
     }
 }
