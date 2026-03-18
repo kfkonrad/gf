@@ -118,4 +118,4 @@ Plans:
 | 7. Flag Normalization Audit | 1/2 | In Progress|  | - |
 | 8. PR Workflow Commands | 4/4 | Complete   | 2026-03-18 | - |
 | 9. Issues, Clone, and Self-Hosted Detection | 3/4 | In Progress|  | - |
-| 10. Cleanup — Dead Code and Test Gaps | 1/1 | Complete   | 2026-03-18 | - |
+| 10. Cleanup — Dead Code and Test Gaps | 1/1 | Complete    | 2026-03-18 | - |
