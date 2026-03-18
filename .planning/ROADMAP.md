@@ -82,7 +82,11 @@ Plans:
   3. `gf browse --issue 42` opens the correct issue URL in the browser for all four forges
   4. `gf repo clone owner/repo` and `gf repo clone https://host/owner/repo` clone successfully on all four forges
   5. An unknown self-hosted domain not in config.toml is probed via forge CLI auth status commands and detected correctly; probe result is cached in `~/.cache/gf/`
-**Plans**: TBD
+**Plans:** 3 plans
+Plans:
+- [ ] 09-01-PLAN.md — Issue adapter (list, view, create, close, reopen) with per-forge translations (ISSUE-01, ISSUE-02, ISSUE-03, ISSUE-04, ISSUE-05)
+- [ ] 09-02-PLAN.md — Repo clone with [defaults] config and tea UnsupportedFeature (REPO-01)
+- [ ] 09-03-PLAN.md — CORE-04 CLI auth probing with cache for self-hosted detection (CORE-04, ISSUE-06)
 
 ## Progress
 
@@ -96,4 +100,4 @@ Plans:
 | 6. Browse Enhancements | 2/2 | Complete   | 2026-03-17 | - |
 | 7. Flag Normalization Audit | 1/2 | In Progress|  | - |
 | 8. PR Workflow Commands | 4/4 | Complete   | 2026-03-18 | - |
-| 9. Issues, Clone, and Self-Hosted Detection | v1.1 | 0/? | Not started | - |
+| 9. Issues, Clone, and Self-Hosted Detection | v1.1 | 0/3 | Not started | - |
