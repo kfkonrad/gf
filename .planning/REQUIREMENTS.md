@@ -15,7 +15,7 @@ Requirements for v1.1 Feature Completeness & Quality. Each maps to roadmap phase
 - [ ] **PR-04**: User can review a PR/MR (comment)
 - [ ] **PR-05**: User can approve a PR/MR
 - [x] **PR-06**: User can view a specific PR/MR by number
-- [ ] **PR-07**: User can browse a PR/MR in the browser (`gf browse --pr 123`)
+- [x] **PR-07**: User can browse a PR/MR in the browser (`gf browse --pr 123`)
 
 ### Issues
 
@@ -89,7 +89,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PR-04 | Phase 8 | Pending |
 | PR-05 | Phase 8 | Pending |
 | PR-06 | Phase 8 | Complete |
-| PR-07 | Phase 8 | Pending |
+| PR-07 | Phase 8 | Complete |
 | ISSUE-01 | Phase 9 | Pending |
 | ISSUE-02 | Phase 9 | Pending |
 | ISSUE-03 | Phase 9 | Pending |
