@@ -794,20 +794,20 @@ translation_test!(issue_view_fj,
 
 // ── ISSUE CREATE (ISSUE-03): gf issue create → gh issue create / glab issue create / tea issues create ──
 
-v11_translation_test!(v11_issue_create_github,
+translation_test!(issue_create_github,
     input: ["gf", "issue", "create", "--title", "bug", "--body", "details"],
     forge: ForgeType::Github,
     expected: ["issue", "create", "--title", "bug", "--body", "details"]
 );
 
-v11_translation_test!(v11_issue_create_glab,
+translation_test!(issue_create_glab,
     input: ["gf", "issue", "create", "--title", "bug", "--body", "details"],
     forge: ForgeType::Gitlab,
     expected: ["issue", "create", "--title", "bug", "--description", "details"]
 );
 // glab: --body → --description
 
-v11_translation_test!(v11_issue_create_tea,
+translation_test!(issue_create_tea,
     input: ["gf", "issue", "create", "--title", "bug", "--body", "details"],
     forge: ForgeType::Gitea,
     expected: ["issues", "create", "--title", "bug", "--description", "details"]
@@ -816,26 +816,26 @@ v11_translation_test!(v11_issue_create_tea,
 
 // ── ISSUE CLOSE (ISSUE-04): gf issue close → gh issue close / glab issue close / tea issues close / fj issue close ──
 
-v11_translation_test!(v11_issue_close_github,
+translation_test!(issue_close_github,
     input: ["gf", "issue", "close", "42"],
     forge: ForgeType::Github,
     expected: ["issue", "close", "42"]
 );
 
-v11_translation_test!(v11_issue_close_glab,
+translation_test!(issue_close_glab,
     input: ["gf", "issue", "close", "42"],
     forge: ForgeType::Gitlab,
     expected: ["issue", "close", "42"]
 );
 
-v11_translation_test!(v11_issue_close_tea,
+translation_test!(issue_close_tea,
     input: ["gf", "issue", "close", "42"],
     forge: ForgeType::Gitea,
     expected: ["issues", "close", "42"]
 );
 // tea: uses "issues" (plural) subcommand
 
-v11_translation_test!(v11_issue_close_fj,
+translation_test!(issue_close_fj,
     input: ["gf", "issue", "close", "42"],
     forge: ForgeType::Forgejo,
     expected: ["issue", "close", "42"]
@@ -844,19 +844,19 @@ v11_translation_test!(v11_issue_close_fj,
 // ── ISSUE REOPEN (ISSUE-05): gf issue reopen → gh issue reopen / glab issue reopen / tea issues reopen ──
 // fj: UNSUPPORTED (Forgejo CLI has no issue reopen command)
 
-v11_translation_test!(v11_issue_reopen_github,
+translation_test!(issue_reopen_github,
     input: ["gf", "issue", "reopen", "42"],
     forge: ForgeType::Github,
     expected: ["issue", "reopen", "42"]
 );
 
-v11_translation_test!(v11_issue_reopen_glab,
+translation_test!(issue_reopen_glab,
     input: ["gf", "issue", "reopen", "42"],
     forge: ForgeType::Gitlab,
     expected: ["issue", "reopen", "42"]
 );
 
-v11_translation_test!(v11_issue_reopen_tea,
+translation_test!(issue_reopen_tea,
     input: ["gf", "issue", "reopen", "42"],
     forge: ForgeType::Gitea,
     expected: ["issues", "reopen", "42"]
