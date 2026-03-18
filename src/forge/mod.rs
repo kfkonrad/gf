@@ -152,6 +152,28 @@ pub fn detect(remote: &str) -> Result<ForgeType, GfError> {
     Err(GfError::ForgeNotDetected { domain: host })
 }
 
+/// Detects forge type from a hostname using the full priority chain
+/// (config → known hosts → cache → live probe) without requiring a git remote.
+/// Used by browse which already has the host parsed from the remote URL.
+pub fn detect_from_host(host: &str) -> Result<ForgeType, GfError> {
+    if let Some(forge) = config_lookup(host)? {
+        return Ok(forge);
+    }
+    if let Ok(forge) = match_known_host(host) {
+        return Ok(forge);
+    }
+    if let Some(forge) = cache_lookup(host) {
+        return Ok(forge);
+    }
+    if let Some(forge) = probe_auth(host) {
+        save_probe_cache(host, forge);
+        return Ok(forge);
+    }
+    Err(GfError::ForgeNotDetected {
+        domain: host.to_string(),
+    })
+}
+
 /// Runs `git remote get-url <remote>` and returns the URL string.
 /// Returns GfError::NotAGitRepo if not in a git repo.
 /// Returns GfError::NoRemote if the remote name does not exist.

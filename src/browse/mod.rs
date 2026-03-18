@@ -2,7 +2,7 @@
 //! Does NOT delegate to gh/glab/tea/fj (BROWSE-05).
 
 use crate::error::GfError;
-use crate::forge::{config_lookup, match_known_host, parse_remote_parts, ForgeType};
+use crate::forge::{detect_from_host, parse_remote_parts, ForgeType};
 use clap::ArgMatches;
 
 // ── Line-range types ─────────────────────────────────────────────────────────
@@ -273,14 +273,10 @@ fn get_remote_url(remote: &str) -> Result<String, GfError> {
     Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
 }
 
-/// Resolves the ForgeType for a given host.
-/// Config lookup first (CORE-05) — mirrors forge::detect() priority.
+/// Resolves the ForgeType for a given host using the full detection chain
+/// (config → known hosts → cache → live probe).
 fn resolve_forge_type(host: &str) -> Result<ForgeType, GfError> {
-    // Config lookup first (CORE-05) — mirrors forge::detect() priority
-    if let Some(forge_type) = config_lookup(host)? {
-        return Ok(forge_type);
-    }
-    match_known_host(host)
+    detect_from_host(host)
 }
 
 /// Resolves the git ref to use in the URL.
@@ -868,9 +864,12 @@ mod tests {
     }
 
     // ── resolve_forge_type: self-hosted via config ──
+    // These tests modify HOME env var and must not run in parallel.
+    static HOME_MUTEX: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
     #[test]
     fn test_resolve_forge_type_self_hosted_via_config() {
+        let _lock = HOME_MUTEX.lock().unwrap();
         use std::io::Write;
         let tmp_dir = std::path::PathBuf::from("/tmp/gf-test-phase5-config");
         let config_dir = tmp_dir.join(".config/gf");
@@ -891,6 +890,7 @@ mod tests {
 
     #[test]
     fn test_resolve_forge_type_self_hosted_unknown_still_errors() {
+        let _lock = HOME_MUTEX.lock().unwrap();
         unsafe { std::env::set_var("HOME", "/tmp/gf-test-phase5-empty") };
         let result = resolve_forge_type("unknown.example.com");
         assert!(matches!(result, Err(GfError::ForgeNotDetected { .. })));
