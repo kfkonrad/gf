@@ -19,11 +19,11 @@ Requirements for v1.1 Feature Completeness & Quality. Each maps to roadmap phase
 
 ### Issues
 
-- [ ] **ISSUE-01**: User can list issues with filter flags (state, author, label)
-- [ ] **ISSUE-02**: User can view a specific issue by number
-- [ ] **ISSUE-03**: User can create a new issue with title and body
-- [ ] **ISSUE-04**: User can close an issue
-- [ ] **ISSUE-05**: User can reopen a closed issue
+- [x] **ISSUE-01**: User can list issues with filter flags (state, author, label)
+- [x] **ISSUE-02**: User can view a specific issue by number
+- [x] **ISSUE-03**: User can create a new issue with title and body
+- [x] **ISSUE-04**: User can close an issue
+- [x] **ISSUE-05**: User can reopen a closed issue
 - [ ] **ISSUE-06**: User can browse an issue in the browser (`gf browse --issue 42`)
 
 ### Repository
@@ -90,11 +90,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PR-05 | Phase 8 | Complete |
 | PR-06 | Phase 8 | Complete |
 | PR-07 | Phase 8 | Complete |
-| ISSUE-01 | Phase 9 | Pending |
-| ISSUE-02 | Phase 9 | Pending |
-| ISSUE-03 | Phase 9 | Pending |
-| ISSUE-04 | Phase 9 | Pending |
-| ISSUE-05 | Phase 9 | Pending |
+| ISSUE-01 | Phase 9 | Complete |
+| ISSUE-02 | Phase 9 | Complete |
+| ISSUE-03 | Phase 9 | Complete |
+| ISSUE-04 | Phase 9 | Complete |
+| ISSUE-05 | Phase 9 | Complete |
 | ISSUE-06 | Phase 9 | Pending |
 | REPO-01 | Phase 9 | Complete |
 | CORE-04 | Phase 9 | Pending |
