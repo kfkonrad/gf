@@ -1,13 +1,14 @@
 #![allow(dead_code)]
 
 use crate::error::GfError;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
 
 /// The four supported forge types.
-#[derive(Debug, PartialEq, Clone, Copy, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Copy, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ForgeType {
     Github,
@@ -39,6 +40,13 @@ struct MergeConfig {
 struct DefaultsConfig {
     #[serde(default)]
     clone_host: Option<String>,
+}
+
+/// Cached probe results: hostname → forge type mapping.
+#[derive(Debug, Deserialize, Serialize, Default)]
+struct ProbeCache {
+    #[serde(default)]
+    hosts: HashMap<String, ForgeType>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -301,6 +309,61 @@ fn run_with_timeout(cmd: &str, args: &[&str], timeout: Duration) -> Option<std::
         Ok(Ok(output)) => Some(output),
         _ => None, // Timeout, command not found, or execution failed
     }
+}
+
+/// Returns path to ~/.cache/gf/probes.toml, respecting XDG_CACHE_HOME.
+fn cache_path() -> Option<std::path::PathBuf> {
+    // XDG_CACHE_HOME takes precedence (Linux standard)
+    if let Ok(xdg) = std::env::var("XDG_CACHE_HOME") {
+        return Some(std::path::PathBuf::from(xdg).join("gf").join("probes.toml"));
+    }
+    // Fall back to ~/.cache/gf/probes.toml
+    if let Ok(home) = std::env::var("HOME") {
+        return Some(
+            std::path::PathBuf::from(home)
+                .join(".cache")
+                .join("gf")
+                .join("probes.toml"),
+        );
+    }
+    None
+}
+
+/// Load cached probe results. Returns None if cache doesn't exist or is invalid.
+fn load_probe_cache() -> Option<ProbeCache> {
+    let path = cache_path()?;
+    if !path.exists() {
+        return None;
+    }
+    let text = std::fs::read_to_string(&path).ok()?;
+    toml::from_str(&text).ok()
+}
+
+/// Save a probe result to cache. Creates cache directory if needed.
+fn save_probe_cache(hostname: &str, forge: ForgeType) {
+    let Some(path) = cache_path() else { return };
+
+    // Load existing cache or create empty
+    let mut cache = load_probe_cache().unwrap_or_default();
+
+    // Insert new mapping
+    cache.hosts.insert(hostname.to_string(), forge);
+
+    // Ensure directory exists
+    if let Some(parent) = path.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+
+    // Serialize and write
+    if let Ok(toml_str) = toml::to_string_pretty(&cache) {
+        let _ = std::fs::write(&path, toml_str);
+    }
+}
+
+/// Lookup a hostname in the probe cache. Returns None if not cached.
+fn cache_lookup(hostname: &str) -> Option<ForgeType> {
+    let cache = load_probe_cache()?;
+    cache.hosts.get(hostname).copied()
 }
 
 #[cfg(test)]
