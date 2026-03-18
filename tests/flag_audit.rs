@@ -746,6 +746,12 @@ translation_test!(issue_list_fj_label,
     expected: ["issue", "search", "--labels", "bug"]
 );
 
+translation_test!(issue_list_fj_author,
+    input: ["gf", "issue", "list", "--author", "alice"],
+    forge: ForgeType::Forgejo,
+    expected: ["issue", "search", "--creator", "alice"]
+);
+
 // ── ISSUE VIEW (ISSUE-02): gf issue view → gh issue view / glab issue view / tea issues <N> / fj issue view ──
 
 translation_test!(issue_view_github,
@@ -926,6 +932,8 @@ audit_test!(audit_v11_gh_issue_list_state,      cli: "gh",   args: ["issue", "li
 audit_test!(audit_v11_glab_issue_list_closed,   cli: "glab", args: ["issue", "list"],    contains: "--closed");
 audit_test!(audit_v11_tea_issues_list_state,    cli: "tea",  args: ["issues", "list"],   contains: "--state");
 audit_test!(audit_v11_fj_issue_search_state,    cli: "fj",   args: ["issue", "search"],  contains: "--state");
+audit_test!(audit_v11_fj_issue_search_labels,   cli: "fj",   args: ["issue", "search"],  contains: "--labels");
+audit_test!(audit_v11_fj_issue_search_creator,  cli: "fj",   args: ["issue", "search"],  contains: "--creator");
 
 // --- issue create flags ---
 audit_test!(audit_v11_gh_issue_create_title,    cli: "gh",   args: ["issue", "create"],  contains: "--title");
