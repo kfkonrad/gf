@@ -12,8 +12,8 @@ Requirements for v1.1 Feature Completeness & Quality. Each maps to roadmap phase
 - [x] **PR-01**: User can list PRs/MRs with filter flags (state, author, label)
 - [x] **PR-02**: User can merge a PR/MR with strategy flags (squash, rebase, merge)
 - [x] **PR-03**: User can checkout a PR/MR branch locally
-- [ ] **PR-04**: User can review a PR/MR (comment)
-- [ ] **PR-05**: User can approve a PR/MR
+- [x] **PR-04**: User can review a PR/MR (comment)
+- [x] **PR-05**: User can approve a PR/MR
 - [x] **PR-06**: User can view a specific PR/MR by number
 - [x] **PR-07**: User can browse a PR/MR in the browser (`gf browse --pr 123`)
 
@@ -86,8 +86,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PR-01 | Phase 8 | Complete |
 | PR-02 | Phase 8 | Complete |
 | PR-03 | Phase 8 | Complete |
-| PR-04 | Phase 8 | Pending |
-| PR-05 | Phase 8 | Pending |
+| PR-04 | Phase 8 | Complete |
+| PR-05 | Phase 8 | Complete |
 | PR-06 | Phase 8 | Complete |
 | PR-07 | Phase 8 | Complete |
 | ISSUE-01 | Phase 9 | Pending |

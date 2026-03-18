@@ -24,7 +24,7 @@
 
 - [x] **Phase 6: Browse Enhancements** — Line-range deep-linking and known-host deduplication (completed 2026-03-17)
 - [ ] **Phase 7: Flag Normalization Audit** — Audit and verify all flag translations against live forge CLI help texts
-- [ ] **Phase 8: PR Workflow Commands** — Complete PR lifecycle: list, merge, checkout, review, approve, view, browse
+- [x] **Phase 8: PR Workflow Commands** — Complete PR lifecycle: list, merge, checkout, review, approve, view, browse (completed 2026-03-18)
 - [ ] **Phase 9: Issues, Clone, and Self-Hosted Detection** — Issue commands, repo clone, and CORE-04 forge probing
 
 ## Phase Details
@@ -65,7 +65,7 @@ Plans:
   3. `gf pr checkout` checks out a PR/MR branch locally on all four forges
   4. `gf pr review` / `gf pr approve` works on GitHub/GitLab and surfaces a clear unsupported error on tea/fj
   5. `gf browse --pr 123` opens the correct PR/MR URL in the browser for all four forges
-**Plans:** 3/4 plans executed
+**Plans:** 4/4 plans complete
 Plans:
 - [ ] 08-01-PLAN.md — Foundation: Result signature + UnsupportedFeature error + clap subcommands + test macros (PR-06)
 - [ ] 08-02-PLAN.md — PR list + checkout + merge adapters + config schema (PR-01, PR-02, PR-03)
@@ -95,5 +95,5 @@ Plans:
 | 5. Fix Self-Hosted Browse | v1.0 | 1/1 | Complete | 2026-03-16 |
 | 6. Browse Enhancements | 2/2 | Complete   | 2026-03-17 | - |
 | 7. Flag Normalization Audit | 1/2 | In Progress|  | - |
-| 8. PR Workflow Commands | 3/4 | In Progress|  | - |
+| 8. PR Workflow Commands | 4/4 | Complete   | 2026-03-18 | - |
 | 9. Issues, Clone, and Self-Hosted Detection | v1.1 | 0/? | Not started | - |
