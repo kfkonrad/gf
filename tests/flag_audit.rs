@@ -19,7 +19,7 @@ macro_rules! translation_test {
             let matches = gf::cmd::build_cli()
                 .try_get_matches_from([$($arg),+])
                 .unwrap_or_else(|e| panic!("clap parse failed: {e}"));
-            let result = gf::adapter::translate($forge, &matches);
+            let result = gf::adapter::translate($forge, &matches).unwrap_or_else(|e| panic!("translate returned error: {e}"));
             let expected: Vec<String> = vec![$($exp.to_string()),+];
             assert_eq!(result, expected, "forge={:?}", $forge);
         }
@@ -385,9 +385,33 @@ macro_rules! v11_translation_test {
             let matches = gf::cmd::build_cli()
                 .try_get_matches_from([$($arg),+])
                 .unwrap_or_else(|e| panic!("clap parse failed: {e}"));
-            let result = gf::adapter::translate($forge, &matches);
+            let result = gf::adapter::translate($forge, &matches).unwrap_or_else(|e| panic!("translate returned error: {e}"));
             let expected: Vec<String> = vec![$($exp.to_string()),+];
             assert_eq!(result, expected, "forge={:?}", $forge);
+        }
+    };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// unsupported_test! — verifies that an unsupported command/flag returns GfError::UnsupportedFeature
+// ═══════════════════════════════════════════════════════════════════════════════
+
+macro_rules! unsupported_test {
+    ($name:ident, input: [$($arg:expr),+ $(,)?], forge: $forge:expr, feature_contains: $feature:expr) => {
+        #[test]
+        fn $name() {
+            let matches = gf::cmd::build_cli()
+                .try_get_matches_from([$($arg),+])
+                .unwrap_or_else(|e| panic!("clap parse failed: {e}"));
+            let result = gf::adapter::translate($forge, &matches);
+            match result {
+                Err(gf::error::GfError::UnsupportedFeature { ref feature, .. }) => {
+                    assert!(feature.contains($feature),
+                        "expected feature containing '{}', got '{}'", $feature, feature);
+                }
+                Ok(args) => panic!("expected UnsupportedFeature error, got Ok({:?})", args),
+                Err(e) => panic!("expected UnsupportedFeature error, got {:?}", e),
+            }
         }
     };
 }
