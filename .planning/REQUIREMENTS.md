@@ -28,7 +28,7 @@ Requirements for v1.1 Feature Completeness & Quality. Each maps to roadmap phase
 
 ### Repository
 
-- [ ] **REPO-01**: User can clone a repo via `gf repo clone owner/repo` or full URL
+- [x] **REPO-01**: User can clone a repo via `gf repo clone owner/repo` or full URL
 
 ### Browse Enhancements
 
@@ -96,7 +96,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ISSUE-04 | Phase 9 | Pending |
 | ISSUE-05 | Phase 9 | Pending |
 | ISSUE-06 | Phase 9 | Pending |
-| REPO-01 | Phase 9 | Pending |
+| REPO-01 | Phase 9 | Complete |
 | CORE-04 | Phase 9 | Pending |
 
 **Coverage:**

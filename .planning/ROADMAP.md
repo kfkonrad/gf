@@ -86,7 +86,7 @@ Plans:
 Plans:
 - [x] 09-00-PLAN.md — Test scaffolding for issue close/reopen + unsupported tests (ISSUE-04, ISSUE-05, REPO-01)
 - [ ] 09-01-PLAN.md — Issue adapter (list, view, create, close, reopen) with per-forge translations (ISSUE-01, ISSUE-02, ISSUE-03, ISSUE-04, ISSUE-05)
-- [ ] 09-02-PLAN.md — Repo clone with [defaults] config and tea UnsupportedFeature (REPO-01)
+- [x] 09-02-PLAN.md — Repo clone with [defaults] config and tea UnsupportedFeature (REPO-01)
 - [ ] 09-03-PLAN.md — CORE-04 CLI auth probing with cache for self-hosted detection (CORE-04, ISSUE-06)
 
 ## Progress
