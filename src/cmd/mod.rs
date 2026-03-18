@@ -210,6 +210,22 @@ fn build_repo() -> Command {
                         .last(true),
                 ),
         )
+        .subcommand(
+            Command::new("clone")
+                .about("Clone a repository")
+                .arg(
+                    Arg::new("repo")
+                        .value_name("REPO")
+                        .required(true)
+                        .help("Repository to clone (owner/repo or full URL)"),
+                )
+                .arg(
+                    Arg::new("extra")
+                        .num_args(0..)
+                        .allow_hyphen_values(true)
+                        .last(true),
+                ),
+        )
 }
 
 fn build_auth() -> Command {

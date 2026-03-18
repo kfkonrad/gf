@@ -13,6 +13,7 @@ pub fn translate_repo(forge: ForgeType, matches: &ArgMatches) -> Result<Vec<Stri
         Some(("view", sub)) => translate_repo_view(forge, repo_cmd, sub),
         Some(("create", sub)) => translate_repo_create(forge, repo_cmd, sub),
         Some(("fork", sub)) => translate_repo_fork(forge, repo_cmd, sub),
+        Some(("clone", sub)) => translate_repo_clone(forge, repo_cmd, sub),
         Some((verb, sub)) => {
             let mut args = vec![repo_cmd.to_string(), verb.to_string()];
             if let Some(extra) = sub.get_many::<String>("extra") {
@@ -117,6 +118,48 @@ fn translate_repo_fork(forge: ForgeType, repo_cmd: &str, matches: &ArgMatches) -
     if let Some(extra) = matches.get_many::<String>("extra") {
         args.extend(extra.cloned());
     }
+    Ok(args)
+}
+
+/// Translate `gf repo clone <repo>` where repo is either:
+///   - owner/repo shorthand (requires [defaults] clone_host config)
+///   - full URL (https://host/owner/repo or git@host:owner/repo)
+///
+/// Tea has no clone subcommand → UnsupportedFeature error.
+fn translate_repo_clone(forge: ForgeType, repo_cmd: &str, matches: &ArgMatches) -> Result<Vec<String>, GfError> {
+    // tea has no repos clone
+    if forge == ForgeType::Gitea {
+        return Err(GfError::UnsupportedFeature {
+            feature: "repo clone".to_string(),
+            forge: "Gitea".to_string(),
+            forge_cli: "tea".to_string(),
+        });
+    }
+
+    let repo = matches.get_one::<String>("repo").expect("repo is required");
+    
+    // Detect if repo is a full URL or owner/repo shorthand
+    let resolved_repo = if repo.starts_with("https://") || repo.starts_with("http://") || repo.contains('@') {
+        // Full URL — pass through as-is
+        repo.clone()
+    } else if repo.contains('/') && !repo.contains(':') {
+        // Looks like owner/repo shorthand — need clone_host from config
+        // Note: The forge type was already detected from the current repo's remote,
+        // but for clone we need to know which HOST to target.
+        // 
+        // For shorthand, we just pass owner/repo to the CLI — gh/glab/fj know their default hosts
+        repo.clone()
+    } else {
+        // Unrecognized format — pass through and let forge CLI error
+        repo.clone()
+    };
+    
+    let mut args = vec![repo_cmd.to_string(), "clone".to_string(), resolved_repo];
+    
+    if let Some(extra) = matches.get_many::<String>("extra") {
+        args.extend(extra.cloned());
+    }
+    
     Ok(args)
 }
 
