@@ -2,8 +2,8 @@
 phase: 9
 slug: issues-clone-and-self-hosted-detection
 status: draft
-nyquist_compliant: false
-wave_0_complete: false
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-03-18
 ---
 
@@ -53,8 +53,8 @@ created: 2026-03-18
 
 ## Wave 0 Requirements
 
-- [ ] `tests/flag_audit.rs` — Add v11_translation_test! entries for issue close/reopen (all 4 forges)
-- [ ] `tests/flag_audit.rs` — Add unsupported_test! for fj issue reopen and tea repo clone
+- [x] `tests/flag_audit.rs` — Add v11_translation_test! entries for issue close/reopen (all 4 forges) — **Addressed by 09-00-PLAN.md**
+- [x] `tests/flag_audit.rs` — Add unsupported_test! for fj issue reopen and tea repo clone — **Addressed by 09-00-PLAN.md**
 - [ ] `src/forge/mod.rs` — Add #[cfg(test)] module for probe_auth() unit tests (mock Command::output)
 - [ ] `src/forge/mod.rs` — Add #[cfg(test)] module for cache load/save unit tests (tempfile for isolation)
 
