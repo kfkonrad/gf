@@ -24,7 +24,7 @@ Requirements for v1.1 Feature Completeness & Quality. Each maps to roadmap phase
 - [x] **ISSUE-03**: User can create a new issue with title and body
 - [x] **ISSUE-04**: User can close an issue
 - [x] **ISSUE-05**: User can reopen a closed issue
-- [ ] **ISSUE-06**: User can browse an issue in the browser (`gf browse --issue 42`)
+- [x] **ISSUE-06**: User can browse an issue in the browser (`gf browse --issue 42`)
 
 ### Repository
 
@@ -43,7 +43,7 @@ Requirements for v1.1 Feature Completeness & Quality. Each maps to roadmap phase
 
 ### Self-Hosted Detection
 
-- [ ] **CORE-04**: Unknown domains probed via CLI auth status commands (gh, glab, tea, fj) with fallback to config file
+- [x] **CORE-04**: Unknown domains probed via CLI auth status commands (gh, glab, tea, fj) with fallback to config file
 
 ## v2 Requirements
 
@@ -95,9 +95,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ISSUE-03 | Phase 9 | Complete |
 | ISSUE-04 | Phase 9 | Complete |
 | ISSUE-05 | Phase 9 | Complete |
-| ISSUE-06 | Phase 9 | Pending |
+| ISSUE-06 | Phase 9 | Complete |
 | REPO-01 | Phase 9 | Complete |
-| CORE-04 | Phase 9 | Pending |
+| CORE-04 | Phase 9 | Complete |
 
 **Coverage:**
 - v1.1 requirements: 20 total
