@@ -42,6 +42,48 @@
 
 ---
 
+## Milestone: v1.1 — Feature Completeness & Quality
+
+**Shipped:** 2026-03-18
+**Phases:** 5 | **Plans:** 13
+
+### What Was Built
+- Line-range deep-linking for browse (`gf browse file.rs:42-55`) with per-forge URL fragments
+- Declarative test macro infrastructure (translation_test!, audit_test!, unsupported_test!) — 165 generated tests
+- Complete PR lifecycle: list, merge, checkout, review, approve, browse across 4 forges
+- Full issue management: list, view, create, close, reopen across 4 forges
+- Self-hosted forge auto-detection via CLI auth probing with persistent cache (CORE-04)
+- Repo clone with URL/shorthand detection
+
+### What Worked
+- Pre-mapping tests in Phase 7 (ignored until adapters built) gave Phase 8/9 clear targets — remove `#[ignore]`, implement adapter, test passes
+- UnsupportedFeature error pattern made forge limitations explicit and testable (unsupported_test! macro)
+- Milestone audit caught browse probe/cache gap before shipping — fixed in-flight
+- Phase 10 cleanup phase was small (1 plan) but closed all non-critical gaps cleanly
+
+### What Was Inefficient
+- browse::resolve_forge_type duplicated detection logic (config + known hosts only) instead of using full forge::detect chain — audit caught it but should have been designed correctly in Phase 6
+- Phase 7 and Phase 9 ROADMAP.md checkboxes not auto-updated (showed `[ ]` for completed phases) — cosmetic but confusing
+- v11_translation_test! macro created in Phase 7 then deleted in Phase 10 — should have used #[ignore] on regular translation_test! from the start
+
+### Patterns Established
+- detect_from_host() as public API for host-only detection (browse, future URL builders)
+- Declarative test macros: translation_test! for flag mapping, audit_test! for CLI --help verification, unsupported_test! for error paths
+- Mutex-guarded HOME env var tests to prevent parallel test races
+
+### Key Lessons
+1. When adding a new detection path (browse), reuse the full detection chain from day 1 — don't shortcut
+2. Pre-mapping tests (#[ignore]d) are excellent for defining adapter contracts before implementation
+3. Milestone audit is worth the time — caught a real integration gap that would have affected users
+4. Cleanup phases work well for closing non-critical gaps that accumulate during feature phases
+
+### Cost Observations
+- Model mix: sonnet for execution/verification, opus for orchestration
+- Sessions: completed across 2 days
+- Notable: 13 plans across 5 phases; audit + fix cycle added browse probe support post-audit
+
+---
+
 ## Cross-Milestone Trends
 
 ### Process Evolution
@@ -49,14 +91,18 @@
 | Milestone | Phases | Plans | Key Change |
 |-----------|--------|-------|------------|
 | v1.0 | 5 | 12 | Established phase ordering and test isolation patterns |
+| v1.1 | 5 | 13 | Pre-mapping tests, declarative test macros, milestone audit cycle |
 
 ### Cumulative Quality
 
 | Milestone | Tests | LOC | Phases |
 |-----------|-------|-----|--------|
 | v1.0 | 96 unit + 25 integration | 2,689 | 5 |
+| v1.1 | 97 unit + 165 flag audit + 25 integration = 284 | 3,600 | 10 |
 
 ### Top Lessons (Verified Across Milestones)
 
 1. Strict dependency ordering between phases prevents integration surprises
-2. Don't duplicate logic across modules — make the original public instead
+2. Don't duplicate logic across modules — make the original public instead (v1.0 browse, v1.1 browse probe)
+3. Pre-mapping tests define clear contracts for upcoming implementation phases
+4. Milestone audits catch integration gaps that per-phase verification misses
