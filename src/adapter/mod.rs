@@ -10,6 +10,7 @@
 
 mod pr;
 mod repo_auth;
+mod issue;
 
 use crate::error::GfError;
 use crate::forge::ForgeType;
@@ -26,6 +27,7 @@ pub fn translate(forge: ForgeType, matches: &ArgMatches) -> Result<Vec<String>, 
         Some(("pr", sub)) => pr::translate_pr(forge, sub),
         Some(("repo", sub)) => repo_auth::translate_repo(forge, sub),
         Some(("auth", sub)) => repo_auth::translate_auth(forge, sub),
+        Some(("issue", sub)) => issue::translate_issue(forge, sub),
         Some((other, _)) => Ok(vec![other.to_string()]),
         None => Ok(vec![]),
     }
