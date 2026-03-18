@@ -46,6 +46,9 @@ pub enum GfError {
         forge: String,
         forge_cli: String,
     },
+
+    #[error("gf repo clone owner/repo requires a default host\n\nAdd to ~/.config/gf/config.toml:\n  [defaults]\n  clone_host = \"github.com\"  # or your preferred forge host")]
+    CloneHostNotConfigured,
 }
 
 /// Known forge CLI info for install hints.

@@ -32,12 +32,20 @@ struct MergeConfig {
     delete_branch: Option<bool>,
 }
 
+#[derive(Debug, Deserialize, Default)]
+struct DefaultsConfig {
+    #[serde(default)]
+    clone_host: Option<String>,
+}
+
 #[derive(Debug, Deserialize)]
 struct GfConfig {
     #[serde(default)]
     forge: Vec<ForgeEntry>,
     #[serde(default)]
     merge: MergeConfig,
+    #[serde(default)]
+    defaults: DefaultsConfig,
 }
 
 #[derive(Debug, Deserialize)]
@@ -96,6 +104,16 @@ pub fn resolve_delete_branch(domain: &str) -> bool {
 
     // Global [merge] section
     config.merge.delete_branch.unwrap_or(false)
+}
+
+/// Returns the configured default clone host from [defaults] section.
+/// Used by `gf repo clone owner/repo` to resolve the full URL.
+pub fn get_default_clone_host() -> Result<Option<String>, GfError> {
+    let cfg = match load_config()? {
+        Some(c) => c,
+        None => return Ok(None),
+    };
+    Ok(cfg.defaults.clone_host)
 }
 
 /// Top-level forge detection entry point.
@@ -491,5 +509,22 @@ type = "github"
         // Wrap in GfError to verify round-trip
         let gf_err = GfError::ConfigParseError(result.unwrap_err().to_string());
         assert!(gf_err.to_string().starts_with("failed to parse config:"));
+    }
+
+    #[test]
+    fn test_config_with_defaults_section() {
+        let toml_str = r#"
+[defaults]
+clone_host = "gitlab.mycompany.com"
+
+[[forge]]
+domain = "github.com"
+type = "github"
+"#;
+        let cfg: GfConfig = toml::from_str(toml_str).expect("valid TOML");
+        assert_eq!(
+            cfg.defaults.clone_host,
+            Some("gitlab.mycompany.com".to_string())
+        );
     }
 }
