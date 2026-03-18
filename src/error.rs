@@ -14,6 +14,7 @@ pub enum GfError {
     ExecFailed(String, std::io::Error),
 
     #[error("failed to spawn {0}: {1}")]
+    #[cfg_attr(not(windows), allow(dead_code))]
     SpawnFailed(String, std::io::Error),
 
     #[error("not a git repository (or any parent directory)")]
@@ -47,8 +48,6 @@ pub enum GfError {
         forge_cli: String,
     },
 
-    #[error("gf repo clone owner/repo requires a default host\n\nAdd to ~/.config/gf/config.toml:\n  [defaults]\n  clone_host = \"github.com\"  # or your preferred forge host")]
-    CloneHostNotConfigured,
 }
 
 /// Known forge CLI info for install hints.

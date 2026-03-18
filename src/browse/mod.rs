@@ -9,7 +9,7 @@ use clap::ArgMatches;
 
 /// Parsed line range from colon suffix (e.g., `:42` or `:42-55`).
 #[derive(Debug)]
-pub(crate) struct LineRange {
+pub struct LineRange {
     start: u32,
     end: Option<u32>, // None = single line
 }
@@ -154,7 +154,13 @@ pub fn build_file_url(
 ///   GitLab:  https://host/owner/repo/-/merge_requests/<number>
 ///   Gitea:   https://host/owner/repo/pulls/<number>
 ///   Forgejo: https://host/owner/repo/pulls/<number>
-pub fn build_pr_url(forge: &ForgeType, host: &str, owner: &str, repo: &str, number: &str) -> String {
+pub fn build_pr_url(
+    forge: &ForgeType,
+    host: &str,
+    owner: &str,
+    repo: &str,
+    number: &str,
+) -> String {
     let base = format!("https://{host}/{owner}/{repo}");
     match forge {
         ForgeType::Github => format!("{base}/pull/{number}"),
@@ -169,10 +175,18 @@ pub fn build_pr_url(forge: &ForgeType, host: &str, owner: &str, repo: &str, numb
 ///   GitLab:  https://host/owner/repo/-/issues/<number>
 ///   Gitea:   https://host/owner/repo/issues/<number>
 ///   Forgejo: https://host/owner/repo/issues/<number>
-pub fn build_issue_url(forge: &ForgeType, host: &str, owner: &str, repo: &str, number: &str) -> String {
+pub fn build_issue_url(
+    forge: &ForgeType,
+    host: &str,
+    owner: &str,
+    repo: &str,
+    number: &str,
+) -> String {
     let base = format!("https://{host}/{owner}/{repo}");
     match forge {
-        ForgeType::Github | ForgeType::Gitea | ForgeType::Forgejo => format!("{base}/issues/{number}"),
+        ForgeType::Github | ForgeType::Gitea | ForgeType::Forgejo => {
+            format!("{base}/issues/{number}")
+        }
         ForgeType::Gitlab => format!("{base}/-/issues/{number}"),
     }
 }
@@ -790,13 +804,28 @@ mod tests {
 
     #[test]
     fn test_build_pr_url_self_hosted_gitlab() {
-        let url = build_pr_url(&ForgeType::Gitlab, "gitlab.company.com", "team", "project", "99");
-        assert_eq!(url, "https://gitlab.company.com/team/project/-/merge_requests/99");
+        let url = build_pr_url(
+            &ForgeType::Gitlab,
+            "gitlab.company.com",
+            "team",
+            "project",
+            "99",
+        );
+        assert_eq!(
+            url,
+            "https://gitlab.company.com/team/project/-/merge_requests/99"
+        );
     }
 
     #[test]
     fn test_build_issue_url_self_hosted_gitlab() {
-        let url = build_issue_url(&ForgeType::Gitlab, "gitlab.company.com", "team", "project", "7");
+        let url = build_issue_url(
+            &ForgeType::Gitlab,
+            "gitlab.company.com",
+            "team",
+            "project",
+            "7",
+        );
         assert_eq!(url, "https://gitlab.company.com/team/project/-/issues/7");
     }
 
@@ -804,8 +833,13 @@ mod tests {
 
     #[test]
     fn test_browse_pr_conflicts_with_file() {
-        let result = crate::cmd::build_cli()
-            .try_get_matches_from(["gf", "browse", "--pr", "123", "src/main.rs"]);
+        let result = crate::cmd::build_cli().try_get_matches_from([
+            "gf",
+            "browse",
+            "--pr",
+            "123",
+            "src/main.rs",
+        ]);
         assert!(result.is_err(), "browse --pr should conflict with file arg");
     }
 
@@ -825,8 +859,7 @@ mod tests {
 
     #[test]
     fn test_browse_mr_alias_works() {
-        let result = crate::cmd::build_cli()
-            .try_get_matches_from(["gf", "browse", "--mr", "123"]);
+        let result = crate::cmd::build_cli().try_get_matches_from(["gf", "browse", "--mr", "123"]);
         assert!(result.is_ok(), "browse --mr should parse as alias for --pr");
         let matches = result.unwrap();
         let (_, sub) = matches.subcommand().unwrap();
