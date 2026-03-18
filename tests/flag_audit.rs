@@ -885,6 +885,12 @@ v11_translation_test!(v11_repo_clone_glab,
 
 // tea repo clone: UNSUPPORTED (tea has no repos clone subcommand)
 
+unsupported_test!(repo_clone_tea_unsupported,
+    input: ["gf", "repo", "clone", "owner/repo"],
+    forge: ForgeType::Gitea,
+    feature_contains: "repo clone"
+);
+
 v11_translation_test!(v11_repo_clone_fj,
     input: ["gf", "repo", "clone", "owner/repo"],
     forge: ForgeType::Forgejo,
