@@ -427,49 +427,49 @@ macro_rules! unsupported_test {
 
 // ── PR LIST (PR-01): gf pr list → gh pr list / glab mr list / tea pulls list / fj pr search ──
 
-v11_translation_test!(v11_pr_list_github_state,
+translation_test!(v11_pr_list_github_state,
     input: ["gf", "pr", "list", "--state", "closed"],
     forge: ForgeType::Github,
     expected: ["pr", "list", "--state", "closed"]
 );
 
-v11_translation_test!(v11_pr_list_glab_state_closed,
+translation_test!(v11_pr_list_glab_state_closed,
     input: ["gf", "pr", "list", "--state", "closed"],
     forge: ForgeType::Gitlab,
     expected: ["mr", "list", "--closed"]
 );
 
-v11_translation_test!(v11_pr_list_glab_state_merged,
+translation_test!(v11_pr_list_glab_state_merged,
     input: ["gf", "pr", "list", "--state", "merged"],
     forge: ForgeType::Gitlab,
     expected: ["mr", "list", "--merged"]
 );
 
-v11_translation_test!(v11_pr_list_glab_state_all,
+translation_test!(v11_pr_list_glab_state_all,
     input: ["gf", "pr", "list", "--state", "all"],
     forge: ForgeType::Gitlab,
     expected: ["mr", "list", "--all"]
 );
 
-v11_translation_test!(v11_pr_list_tea_state,
+translation_test!(v11_pr_list_tea_state,
     input: ["gf", "pr", "list", "--state", "closed"],
     forge: ForgeType::Gitea,
     expected: ["pulls", "list", "--state", "closed"]
 );
 
-v11_translation_test!(v11_pr_list_fj_state,
+translation_test!(v11_pr_list_fj_state,
     input: ["gf", "pr", "list", "--state", "closed"],
     forge: ForgeType::Forgejo,
     expected: ["pr", "search", "--state", "closed"]
 );
 
-v11_translation_test!(v11_pr_list_github_author,
+translation_test!(v11_pr_list_github_author,
     input: ["gf", "pr", "list", "--author", "alice"],
     forge: ForgeType::Github,
     expected: ["pr", "list", "--author", "alice"]
 );
 
-v11_translation_test!(v11_pr_list_glab_author,
+translation_test!(v11_pr_list_glab_author,
     input: ["gf", "pr", "list", "--author", "alice"],
     forge: ForgeType::Gitlab,
     expected: ["mr", "list", "--author", "alice"]
@@ -477,19 +477,19 @@ v11_translation_test!(v11_pr_list_glab_author,
 
 // tea pr list --author: UNSUPPORTED (tea pulls list has no --author flag)
 
-v11_translation_test!(v11_pr_list_fj_author,
+translation_test!(v11_pr_list_fj_author,
     input: ["gf", "pr", "list", "--author", "alice"],
     forge: ForgeType::Forgejo,
     expected: ["pr", "search", "--creator", "alice"]
 );
 
-v11_translation_test!(v11_pr_list_github_label,
+translation_test!(v11_pr_list_github_label,
     input: ["gf", "pr", "list", "--label", "bug"],
     forge: ForgeType::Github,
     expected: ["pr", "list", "--label", "bug"]
 );
 
-v11_translation_test!(v11_pr_list_glab_label,
+translation_test!(v11_pr_list_glab_label,
     input: ["gf", "pr", "list", "--label", "bug"],
     forge: ForgeType::Gitlab,
     expected: ["mr", "list", "--label", "bug"]
@@ -497,78 +497,141 @@ v11_translation_test!(v11_pr_list_glab_label,
 
 // tea pr list --label: UNSUPPORTED (tea pulls list has no --label flag)
 
-v11_translation_test!(v11_pr_list_fj_label,
+translation_test!(v11_pr_list_fj_label,
     input: ["gf", "pr", "list", "--label", "bug"],
     forge: ForgeType::Forgejo,
     expected: ["pr", "search", "--labels", "bug"]
 );
 
+// --- PR list: tea unsupported flags (Phase 8 hard-error policy) ---
+unsupported_test!(pr_list_tea_author_unsupported,
+    input: ["gf", "pr", "list", "--author", "alice"],
+    forge: ForgeType::Gitea,
+    feature_contains: "pr list --author"
+);
+
+unsupported_test!(pr_list_tea_label_unsupported,
+    input: ["gf", "pr", "list", "--label", "bug"],
+    forge: ForgeType::Gitea,
+    feature_contains: "pr list --label"
+);
+
 // ── PR MERGE (PR-02): gf pr merge → gh pr merge / glab mr merge / tea pulls merge / fj pr merge ──
 
-v11_translation_test!(v11_pr_merge_github_squash,
+translation_test!(v11_pr_merge_github_squash,
     input: ["gf", "pr", "merge", "--squash"],
     forge: ForgeType::Github,
     expected: ["pr", "merge", "--squash"]
 );
 
-v11_translation_test!(v11_pr_merge_glab_squash,
+translation_test!(v11_pr_merge_glab_squash,
     input: ["gf", "pr", "merge", "--squash"],
     forge: ForgeType::Gitlab,
     expected: ["mr", "merge", "--squash"]
 );
 
-v11_translation_test!(v11_pr_merge_tea_squash,
+translation_test!(v11_pr_merge_tea_squash,
     input: ["gf", "pr", "merge", "--squash"],
     forge: ForgeType::Gitea,
     expected: ["pulls", "merge", "--style", "squash"]
 );
 
-v11_translation_test!(v11_pr_merge_fj_squash,
+translation_test!(v11_pr_merge_fj_squash,
     input: ["gf", "pr", "merge", "--squash"],
     forge: ForgeType::Forgejo,
     expected: ["pr", "merge", "--method", "squash"]
 );
 
-v11_translation_test!(v11_pr_merge_tea_rebase,
+translation_test!(v11_pr_merge_tea_rebase,
     input: ["gf", "pr", "merge", "--rebase"],
     forge: ForgeType::Gitea,
     expected: ["pulls", "merge", "--style", "rebase"]
 );
 
-v11_translation_test!(v11_pr_merge_fj_rebase,
+translation_test!(v11_pr_merge_fj_rebase,
     input: ["gf", "pr", "merge", "--rebase"],
     forge: ForgeType::Forgejo,
     expected: ["pr", "merge", "--method", "rebase"]
 );
 
-v11_translation_test!(v11_pr_merge_glab_merge_default,
+translation_test!(v11_pr_merge_glab_merge_default,
     input: ["gf", "pr", "merge", "--merge"],
     forge: ForgeType::Gitlab,
     expected: ["mr", "merge"]
 );
 // --merge is glab's default strategy, no flag needed
 
+// --- PR merge: default strategy (no --squash/--rebase/--merge flag) ---
+translation_test!(pr_merge_github_default_strategy,
+    input: ["gf", "pr", "merge"],
+    forge: ForgeType::Github,
+    expected: ["pr", "merge", "--merge"]
+);
+
+translation_test!(pr_merge_glab_default_strategy,
+    input: ["gf", "pr", "merge"],
+    forge: ForgeType::Gitlab,
+    expected: ["mr", "merge"]
+);
+
+translation_test!(pr_merge_tea_default_strategy,
+    input: ["gf", "pr", "merge"],
+    forge: ForgeType::Gitea,
+    expected: ["pulls", "merge", "--style", "merge"]
+);
+
+translation_test!(pr_merge_fj_default_strategy,
+    input: ["gf", "pr", "merge"],
+    forge: ForgeType::Forgejo,
+    expected: ["pr", "merge", "--method", "merge"]
+);
+
+// --- PR merge: --delete-branch flag translation ---
+translation_test!(pr_merge_github_delete_branch,
+    input: ["gf", "pr", "merge", "--delete-branch"],
+    forge: ForgeType::Github,
+    expected: ["pr", "merge", "--merge", "--delete-branch"]
+);
+
+translation_test!(pr_merge_glab_delete_branch,
+    input: ["gf", "pr", "merge", "--delete-branch"],
+    forge: ForgeType::Gitlab,
+    expected: ["mr", "merge", "--remove-source-branch"]
+);
+
+translation_test!(pr_merge_fj_delete_branch,
+    input: ["gf", "pr", "merge", "--delete-branch"],
+    forge: ForgeType::Forgejo,
+    expected: ["pr", "merge", "--method", "merge", "--delete"]
+);
+
+unsupported_test!(pr_merge_tea_delete_branch_unsupported,
+    input: ["gf", "pr", "merge", "--delete-branch"],
+    forge: ForgeType::Gitea,
+    feature_contains: "pr merge --delete-branch"
+);
+
 // ── PR CHECKOUT (PR-03): gf pr checkout → gh pr checkout / glab mr checkout / tea pulls checkout / fj pr checkout ──
 
-v11_translation_test!(v11_pr_checkout_github,
+translation_test!(v11_pr_checkout_github,
     input: ["gf", "pr", "checkout", "42"],
     forge: ForgeType::Github,
     expected: ["pr", "checkout", "42"]
 );
 
-v11_translation_test!(v11_pr_checkout_glab,
+translation_test!(v11_pr_checkout_glab,
     input: ["gf", "pr", "checkout", "42"],
     forge: ForgeType::Gitlab,
     expected: ["mr", "checkout", "42"]
 );
 
-v11_translation_test!(v11_pr_checkout_tea,
+translation_test!(v11_pr_checkout_tea,
     input: ["gf", "pr", "checkout", "42"],
     forge: ForgeType::Gitea,
     expected: ["pulls", "checkout", "42"]
 );
 
-v11_translation_test!(v11_pr_checkout_fj,
+translation_test!(v11_pr_checkout_fj,
     input: ["gf", "pr", "checkout", "42"],
     forge: ForgeType::Forgejo,
     expected: ["pr", "checkout", "42"]

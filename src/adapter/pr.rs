@@ -87,31 +87,69 @@ fn translate_pr_create(forge: ForgeType, pr_cmd: &str, matches: &ArgMatches) -> 
     Ok(args)
 }
 
-/// Translate `gf pr list` (PR state/author/label filters).
+/// Translate `gf pr list` with filter flags (PR-01).
+/// Forgejo uses `pr search` instead of `pr list`, `--creator` instead of `--author`, `--labels` instead of `--label`.
+/// GitLab uses boolean flags (--closed/--merged/--all) instead of `--state <value>`.
+/// Gitea (tea) does not support --author or --label → hard error.
 fn translate_pr_list(forge: ForgeType, pr_cmd: &str, matches: &ArgMatches) -> Result<Vec<String>, GfError> {
-    let mut args = vec![pr_cmd.to_string(), "list".to_string()];
+    let mut args = vec![pr_cmd.to_string()];
 
-    // --state: glab uses boolean flags (--closed/--merged/--all), others use --state value
+    // Verb: fj uses "search" instead of "list"
+    match forge {
+        ForgeType::Forgejo => args.push("search".to_string()),
+        _ => args.push("list".to_string()),
+    }
+
+    // --state: glab uses boolean flags, others use --state <value>
     if let Some(state) = matches.get_one::<String>("state") {
         match forge {
             ForgeType::Gitlab => match state.as_str() {
                 "closed" => args.push("--closed".to_string()),
                 "merged" => args.push("--merged".to_string()),
                 "all" => args.push("--all".to_string()),
+                "open" => {} // glab default, no flag needed
                 _ => { args.push("--state".to_string()); args.push(state.clone()); }
             },
             _ => { args.push("--state".to_string()); args.push(state.clone()); }
         }
     }
 
+    // --author: tea UNSUPPORTED, fj remaps to --creator
     if let Some(author) = matches.get_one::<String>("author") {
-        args.push("--author".to_string());
-        args.push(author.clone());
+        match forge {
+            ForgeType::Gitea => return Err(GfError::UnsupportedFeature {
+                feature: "pr list --author".to_string(),
+                forge: "Gitea".to_string(),
+                forge_cli: "tea".to_string(),
+            }),
+            ForgeType::Forgejo => {
+                args.push("--creator".to_string());
+                args.push(author.clone());
+            }
+            _ => {
+                args.push("--author".to_string());
+                args.push(author.clone());
+            }
+        }
     }
 
+    // --label: tea UNSUPPORTED, fj remaps to --labels
     if let Some(label) = matches.get_one::<String>("label") {
-        args.push("--label".to_string());
-        args.push(label.clone());
+        match forge {
+            ForgeType::Gitea => return Err(GfError::UnsupportedFeature {
+                feature: "pr list --label".to_string(),
+                forge: "Gitea".to_string(),
+                forge_cli: "tea".to_string(),
+            }),
+            ForgeType::Forgejo => {
+                args.push("--labels".to_string());
+                args.push(label.clone());
+            }
+            _ => {
+                args.push("--label".to_string());
+                args.push(label.clone());
+            }
+        }
     }
 
     if let Some(extra) = matches.get_many::<String>("extra") {
@@ -137,30 +175,66 @@ fn translate_pr_checkout(forge: ForgeType, pr_cmd: &str, matches: &ArgMatches) -
     Ok(args)
 }
 
-/// Translate `gf pr merge [<number>]` with merge strategy flags.
+/// Translate `gf pr merge [<number>] [--squash|--rebase|--merge] [--delete-branch|--no-delete-branch]` (PR-02).
+///
+/// Strategy mapping:
+///   --squash: gh --squash, glab --squash, tea --style squash, fj --method squash
+///   --rebase: gh --rebase, glab --rebase, tea --style rebase, fj --method rebase
+///   --merge (or default): gh --merge, glab (no flag), tea --style merge, fj --method merge
+///
+/// Delete-branch mapping:
+///   gh: --delete-branch, glab: --remove-source-branch, fj: --delete, tea: UNSUPPORTED
 fn translate_pr_merge(forge: ForgeType, pr_cmd: &str, matches: &ArgMatches) -> Result<Vec<String>, GfError> {
     let mut args = vec![pr_cmd.to_string(), "merge".to_string()];
 
+    // Number (optional positional)
     if let Some(number) = matches.get_one::<String>("number") {
         args.push(number.clone());
     }
 
-    if matches.get_flag("squash") {
-        args.push("--squash".to_string());
-    }
-    if matches.get_flag("rebase") {
-        args.push("--rebase".to_string());
-    }
-    if matches.get_flag("merge") {
-        args.push("--merge".to_string());
-    }
-    if matches.get_flag("delete-branch") {
-        args.push("--delete-branch".to_string());
-    }
-    if matches.get_flag("no-delete-branch") {
+    // Strategy flags
+    let squash = matches.get_flag("squash");
+    let rebase = matches.get_flag("rebase");
+
+    if squash {
         match forge {
-            ForgeType::Github => args.push("--repo".to_string()), // gh uses no equivalent; omit silently
-            _ => {} // silently omit unsupported flag
+            ForgeType::Github | ForgeType::Gitlab => args.push("--squash".to_string()),
+            ForgeType::Gitea => { args.push("--style".to_string()); args.push("squash".to_string()); }
+            ForgeType::Forgejo => { args.push("--method".to_string()); args.push("squash".to_string()); }
+        }
+    } else if rebase {
+        match forge {
+            ForgeType::Github | ForgeType::Gitlab => args.push("--rebase".to_string()),
+            ForgeType::Gitea => { args.push("--style".to_string()); args.push("rebase".to_string()); }
+            ForgeType::Forgejo => { args.push("--method".to_string()); args.push("rebase".to_string()); }
+        }
+    } else {
+        // Default or explicit --merge: explicitly pass merge strategy per forge
+        // glab has no --merge flag; merge is its default (no flag needed)
+        match forge {
+            ForgeType::Github => args.push("--merge".to_string()),
+            ForgeType::Gitlab => {} // glab default is merge, no flag needed
+            ForgeType::Gitea => { args.push("--style".to_string()); args.push("merge".to_string()); }
+            ForgeType::Forgejo => { args.push("--method".to_string()); args.push("merge".to_string()); }
+        }
+    }
+
+    // Delete-branch: CLI flag > built-in default (false)
+    let explicit_delete = matches.get_flag("delete-branch");
+    let explicit_no_delete = matches.get_flag("no-delete-branch");
+
+    let should_delete = explicit_delete && !explicit_no_delete;
+
+    if should_delete {
+        match forge {
+            ForgeType::Github => args.push("--delete-branch".to_string()),
+            ForgeType::Gitlab => args.push("--remove-source-branch".to_string()),
+            ForgeType::Forgejo => args.push("--delete".to_string()),
+            ForgeType::Gitea => return Err(GfError::UnsupportedFeature {
+                feature: "pr merge --delete-branch".to_string(),
+                forge: "Gitea".to_string(),
+                forge_cli: "tea".to_string(),
+            }),
         }
     }
 
@@ -168,7 +242,6 @@ fn translate_pr_merge(forge: ForgeType, pr_cmd: &str, matches: &ArgMatches) -> R
         args.extend(extra.cloned());
     }
 
-    let _ = forge;
     Ok(args)
 }
 
