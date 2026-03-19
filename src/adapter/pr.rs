@@ -18,6 +18,8 @@ pub fn translate_pr(forge: ForgeType, matches: &ArgMatches) -> Result<Vec<String
         Some(("review", sub)) => translate_pr_review(forge, pr_cmd, sub),
         Some(("approve", sub)) => translate_pr_approve(forge, pr_cmd, sub),
         Some(("edit", sub)) => translate_pr_edit(forge, pr_cmd, sub),
+        Some(("checks", sub)) => translate_pr_checks(forge, pr_cmd, sub),
+        Some(("comment", sub)) => translate_pr_comment(forge, pr_cmd, sub),
         Some((verb, sub)) => {
             // Unknown verb: pass through as-is with any extra args
             let mut args = vec![pr_cmd.to_string(), verb.to_string()];
@@ -571,4 +573,71 @@ fn translate_pr_edit(
         }
         ForgeType::Gitea => unreachable!(), // handled in validation above
     }
+}
+
+fn translate_pr_checks(
+    forge: ForgeType,
+    pr_cmd: &str,
+    matches: &ArgMatches,
+) -> Result<Vec<String>, GfError> {
+    let number = matches.get_one::<String>("number");
+    let extra: Option<Vec<String>> = matches
+        .get_many::<String>("extra")
+        .map(|vals| vals.cloned().collect());
+
+    match forge {
+        ForgeType::Github => {
+            let mut args = vec![pr_cmd.to_string(), "checks".to_string()];
+            if let Some(n) = number { args.push(n.clone()); }
+            if let Some(e) = extra { args.extend(e); }
+            Ok(args)
+        }
+        ForgeType::Gitlab => {
+            let mut args = vec!["ci".to_string(), "status".to_string()];
+            if let Some(e) = extra { args.extend(e); }
+            Ok(args)
+        }
+        ForgeType::Forgejo => {
+            let mut args = vec![pr_cmd.to_string(), "status".to_string()];
+            if let Some(n) = number { args.push(n.clone()); }
+            if let Some(e) = extra { args.extend(e); }
+            Ok(args)
+        }
+        ForgeType::Gitea => Err(GfError::UnsupportedFeature {
+            feature: "pr checks".to_string(),
+            forge: "Gitea".to_string(),
+            forge_cli: "tea".to_string(),
+        }),
+    }
+}
+
+fn translate_pr_comment(
+    forge: ForgeType,
+    pr_cmd: &str,
+    matches: &ArgMatches,
+) -> Result<Vec<String>, GfError> {
+    if matches!(forge, ForgeType::Gitea) {
+        return Err(GfError::UnsupportedFeature {
+            feature: "pr comment".to_string(),
+            forge: "Gitea".to_string(),
+            forge_cli: "tea".to_string(),
+        });
+    }
+    let number = matches.get_one::<String>("number");
+    let body = matches.get_one::<String>("body");
+    let mut args = vec![pr_cmd.to_string()];
+    match forge {
+        ForgeType::Gitlab => args.push("note".to_string()),
+        _ => args.push("comment".to_string()),
+    }
+    if let Some(n) = number { args.push(n.clone()); }
+    if let Some(b) = body {
+        match forge {
+            ForgeType::Gitlab => { args.push("--message".to_string()); args.push(b.clone()); }
+            ForgeType::Forgejo => { args.push(b.clone()); }
+            _ => { args.push("--body".to_string()); args.push(b.clone()); }
+        }
+    }
+    if let Some(extra) = matches.get_many::<String>("extra") { args.extend(extra.cloned()); }
+    Ok(args)
 }

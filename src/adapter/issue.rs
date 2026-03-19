@@ -15,6 +15,7 @@ pub fn translate_issue(forge: ForgeType, matches: &ArgMatches) -> Result<Vec<Str
         Some(("close", sub)) => translate_issue_close(forge, issue_cmd, sub),
         Some(("reopen", sub)) => translate_issue_reopen(forge, issue_cmd, sub),
         Some(("edit", sub)) => translate_issue_edit(forge, issue_cmd, sub),
+        Some(("comment", sub)) => translate_issue_comment(forge, issue_cmd, sub),
         Some((verb, sub)) => {
             // Unknown verb: pass through as-is with any extra args
             let mut args = vec![issue_cmd.to_string(), verb.to_string()];
@@ -325,4 +326,35 @@ fn translate_issue_edit(
             Ok(args)
         }
     }
+}
+
+fn translate_issue_comment(
+    forge: ForgeType,
+    issue_cmd: &str,
+    matches: &ArgMatches,
+) -> Result<Vec<String>, GfError> {
+    if matches!(forge, ForgeType::Gitea) {
+        return Err(GfError::UnsupportedFeature {
+            feature: "issue comment".to_string(),
+            forge: "Gitea".to_string(),
+            forge_cli: "tea".to_string(),
+        });
+    }
+    let number = matches.get_one::<String>("number");
+    let body = matches.get_one::<String>("body");
+    let mut args = vec![issue_cmd.to_string()];
+    match forge {
+        ForgeType::Gitlab => args.push("note".to_string()),
+        _ => args.push("comment".to_string()),
+    }
+    if let Some(n) = number { args.push(n.clone()); }
+    if let Some(b) = body {
+        match forge {
+            ForgeType::Gitlab => { args.push("--message".to_string()); args.push(b.clone()); }
+            ForgeType::Forgejo => { args.push(b.clone()); }
+            _ => { args.push("--body".to_string()); args.push(b.clone()); }
+        }
+    }
+    if let Some(extra) = matches.get_many::<String>("extra") { args.extend(extra.cloned()); }
+    Ok(args)
 }

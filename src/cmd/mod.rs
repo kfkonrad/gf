@@ -268,6 +268,47 @@ fn build_pr() -> Command {
                         .help("Additional flags passed through to the underlying CLI"),
                 ),
         )
+        .subcommand(
+            Command::new("checks")
+                .about("Show CI/check status for a pull request")
+                .arg(
+                    Arg::new("number")
+                        .value_name("NUMBER")
+                        .required(false)
+                        .help("PR number (optional if on a PR branch)"),
+                )
+                .arg(
+                    Arg::new("extra")
+                        .num_args(0..)
+                        .allow_hyphen_values(true)
+                        .last(true)
+                        .help("Additional flags passed through to the underlying CLI"),
+                ),
+        )
+        .subcommand(
+            Command::new("comment")
+                .about("Add a comment to a pull request")
+                .arg(
+                    Arg::new("number")
+                        .value_name("NUMBER")
+                        .required(false)
+                        .help("PR number (optional if on a PR branch)"),
+                )
+                .arg(
+                    Arg::new("body")
+                        .long("body")
+                        .short('b')
+                        .value_name("TEXT")
+                        .help("Comment body text"),
+                )
+                .arg(
+                    Arg::new("extra")
+                        .num_args(0..)
+                        .allow_hyphen_values(true)
+                        .last(true)
+                        .help("Additional flags passed through to the underlying CLI"),
+                ),
+        )
 }
 
 fn build_repo() -> Command {
@@ -576,6 +617,30 @@ fn build_issue() -> Command {
                 .arg(Arg::new("remove-label").long("remove-label").value_name("NAME").help("Remove a label"))
                 .arg(Arg::new("add-assignee").long("add-assignee").value_name("LOGIN").help("Add an assignee"))
                 .arg(Arg::new("remove-assignee").long("remove-assignee").value_name("LOGIN").help("Remove an assignee"))
+                .arg(
+                    Arg::new("extra")
+                        .num_args(0..)
+                        .allow_hyphen_values(true)
+                        .last(true)
+                        .help("Additional flags passed through to the underlying CLI"),
+                ),
+        )
+        .subcommand(
+            Command::new("comment")
+                .about("Add a comment to an issue")
+                .arg(
+                    Arg::new("number")
+                        .value_name("NUMBER")
+                        .required(true)
+                        .help("Issue number"),
+                )
+                .arg(
+                    Arg::new("body")
+                        .long("body")
+                        .short('b')
+                        .value_name("TEXT")
+                        .help("Comment body text"),
+                )
                 .arg(
                     Arg::new("extra")
                         .num_args(0..)
