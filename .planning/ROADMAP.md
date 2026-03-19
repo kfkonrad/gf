@@ -80,6 +80,6 @@ Plans:
 | 9. Issues, Clone, Self-Hosted | v1.1 | 4/4 | Complete | 2026-03-18 |
 | 10. Cleanup & Test Gaps | v1.1 | 1/1 | Complete | 2026-03-18 |
 | 11. PR Checks | v1.2 | 1/1 | Complete | 2026-03-19 |
-| 12. Issue & PR Comments | 1/1 | Complete   | 2026-03-19 | — |
+| 12. Issue & PR Comments | 1/1 | Complete    | 2026-03-19 | — |
 | 13. PR & Issue Edit | v1.2 | 0/? | Pending | — |
 | 14. Final Integration | v1.2 | 0/? | Pending | — |
