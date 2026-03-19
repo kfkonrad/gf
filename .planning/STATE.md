@@ -1,59 +1,58 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.1
-milestone_name: Feature Completeness & Quality
-status: completed
-stopped_at: Completed 10-01-PLAN.md
-last_updated: "2026-03-18T15:14:58.632Z"
-last_activity: 2026-03-18 — Phase 10 Plan 01 completed (dead code removal and test gap closure)
+milestone: v1.2
+milestone_name: Workflow Completeness
+status: in_progress
+stopped_at: Completed 12-01-PLAN.md
+last_updated: "2026-03-19T10:13:24.808Z"
+last_activity: 2026-03-19 — Phase 12 Plan 01 (Issue/PR Comments) completed with 22 new tests (413 total)
 progress:
-  total_phases: 5
-  completed_phases: 5
-  total_plans: 13
-  completed_plans: 13
-  percent: 100
+  total_phases: 4
+  completed_phases: 2
+  total_plans: 2
+  completed_plans: 2
+  percent: 50
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-17)
+See: .planning/PROJECT.md (updated 2026-03-19)
 
 **Core value:** One `gf` command syntax that works on any forge, with zero knowledge of which forge you're on
-**Current focus:** Phase 10 — Cleanup Dead Code and Test Gaps
+**Current focus:** Phase 12 — Issue and PR Comments (complete)
 
 ## Current Position
 
-Phase: 10 of 10 (Cleanup Dead Code and Test Gaps)
-Plan: 1 of 1 in current phase
-Status: complete
-Last activity: 2026-03-18 — Phase 10 Plan 01 completed (dead code removal and test gap closure)
+Phase: 12 of 14 (Issue and PR Comments)
+Plan: 1 of 1 (complete)
+Status: phase complete
+Last activity: 2026-03-19 — Phase 12 Plan 01 completed with 22 new tests (413 total)
 
-Progress: [██████████] 100% (v1.1 all phases complete)
+Progress: [█████░░░░░] 50% (v1.2 — Phase 12 complete, 2 remaining)
 
 ## Session Continuity
 
-Last session: 2026-03-18T14:13:09.508Z
-Stopped at: Completed 10-01-PLAN.md
+Last session: 2026-03-19T10:13:24.805Z
+Stopped at: Completed 12-01-PLAN.md
 Resume file: None
 
 ## Accumulated Context
 
 - v1.0 shipped with 2,689 LOC Rust, 5 phases, 12 plans
+- v1.1 shipped with 3,600 LOC Rust, 5 phases, 13 plans, 284 tests
+- v1.2 Phase 11 (PR Checks) completed: 391 tests total, 10 new macro-based tests
+- v1.2 Phase 12 (Issue/PR Comments) completed: 413 tests total, 22 new tests
 - exec() process replacement on Unix for zero overhead
 - Native browse implementation (tea's browse is broken)
 - Flag normalization: known flags translated, unknown passed through
 - Self-hosted config file at ~/.config/gf/config.toml
 - CORE-04: probe only after config_lookup() and match_known_host() both fail; cache in ~/.cache/gf/
-- Phase 8 risk: glab mr approve is a subcommand, not a flag — requires subcommand routing in translate_pr_review
-- Phase 6 gap: Gitea ROOT_URL subpath browse behavior unresolved — flag for edge case testing
-- Phase 7: Unsupported forge flags silently omitted (not errors) — matches existing adapter convention
-- Phase 7: translation_test! macro covers full dispatch path via gf::adapter::translate() public API
-- Phase 7: tea pr view uses "pulls <N>" directly (no "view" verb); fj auth uses positional args
-- Phase 7: v11_translation_test! pre-maps 45 flag translations for Phase 8; 30 audit tests verify target flags
-- Phase 7: glab state uses boolean flags (--closed/--merged/--all) not --state value pattern
-- Phase 7: tea has no review/approve and no repo clone — hard UNSUPPORTED combinations
-- Phase 10: cfg_attr(not(windows), allow(dead_code)) for platform-specific SpawnFailed variant
-- Phase 10: LineRange changed to pub (binary crate, no type leak risk)
-- Phase 10: v11_translation_test! macro fully removed (zero definitions, zero invocations)
+- Phase 11: bypass-pr_cmd pattern established — GitLab `ci status` hardcodes base command instead of using pr_cmd
+- Phase 11: GfError::UnsupportedFeature has 3 fields (feature, forge, forge_cli), not 2
+- Phase 11: GitLab silently drops PR number for ci status (branch-based command)
+- Phase 12: Standalone comment coexists with pr review --comment — both paths valid
+- Phase 12: GitLab uses `note` verb + `--message` flag for comments; Forgejo uses positional body (no flag)
+- Phase 12: Issue comment number is required; PR comment number is optional (branch inference)
+- Phase 13 next: fj uses subcommand-based editing (`fj pr edit <N> labels --add`), glab uses `update` verb + prefix semantics

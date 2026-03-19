@@ -33,7 +33,7 @@
 ### 🔄 v1.2 Workflow Completeness (Phases 11-14) — IN PROGRESS
 
 - [x] Phase 11: PR Checks (1/1 plan) — completed 2026-03-19
-- [ ] Phase 12: Issue and PR Comments — pending
+- [x] Phase 12: Issue and PR Comments — pending (completed 2026-03-19)
 - [ ] Phase 13: PR and Issue Edit — pending
 - [ ] Phase 14: Final Integration and Polish — pending (depends on 11, 12, 13)
 
@@ -48,7 +48,7 @@
 **Goal:** `gf issue comment <number> --body "text"` and `gf pr comment <number> --body "text"` post comments on issues and PRs across all supported forges.
 **Depends on:** nothing
 **Requirements:** ISSUE-07
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 
 Plans:
 - [ ] 12-01-PLAN.md — Add comment subcommands (clap + adapters + tests) for issue and PR domains
@@ -80,6 +80,6 @@ Plans:
 | 9. Issues, Clone, Self-Hosted | v1.1 | 4/4 | Complete | 2026-03-18 |
 | 10. Cleanup & Test Gaps | v1.1 | 1/1 | Complete | 2026-03-18 |
 | 11. PR Checks | v1.2 | 1/1 | Complete | 2026-03-19 |
-| 12. Issue & PR Comments | v1.2 | 0/1 | Pending | — |
+| 12. Issue & PR Comments | 1/1 | Complete   | 2026-03-19 | — |
 | 13. PR & Issue Edit | v1.2 | 0/? | Pending | — |
 | 14. Final Integration | v1.2 | 0/? | Pending | — |
