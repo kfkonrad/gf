@@ -1174,6 +1174,44 @@ audit_test!(audit_v11_gh_repo_clone,   cli: "gh",   args: ["repo", "clone"], con
 audit_test!(audit_v11_glab_repo_clone, cli: "glab", args: ["repo", "clone"], contains: "clone");
 audit_test!(audit_v11_fj_repo_clone,   cli: "fj",   args: ["repo", "clone"], contains: "clone");
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// v1.2 INTEGRATION AUDIT TESTS — PR/Issue Edit flag verification
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// --- gh pr edit flags ---
+audit_test!(audit_v12_gh_pr_edit_add_label,      cli: "gh",   args: ["pr", "edit"],      contains: "--add-label");
+audit_test!(audit_v12_gh_pr_edit_remove_label,    cli: "gh",   args: ["pr", "edit"],      contains: "--remove-label");
+audit_test!(audit_v12_gh_pr_edit_add_reviewer,    cli: "gh",   args: ["pr", "edit"],      contains: "--add-reviewer");
+audit_test!(audit_v12_gh_pr_edit_remove_reviewer, cli: "gh",   args: ["pr", "edit"],      contains: "--remove-reviewer");
+audit_test!(audit_v12_gh_pr_edit_add_assignee,    cli: "gh",   args: ["pr", "edit"],      contains: "--add-assignee");
+audit_test!(audit_v12_gh_pr_edit_remove_assignee, cli: "gh",   args: ["pr", "edit"],      contains: "--remove-assignee");
+
+// --- glab mr update flags ---
+audit_test!(audit_v12_glab_mr_update_label,      cli: "glab", args: ["mr", "update"],    contains: "--label");
+audit_test!(audit_v12_glab_mr_update_unlabel,     cli: "glab", args: ["mr", "update"],    contains: "--unlabel");
+audit_test!(audit_v12_glab_mr_update_reviewer,    cli: "glab", args: ["mr", "update"],    contains: "--reviewer");
+audit_test!(audit_v12_glab_mr_update_assignee,    cli: "glab", args: ["mr", "update"],    contains: "--assignee");
+
+// --- fj pr edit labels flags ---
+audit_test!(audit_v12_fj_pr_edit_labels_add,     cli: "fj",   args: ["pr", "edit", "0", "labels"], contains: "--add");
+audit_test!(audit_v12_fj_pr_edit_labels_rm,      cli: "fj",   args: ["pr", "edit", "0", "labels"], contains: "--rm");
+
+// --- gh issue edit flags ---
+audit_test!(audit_v12_gh_issue_edit_add_label,      cli: "gh",   args: ["issue", "edit"],   contains: "--add-label");
+audit_test!(audit_v12_gh_issue_edit_remove_label,    cli: "gh",   args: ["issue", "edit"],   contains: "--remove-label");
+audit_test!(audit_v12_gh_issue_edit_add_assignee,    cli: "gh",   args: ["issue", "edit"],   contains: "--add-assignee");
+audit_test!(audit_v12_gh_issue_edit_remove_assignee, cli: "gh",   args: ["issue", "edit"],   contains: "--remove-assignee");
+
+// --- glab issue update flags ---
+audit_test!(audit_v12_glab_issue_update_label,    cli: "glab", args: ["issue", "update"], contains: "--label");
+audit_test!(audit_v12_glab_issue_update_unlabel,   cli: "glab", args: ["issue", "update"], contains: "--unlabel");
+audit_test!(audit_v12_glab_issue_update_assignee,  cli: "glab", args: ["issue", "update"], contains: "--assignee");
+
+// --- tea issues edit flags ---
+audit_test!(audit_v12_tea_issues_edit_add_labels,     cli: "tea", args: ["issues", "edit"], contains: "--add-labels");
+audit_test!(audit_v12_tea_issues_edit_remove_labels,   cli: "tea", args: ["issues", "edit"], contains: "--remove-labels");
+audit_test!(audit_v12_tea_issues_edit_add_assignees,   cli: "tea", args: ["issues", "edit"], contains: "--add-assignees");
+
 // Note: No audit tests for UNSUPPORTED combinations:
 // - UNSUPPORTED: tea pulls list --author (no --author on tea pulls list)
 // - UNSUPPORTED: tea pulls list --label (no --label on tea pulls list)
@@ -1181,3 +1219,9 @@ audit_test!(audit_v11_fj_repo_clone,   cli: "fj",   args: ["repo", "clone"], con
 // - UNSUPPORTED: tea pulls approve (no tea pulls approve subcommand)
 // - UNSUPPORTED: fj pr approve (no fj pr approve subcommand)
 // - UNSUPPORTED: tea repos clone (tea has no repos clone subcommand)
+// Note: No audit tests for UNSUPPORTED PR edit combinations:
+// - UNSUPPORTED: tea pulls edit (tea has no pulls edit command at all)
+// - UNSUPPORTED: fj pr edit reviewers/assignees (fj only supports labels subcommand)
+// Note: No audit tests for UNSUPPORTED issue edit combinations:
+// - UNSUPPORTED: fj issue edit labels/assignees (fj issue edit has no labels or assignees subcommands)
+// - UNSUPPORTED: tea issues edit --remove-assignees (tea has no --remove-assignees flag)
