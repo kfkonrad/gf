@@ -571,3 +571,113 @@ mod alias_routing {
         assert!(!output.is_empty());
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// v1.2 Integration Tests — Help text and CLI behavior verification
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// --- PR help shows all v1.2 subcommands ---
+
+#[test]
+fn test_v12_pr_help_shows_checks() {
+    Command::cargo_bin("gf")
+        .unwrap()
+        .args(["pr", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("checks"));
+}
+
+#[test]
+fn test_v12_pr_help_shows_comment() {
+    Command::cargo_bin("gf")
+        .unwrap()
+        .args(["pr", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("comment"));
+}
+
+#[test]
+fn test_v12_pr_help_shows_edit() {
+    Command::cargo_bin("gf")
+        .unwrap()
+        .args(["pr", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("edit"));
+}
+
+// --- Issue help shows all v1.2 subcommands ---
+
+#[test]
+fn test_v12_issue_help_shows_comment() {
+    Command::cargo_bin("gf")
+        .unwrap()
+        .args(["issue", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("comment"));
+}
+
+#[test]
+fn test_v12_issue_help_shows_edit() {
+    Command::cargo_bin("gf")
+        .unwrap()
+        .args(["issue", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("edit"));
+}
+
+// --- Subcommand help text verification ---
+
+#[test]
+fn test_v12_pr_checks_help() {
+    Command::cargo_bin("gf")
+        .unwrap()
+        .args(["pr", "checks", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("CI/check status"));
+}
+
+#[test]
+fn test_v12_pr_comment_help() {
+    Command::cargo_bin("gf")
+        .unwrap()
+        .args(["pr", "comment", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Add a comment to a pull request"));
+}
+
+#[test]
+fn test_v12_issue_comment_help() {
+    Command::cargo_bin("gf")
+        .unwrap()
+        .args(["issue", "comment", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Add a comment to an issue"));
+}
+
+#[test]
+fn test_v12_pr_edit_help() {
+    Command::cargo_bin("gf")
+        .unwrap()
+        .args(["pr", "edit", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Edit a pull request"));
+}
+
+#[test]
+fn test_v12_issue_edit_help() {
+    Command::cargo_bin("gf")
+        .unwrap()
+        .args(["issue", "edit", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Edit an issue"));
+}
