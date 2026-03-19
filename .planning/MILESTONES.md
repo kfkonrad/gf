@@ -1,5 +1,14 @@
 # Milestones
 
+## v1.2 Workflow Completeness (Shipped: 2026-03-19)
+
+**Phases completed:** 4 phases, 5 plans, 2 tasks
+
+**Key accomplishments:**
+- (none recorded)
+
+---
+
 ## v1.1 Feature Completeness & Quality (Shipped: 2026-03-18)
 
 **Phases completed:** 5 phases, 13 plans
