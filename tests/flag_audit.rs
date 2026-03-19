@@ -885,6 +885,234 @@ translation_test!(repo_clone_fj,
 );
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// PR EDIT (PR-09): gf pr edit → gh pr edit / glab mr update / fj pr edit labels / tea UNSUPPORTED
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// --- PR edit: GitHub (direct flag passthrough) ---
+
+translation_test!(pr_edit_github_add_label,
+    input: ["gf", "pr", "edit", "42", "--add-label", "bug"],
+    forge: ForgeType::Github,
+    expected: ["pr", "edit", "42", "--add-label", "bug"]
+);
+
+translation_test!(pr_edit_github_add_reviewer,
+    input: ["gf", "pr", "edit", "42", "--add-reviewer", "alice"],
+    forge: ForgeType::Github,
+    expected: ["pr", "edit", "42", "--add-reviewer", "alice"]
+);
+
+translation_test!(pr_edit_github_remove_label,
+    input: ["gf", "pr", "edit", "42", "--remove-label", "old"],
+    forge: ForgeType::Github,
+    expected: ["pr", "edit", "42", "--remove-label", "old"]
+);
+
+translation_test!(pr_edit_github_add_assignee,
+    input: ["gf", "pr", "edit", "42", "--add-assignee", "bob"],
+    forge: ForgeType::Github,
+    expected: ["pr", "edit", "42", "--add-assignee", "bob"]
+);
+
+// --- PR edit: GitLab (update verb, prefix semantics for reviewer/assignee) ---
+
+translation_test!(pr_edit_glab_add_label,
+    input: ["gf", "pr", "edit", "42", "--add-label", "bug"],
+    forge: ForgeType::Gitlab,
+    expected: ["mr", "update", "42", "--label", "bug"]
+);
+
+translation_test!(pr_edit_glab_remove_label,
+    input: ["gf", "pr", "edit", "42", "--remove-label", "old"],
+    forge: ForgeType::Gitlab,
+    expected: ["mr", "update", "42", "--unlabel", "old"]
+);
+
+translation_test!(pr_edit_glab_add_reviewer,
+    input: ["gf", "pr", "edit", "42", "--add-reviewer", "alice"],
+    forge: ForgeType::Gitlab,
+    expected: ["mr", "update", "42", "--reviewer", "+alice"]
+);
+
+translation_test!(pr_edit_glab_remove_reviewer,
+    input: ["gf", "pr", "edit", "42", "--remove-reviewer", "alice"],
+    forge: ForgeType::Gitlab,
+    expected: ["mr", "update", "42", "--reviewer", "-alice"]
+);
+
+translation_test!(pr_edit_glab_add_assignee,
+    input: ["gf", "pr", "edit", "42", "--add-assignee", "bob"],
+    forge: ForgeType::Gitlab,
+    expected: ["mr", "update", "42", "--assignee", "+bob"]
+);
+
+translation_test!(pr_edit_glab_remove_assignee,
+    input: ["gf", "pr", "edit", "42", "--remove-assignee", "bob"],
+    forge: ForgeType::Gitlab,
+    expected: ["mr", "update", "42", "--assignee", "-bob"]
+);
+
+// --- PR edit: Forgejo (subcommand routing for labels) ---
+
+translation_test!(pr_edit_fj_add_label,
+    input: ["gf", "pr", "edit", "42", "--add-label", "bug"],
+    forge: ForgeType::Forgejo,
+    expected: ["pr", "edit", "42", "labels", "--add", "bug"]
+);
+
+translation_test!(pr_edit_fj_remove_label,
+    input: ["gf", "pr", "edit", "42", "--remove-label", "old"],
+    forge: ForgeType::Forgejo,
+    expected: ["pr", "edit", "42", "labels", "--rm", "old"]
+);
+
+translation_test!(pr_edit_fj_both_labels,
+    input: ["gf", "pr", "edit", "42", "--add-label", "bug", "--remove-label", "old"],
+    forge: ForgeType::Forgejo,
+    expected: ["pr", "edit", "42", "labels", "--add", "bug", "--rm", "old"]
+);
+
+// --- PR edit: Unsupported combinations ---
+
+unsupported_test!(pr_edit_tea_unsupported,
+    input: ["gf", "pr", "edit", "42", "--add-label", "bug"],
+    forge: ForgeType::Gitea,
+    feature_contains: "pr edit"
+);
+
+unsupported_test!(pr_edit_fj_add_reviewer_unsupported,
+    input: ["gf", "pr", "edit", "42", "--add-reviewer", "alice"],
+    forge: ForgeType::Forgejo,
+    feature_contains: "pr edit --add-reviewer"
+);
+
+unsupported_test!(pr_edit_fj_remove_reviewer_unsupported,
+    input: ["gf", "pr", "edit", "42", "--remove-reviewer", "alice"],
+    forge: ForgeType::Forgejo,
+    feature_contains: "pr edit --remove-reviewer"
+);
+
+unsupported_test!(pr_edit_fj_add_assignee_unsupported,
+    input: ["gf", "pr", "edit", "42", "--add-assignee", "bob"],
+    forge: ForgeType::Forgejo,
+    feature_contains: "pr edit --add-assignee"
+);
+
+unsupported_test!(pr_edit_fj_remove_assignee_unsupported,
+    input: ["gf", "pr", "edit", "42", "--remove-assignee", "bob"],
+    forge: ForgeType::Forgejo,
+    feature_contains: "pr edit --remove-assignee"
+);
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ISSUE EDIT (ISSUE-08): gf issue edit → gh issue edit / glab issue update / tea issues edit / fj UNSUPPORTED
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// --- Issue edit: GitHub (direct flag passthrough) ---
+
+translation_test!(issue_edit_github_add_label,
+    input: ["gf", "issue", "edit", "42", "--add-label", "bug"],
+    forge: ForgeType::Github,
+    expected: ["issue", "edit", "42", "--add-label", "bug"]
+);
+
+translation_test!(issue_edit_github_remove_label,
+    input: ["gf", "issue", "edit", "42", "--remove-label", "old"],
+    forge: ForgeType::Github,
+    expected: ["issue", "edit", "42", "--remove-label", "old"]
+);
+
+translation_test!(issue_edit_github_add_assignee,
+    input: ["gf", "issue", "edit", "42", "--add-assignee", "bob"],
+    forge: ForgeType::Github,
+    expected: ["issue", "edit", "42", "--add-assignee", "bob"]
+);
+
+translation_test!(issue_edit_github_remove_assignee,
+    input: ["gf", "issue", "edit", "42", "--remove-assignee", "bob"],
+    forge: ForgeType::Github,
+    expected: ["issue", "edit", "42", "--remove-assignee", "bob"]
+);
+
+// --- Issue edit: GitLab (update verb, prefix semantics for assignee) ---
+
+translation_test!(issue_edit_glab_add_label,
+    input: ["gf", "issue", "edit", "42", "--add-label", "bug"],
+    forge: ForgeType::Gitlab,
+    expected: ["issue", "update", "42", "--label", "bug"]
+);
+
+translation_test!(issue_edit_glab_remove_label,
+    input: ["gf", "issue", "edit", "42", "--remove-label", "old"],
+    forge: ForgeType::Gitlab,
+    expected: ["issue", "update", "42", "--unlabel", "old"]
+);
+
+translation_test!(issue_edit_glab_add_assignee,
+    input: ["gf", "issue", "edit", "42", "--add-assignee", "bob"],
+    forge: ForgeType::Gitlab,
+    expected: ["issue", "update", "42", "--assignee", "+bob"]
+);
+
+translation_test!(issue_edit_glab_remove_assignee,
+    input: ["gf", "issue", "edit", "42", "--remove-assignee", "bob"],
+    forge: ForgeType::Gitlab,
+    expected: ["issue", "update", "42", "--assignee", "-bob"]
+);
+
+// --- Issue edit: Gitea (plural flag names) ---
+
+translation_test!(issue_edit_tea_add_label,
+    input: ["gf", "issue", "edit", "42", "--add-label", "bug"],
+    forge: ForgeType::Gitea,
+    expected: ["issues", "edit", "42", "--add-labels", "bug"]
+);
+
+translation_test!(issue_edit_tea_remove_label,
+    input: ["gf", "issue", "edit", "42", "--remove-label", "old"],
+    forge: ForgeType::Gitea,
+    expected: ["issues", "edit", "42", "--remove-labels", "old"]
+);
+
+translation_test!(issue_edit_tea_add_assignee,
+    input: ["gf", "issue", "edit", "42", "--add-assignee", "bob"],
+    forge: ForgeType::Gitea,
+    expected: ["issues", "edit", "42", "--add-assignees", "bob"]
+);
+
+// --- Issue edit: Unsupported combinations ---
+
+unsupported_test!(issue_edit_fj_add_label_unsupported,
+    input: ["gf", "issue", "edit", "42", "--add-label", "bug"],
+    forge: ForgeType::Forgejo,
+    feature_contains: "issue edit --add-label"
+);
+
+unsupported_test!(issue_edit_fj_remove_label_unsupported,
+    input: ["gf", "issue", "edit", "42", "--remove-label", "old"],
+    forge: ForgeType::Forgejo,
+    feature_contains: "issue edit --remove-label"
+);
+
+unsupported_test!(issue_edit_fj_add_assignee_unsupported,
+    input: ["gf", "issue", "edit", "42", "--add-assignee", "bob"],
+    forge: ForgeType::Forgejo,
+    feature_contains: "issue edit --add-assignee"
+);
+
+unsupported_test!(issue_edit_fj_remove_assignee_unsupported,
+    input: ["gf", "issue", "edit", "42", "--remove-assignee", "bob"],
+    forge: ForgeType::Forgejo,
+    feature_contains: "issue edit --remove-assignee"
+);
+
+unsupported_test!(issue_edit_tea_remove_assignee_unsupported,
+    input: ["gf", "issue", "edit", "42", "--remove-assignee", "bob"],
+    forge: ForgeType::Gitea,
+    feature_contains: "issue edit --remove-assignee"
+);
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // v1.1 INTEGRATION AUDIT TESTS — verify target forge flags exist in CLI --help
 // ═══════════════════════════════════════════════════════════════════════════════
 //
