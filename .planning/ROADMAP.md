@@ -4,7 +4,7 @@
 
 - ✅ **v1.0 MVP** — Phases 1-5 (shipped 2026-03-17)
 - ✅ **v1.1 Feature Completeness & Quality** — Phases 6-10 (shipped 2026-03-18)
-- 🔄 **v1.2 Workflow Completeness** — Phases 11-14 (in progress)
+- ✅ **v1.2 Workflow Completeness** — Phases 11-14 (shipped 2026-03-19)
 
 ## Phases
 
@@ -30,12 +30,12 @@
 
 </details>
 
-### 🔄 v1.2 Workflow Completeness (Phases 11-14) — IN PROGRESS
+### ✅ v1.2 Workflow Completeness (Phases 11-14) — SHIPPED 2026-03-19
 
 - [x] Phase 11: PR Checks (1/1 plan) — completed 2026-03-19
-- [x] Phase 12: Issue and PR Comments — pending (completed 2026-03-19)
-- [x] Phase 13: PR and Issue Edit — pending (completed 2026-03-19)
-- [ ] Phase 14: Final Integration and Polish — pending (depends on 11, 12, 13)
+- [x] Phase 12: Issue and PR Comments — completed 2026-03-19
+- [x] Phase 13: PR and Issue Edit — completed 2026-03-19
+- [x] Phase 14: Final Integration and Polish — completed 2026-03-19
 
 ### Phase 11: PR Checks
 
@@ -68,11 +68,11 @@ Plans:
 **Goal:** All new v1.2 commands pass integration tests via assert_cmd; help text is correct; PROJECT.md updated; zero warnings confirmed.
 **Depends on:** Phase 11, Phase 12, Phase 13
 **Requirements:** PR-08, PR-09, ISSUE-07, ISSUE-08
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 
 Plans:
-- [ ] 14-01-PLAN.md — Restore lost Phase 11/12 code (checks + comment)
-- [ ] 14-02-PLAN.md — Integration tests and documentation update
+- [x] 14-01-PLAN.md — Restore lost Phase 11/12 code (checks + comment)
+- [x] 14-02-PLAN.md — Integration tests and documentation update
 
 ## Progress
 
@@ -89,6 +89,6 @@ Plans:
 | 9. Issues, Clone, Self-Hosted | v1.1 | 4/4 | Complete | 2026-03-18 |
 | 10. Cleanup & Test Gaps | v1.1 | 1/1 | Complete | 2026-03-18 |
 | 11. PR Checks | v1.2 | 1/1 | Complete | 2026-03-19 |
-| 12. Issue & PR Comments | 1/1 | Complete    | 2026-03-19 | — |
-| 13. PR & Issue Edit | 1/1 | Complete    | 2026-03-19 | — |
-| 14. Final Integration | 1/2 | In Progress|  | — |
+| 12. Issue & PR Comments | v1.2 | 1/1 | Complete | 2026-03-19 |
+| 13. PR & Issue Edit | v1.2 | 1/1 | Complete | 2026-03-19 |
+| 14. Final Integration | v1.2 | 2/2 | Complete | 2026-03-19 |

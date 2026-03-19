@@ -27,10 +27,14 @@ One `gf` command syntax that works on any forge, with zero knowledge of which fo
 - ✓ Line-range deep-linking in browse (file.rs:42-55) — v1.1
 - ✓ Self-hosted forge detection via CLI auth probing with cache (CORE-04) — v1.1
 - ✓ Audit and fix flag normalization mappings across all forge CLIs — v1.1
+- ✓ PR CI status viewing (PR-08) — v1.2
+- ✓ Add/remove reviewers on PRs (PR-09) — v1.2
+- ✓ Comment on issues (ISSUE-07) — v1.2
+- ✓ Assign/remove labels on issues (ISSUE-08) — v1.2
 
 ### Active
 
-(No active milestone — start with `/gsd-new-milestone`)
+(none — all v1.2 requirements validated)
 
 ### Out of Scope
 
@@ -39,11 +43,11 @@ One `gf` command syntax that works on any forge, with zero knowledge of which fo
 
 ## Context
 
-Shipped v1.1 with 3,600 LOC Rust. Tech stack: Rust, clap 4, webbrowser, toml, serde.
+Shipped v1.2 with ~4,000 LOC Rust. Tech stack: Rust, clap 4, webbrowser, toml, serde.
 
 - `gf` wraps `gh`, `glab`, `tea`, and `fj` — normalizes the common command subset and passes through the rest.
-- Complete command surface: PR lifecycle (list/merge/checkout/review/approve), issues (list/view/create/close/reopen), repo (clone/fork/create/view), auth, browse.
-- 284 tests: 97 unit, 103 translation, 51 CLI audit, 11 unsupported, 25 integration. Zero warnings.
+- Complete command surface: PR lifecycle (list/merge/checkout/review/approve/checks/comment/edit), issues (list/view/create/close/reopen/comment/edit), repo (clone/fork/create/view), auth, browse.
+- 469 tests: 97 unit, 97 translation, 240 macro-based (translation + audit + unsupported), 35 integration. Zero warnings.
 - Self-hosted forges supported via config.toml mappings AND automatic CLI auth probing with persistent cache.
 - `tea`'s browse is broken — `gf browse` is implemented natively for all forges with line-range deep-linking.
 - The tool feels like a thin, transparent router — `exec()` replaces the process on Unix for zero overhead.
@@ -70,4 +74,4 @@ Shipped v1.1 with 3,600 LOC Rust. Tech stack: Rust, clap 4, webbrowser, toml, se
 | detect_from_host for browse | Browse uses full detection chain (config → known → cache → probe) without needing git remote name | ✓ Good — self-hosted browse works after first probe |
 
 ---
-*Last updated: 2026-03-18 after v1.1 milestone completion*
+*Last updated: 2026-03-19 after v1.2 milestone completion*
