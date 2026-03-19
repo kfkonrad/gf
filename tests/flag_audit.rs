@@ -702,6 +702,138 @@ unsupported_test!(pr_approve_fj_unsupported,
     feature_contains: "pr approve"
 );
 
+// ── PR CHECKS (PR-06): gf pr checks → gh pr checks / glab ci status / fj pr status ──
+
+// --- PR checks: GitHub ---
+translation_test!(pr_checks_github_number,
+    input: ["gf", "pr", "checks", "42"],
+    forge: ForgeType::Github,
+    expected: ["pr", "checks", "42"]
+);
+
+translation_test!(pr_checks_github_no_number,
+    input: ["gf", "pr", "checks"],
+    forge: ForgeType::Github,
+    expected: ["pr", "checks"]
+);
+
+// --- PR checks: GitLab (routes to ci status, drops number) ---
+translation_test!(pr_checks_glab_number,
+    input: ["gf", "pr", "checks", "7"],
+    forge: ForgeType::Gitlab,
+    expected: ["ci", "status"]
+);
+
+translation_test!(pr_checks_glab_no_number,
+    input: ["gf", "pr", "checks"],
+    forge: ForgeType::Gitlab,
+    expected: ["ci", "status"]
+);
+
+// --- PR checks: Forgejo ---
+translation_test!(pr_checks_fj_number,
+    input: ["gf", "pr", "checks", "42"],
+    forge: ForgeType::Forgejo,
+    expected: ["pr", "status", "42"]
+);
+
+translation_test!(pr_checks_fj_no_number,
+    input: ["gf", "pr", "checks"],
+    forge: ForgeType::Forgejo,
+    expected: ["pr", "status"]
+);
+
+// --- PR checks: Gitea unsupported ---
+unsupported_test!(pr_checks_tea_unsupported,
+    input: ["gf", "pr", "checks", "42"],
+    forge: ForgeType::Gitea,
+    feature_contains: "pr checks"
+);
+
+// ── ISSUE COMMENT (ISSUE-07): gf issue comment → gh issue comment / glab issue note / fj issue comment ──
+
+// --- Issue comment: GitHub (passthrough) ---
+translation_test!(issue_comment_github,
+    input: ["gf", "issue", "comment", "42", "--body", "looks good"],
+    forge: ForgeType::Github,
+    expected: ["issue", "comment", "42", "--body", "looks good"]
+);
+
+translation_test!(issue_comment_github_no_body,
+    input: ["gf", "issue", "comment", "42"],
+    forge: ForgeType::Github,
+    expected: ["issue", "comment", "42"]
+);
+
+translation_test!(issue_comment_github_extra_passthrough,
+    input: ["gf", "issue", "comment", "42", "--", "--web"],
+    forge: ForgeType::Github,
+    expected: ["issue", "comment", "42", "--web"]
+);
+
+// --- Issue comment: GitLab (verb=note, --body→--message) ---
+translation_test!(issue_comment_glab,
+    input: ["gf", "issue", "comment", "42", "--body", "looks good"],
+    forge: ForgeType::Gitlab,
+    expected: ["issue", "note", "42", "--message", "looks good"]
+);
+
+// --- Issue comment: Forgejo (body is positional) ---
+translation_test!(issue_comment_fj,
+    input: ["gf", "issue", "comment", "42", "--body", "looks good"],
+    forge: ForgeType::Forgejo,
+    expected: ["issue", "comment", "42", "looks good"]
+);
+
+// --- Issue comment: Gitea unsupported ---
+unsupported_test!(issue_comment_tea_unsupported,
+    input: ["gf", "issue", "comment", "42", "--body", "text"],
+    forge: ForgeType::Gitea,
+    feature_contains: "issue comment"
+);
+
+// ── PR COMMENT (ISSUE-07): gf pr comment → gh pr comment / glab mr note / fj pr comment ──
+
+// --- PR comment: GitHub (passthrough) ---
+translation_test!(pr_comment_github,
+    input: ["gf", "pr", "comment", "42", "--body", "lgtm"],
+    forge: ForgeType::Github,
+    expected: ["pr", "comment", "42", "--body", "lgtm"]
+);
+
+translation_test!(pr_comment_github_no_body,
+    input: ["gf", "pr", "comment", "42"],
+    forge: ForgeType::Github,
+    expected: ["pr", "comment", "42"]
+);
+
+translation_test!(pr_comment_github_no_number,
+    input: ["gf", "pr", "comment"],
+    forge: ForgeType::Github,
+    expected: ["pr", "comment"]
+);
+
+// --- PR comment: GitLab (verb=note, --body→--message, pr_cmd=mr) ---
+translation_test!(pr_comment_glab,
+    input: ["gf", "pr", "comment", "42", "--body", "lgtm"],
+    forge: ForgeType::Gitlab,
+    expected: ["mr", "note", "42", "--message", "lgtm"]
+);
+
+// --- PR comment: Forgejo (body is positional) ---
+translation_test!(pr_comment_fj,
+    input: ["gf", "pr", "comment", "42", "--body", "lgtm"],
+    forge: ForgeType::Forgejo,
+    expected: ["pr", "comment", "42", "lgtm"]
+);
+
+// --- PR comment: Gitea unsupported ---
+unsupported_test!(pr_comment_tea_unsupported,
+    input: ["gf", "pr", "comment", "42", "--body", "text"],
+    forge: ForgeType::Gitea,
+    feature_contains: "pr comment"
+);
+
 // ── ISSUE LIST (ISSUE-01): gf issue list → gh issue list / glab issue list / tea issues list / fj issue search ──
 
 translation_test!(issue_list_github_state,
@@ -1154,6 +1286,11 @@ audit_test!(audit_v11_tea_pulls_checkout,    cli: "tea",  args: ["pulls", "check
 // --- pr review / approve ---
 audit_test!(audit_v11_gh_pr_review_approve,  cli: "gh",   args: ["pr", "review"],  contains: "--approve");
 audit_test!(audit_v11_glab_mr_approve,       cli: "glab", args: ["mr", "approve"], contains: "approve");
+
+// --- pr checks audit ---
+audit_test!(audit_gh_pr_checks,    cli: "gh",   args: ["pr", "checks"],  contains: "checks");
+audit_test!(audit_glab_ci_status,  cli: "glab", args: ["ci", "status"],  contains: "status");
+audit_test!(audit_fj_pr_status,    cli: "fj",   args: ["pr", "status"],  contains: "status");
 
 // --- issue list flags ---
 audit_test!(audit_v11_gh_issue_list_state,      cli: "gh",   args: ["issue", "list"],    contains: "--state");
