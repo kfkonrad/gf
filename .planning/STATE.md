@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Workflow Completeness
-status: completed
-stopped_at: Completed 13-01-PLAN.md
-last_updated: "2026-03-19T10:51:25.725Z"
-last_activity: 2026-03-19 — Phase 13 Plan 01 completed with 56 new tests (437 total)
+status: executing
+stopped_at: Completed 14-01-PLAN.md
+last_updated: "2026-03-19T14:21:03.640Z"
+last_activity: "2026-03-19 — Phase 14 Plan 01 completed: restored checks/comments code + 22 tests (459 total)"
 progress:
   total_phases: 4
   completed_phases: 3
-  total_plans: 3
-  completed_plans: 3
+  total_plans: 5
+  completed_plans: 4
   percent: 75
 ---
 
@@ -21,21 +21,21 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-19)
 
 **Core value:** One `gf` command syntax that works on any forge, with zero knowledge of which forge you're on
-**Current focus:** Phase 13 — PR & Issue Edit (complete)
+**Current focus:** Phase 14 — Final Integration (in progress)
 
 ## Current Position
 
-Phase: 13 of 14 (PR & Issue Edit)
-Plan: 1 of 1 (complete)
-Status: phase complete
-Last activity: 2026-03-19 — Phase 13 Plan 01 completed with 56 new tests (437 total)
+Phase: 14 of 14 (Final Integration)
+Plan: 1 of 2 (complete)
+Status: in progress
+Last activity: 2026-03-19 — Phase 14 Plan 01 completed: restored checks/comments code + 22 tests (459 total)
 
 Progress: [███████░░░] 75% (v1.2 — Phase 13 complete, 1 remaining)
 
 ## Session Continuity
 
-Last session: 2026-03-19T10:46:00Z
-Stopped at: Completed 13-01-PLAN.md
+Last session: 2026-03-19T14:21:03.637Z
+Stopped at: Completed 14-01-PLAN.md
 Resume file: None
 
 ## Accumulated Context
@@ -62,3 +62,4 @@ Resume file: None
 - Phase 13: Gitea issue edit uses plural flags (--add-labels, --remove-labels, --add-assignees)
 - Phase 13: Gitea PR edit entirely unsupported (tea has no pulls edit command)
 - Phase 14 next: Final integration and v1.2 milestone completion
+- Phase 14 Plan 01: Restored lost Phase 11/12 code (checks, comments) overwritten by Phase 13 commit

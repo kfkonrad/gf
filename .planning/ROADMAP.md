@@ -68,7 +68,7 @@ Plans:
 **Goal:** All new v1.2 commands pass integration tests via assert_cmd; help text is correct; PROJECT.md updated; zero warnings confirmed.
 **Depends on:** Phase 11, Phase 12, Phase 13
 **Requirements:** PR-08, PR-09, ISSUE-07, ISSUE-08
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 
 Plans:
 - [ ] 14-01-PLAN.md — Restore lost Phase 11/12 code (checks + comment)
@@ -91,4 +91,4 @@ Plans:
 | 11. PR Checks | v1.2 | 1/1 | Complete | 2026-03-19 |
 | 12. Issue & PR Comments | 1/1 | Complete    | 2026-03-19 | — |
 | 13. PR & Issue Edit | 1/1 | Complete    | 2026-03-19 | — |
-| 14. Final Integration | v1.2 | 0/2 | Pending | — |
+| 14. Final Integration | 1/2 | In Progress|  | — |
