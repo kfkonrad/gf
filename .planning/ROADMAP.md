@@ -85,5 +85,5 @@ Plans:
 | 10. Cleanup & Test Gaps | v1.1 | 1/1 | Complete | 2026-03-18 |
 | 11. PR Checks | v1.2 | 1/1 | Complete | 2026-03-19 |
 | 12. Issue & PR Comments | 1/1 | Complete    | 2026-03-19 | — |
-| 13. PR & Issue Edit | 1/1 | Complete   | 2026-03-19 | — |
+| 13. PR & Issue Edit | 1/1 | Complete    | 2026-03-19 | — |
 | 14. Final Integration | v1.2 | 0/? | Pending | — |
