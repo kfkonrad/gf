@@ -4,6 +4,7 @@
 
 - ✅ **v1.0 MVP** — Phases 1-5 (shipped 2026-03-17)
 - ✅ **v1.1 Feature Completeness & Quality** — Phases 6-10 (shipped 2026-03-18)
+- 🔄 **v1.2 Workflow Completeness** — Phases 11-14 (in progress)
 
 ## Phases
 
@@ -29,6 +30,41 @@
 
 </details>
 
+### 🔄 v1.2 Workflow Completeness (Phases 11-14) — IN PROGRESS
+
+- [x] Phase 11: PR Checks (1/1 plan) — completed 2026-03-19
+- [ ] Phase 12: Issue and PR Comments — pending
+- [ ] Phase 13: PR and Issue Edit — pending
+- [ ] Phase 14: Final Integration and Polish — pending (depends on 11, 12, 13)
+
+### Phase 11: PR Checks
+
+**Goal:** `gf pr checks <number>` produces correct forge CLI args for GitHub, GitLab, Forgejo; returns UnsupportedFeature for Gitea.
+**Depends on:** nothing
+**Requirements:** PR-08
+
+### Phase 12: Issue and PR Comments
+
+**Goal:** `gf issue comment <number> --body "text"` and `gf pr comment <number> --body "text"` post comments on issues and PRs across all supported forges.
+**Depends on:** nothing
+**Requirements:** ISSUE-07
+**Plans:** 1 plan
+
+Plans:
+- [ ] 12-01-PLAN.md — Add comment subcommands (clap + adapters + tests) for issue and PR domains
+
+### Phase 13: PR and Issue Edit
+
+**Goal:** `gf pr edit` and `gf issue edit` add and remove labels, reviewers, and assignees, with per-flag UnsupportedFeature errors when a forge CLI lacks the capability.
+**Depends on:** nothing
+**Requirements:** PR-09, ISSUE-08
+
+### Phase 14: Final Integration and Polish
+
+**Goal:** All new v1.2 commands pass integration tests via assert_cmd; help text is correct; PROJECT.md updated; zero warnings confirmed.
+**Depends on:** Phase 11, Phase 12, Phase 13
+**Requirements:** all v1.2 requirements verified end-to-end
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -43,3 +79,7 @@
 | 8. PR Workflow Commands | v1.1 | 4/4 | Complete | 2026-03-18 |
 | 9. Issues, Clone, Self-Hosted | v1.1 | 4/4 | Complete | 2026-03-18 |
 | 10. Cleanup & Test Gaps | v1.1 | 1/1 | Complete | 2026-03-18 |
+| 11. PR Checks | v1.2 | 1/1 | Complete | 2026-03-19 |
+| 12. Issue & PR Comments | v1.2 | 0/1 | Pending | — |
+| 13. PR & Issue Edit | v1.2 | 0/? | Pending | — |
+| 14. Final Integration | v1.2 | 0/? | Pending | — |
