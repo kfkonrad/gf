@@ -42,6 +42,13 @@ struct DefaultsConfig {
     clone_host: Option<String>,
 }
 
+#[derive(Debug, Deserialize, Default)]
+struct BrowseConfig {
+    /// Ref to use when HEAD is detached and no --branch flag is given.
+    #[serde(default)]
+    detached_head_fallback: Option<String>,
+}
+
 /// Cached probe results: hostname → forge type mapping.
 #[derive(Debug, Deserialize, Serialize, Default)]
 struct ProbeCache {
@@ -57,6 +64,8 @@ struct GfConfig {
     merge: MergeConfig,
     #[serde(default)]
     defaults: DefaultsConfig,
+    #[serde(default)]
+    browse: BrowseConfig,
 }
 
 #[derive(Debug, Deserialize)]
@@ -67,6 +76,9 @@ struct ForgeEntry {
     forge_type: ForgeType,
     #[serde(default)]
     delete_branch: Option<bool>,
+    /// Ref to use when HEAD is detached during `gf browse` for this forge.
+    #[serde(default)]
+    detached_head_fallback: Option<String>,
 }
 
 /// Returns the path to ~/.config/gf/config.toml using $HOME env var.
@@ -115,6 +127,23 @@ pub fn resolve_delete_branch(domain: &str) -> bool {
 
     // Global [merge] section
     config.merge.delete_branch.unwrap_or(false)
+}
+
+/// Resolves the detached-HEAD fallback ref for `gf browse`.
+/// Priority: per-forge `detached_head_fallback` > global `[browse] detached_head_fallback` > None.
+/// Returns None when no fallback is configured (caller uses the commit SHA).
+pub fn resolve_detached_head_fallback(domain: &str) -> Option<String> {
+    let config = load_config().ok().flatten()?;
+
+    // Per-forge override wins
+    if let Some(entry) = config.forge.iter().find(|e| e.domain == domain) {
+        if let Some(ref val) = entry.detached_head_fallback {
+            return Some(val.clone());
+        }
+    }
+
+    // Global [browse] section
+    config.browse.detached_head_fallback.clone()
 }
 
 /// Top-level forge detection entry point.
