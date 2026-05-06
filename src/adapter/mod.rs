@@ -22,9 +22,9 @@ use clap::ArgMatches;
 /// to runner::run(forge.cli_name(), &translated).
 ///
 /// Dispatches to per-subcommand translators in pr.rs and repo_auth.rs.
-pub fn translate(forge: ForgeType, matches: &ArgMatches) -> Result<Vec<String>, GfError> {
+pub fn translate(forge: ForgeType, domain: &str, matches: &ArgMatches) -> Result<Vec<String>, GfError> {
     match matches.subcommand() {
-        Some(("pr", sub)) => pr::translate_pr(forge, sub),
+        Some(("pr", sub)) => pr::translate_pr(forge, domain, sub),
         Some(("repo", sub)) => repo_auth::translate_repo(forge, sub),
         Some(("auth", sub)) => repo_auth::translate_auth(forge, sub),
         Some(("issue", sub)) => issue::translate_issue(forge, sub),

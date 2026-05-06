@@ -39,8 +39,8 @@ fn main() {
         .unwrap_or("origin");
 
     // Detect the forge from the git remote URL (Phase 2)
-    let forge_type = match forge::detect(remote) {
-        Ok(f) => f,
+    let (forge_type, domain) = match forge::detect_with_domain(remote) {
+        Ok(pair) => pair,
         Err(e) => {
             eprintln!("{e}");
             std::process::exit(1);
@@ -48,7 +48,7 @@ fn main() {
     };
 
     // Translate canonical gf args → forge-specific args (Phase 3)
-    let translated = match adapter::translate(forge_type, &matches) {
+    let translated = match adapter::translate(forge_type, &domain, &matches) {
         Ok(args) => args,
         Err(e) => {
             eprintln!("{e}");

@@ -1,11 +1,11 @@
 // src/adapter/pr.rs — PR/MR subcommand and flag translation
 use crate::error::GfError;
-use crate::forge::ForgeType;
+use crate::forge::{resolve_delete_branch, ForgeType};
 use clap::ArgMatches;
 
 /// Translate `gf pr ...` ArgMatches into forge-specific args.
 /// Called by adapter::translate() when the matched subcommand is "pr" (or "mr" alias).
-pub fn translate_pr(forge: ForgeType, matches: &ArgMatches) -> Result<Vec<String>, GfError> {
+pub fn translate_pr(forge: ForgeType, domain: &str, matches: &ArgMatches) -> Result<Vec<String>, GfError> {
     // The PR subcommand name differs per forge (PR-03)
     let pr_cmd = pr_subcommand_name(forge);
 
@@ -14,7 +14,7 @@ pub fn translate_pr(forge: ForgeType, matches: &ArgMatches) -> Result<Vec<String
         Some(("view", sub)) => translate_pr_view(forge, pr_cmd, sub),
         Some(("list", sub)) => translate_pr_list(forge, pr_cmd, sub),
         Some(("checkout", sub)) => translate_pr_checkout(forge, pr_cmd, sub),
-        Some(("merge", sub)) => translate_pr_merge(forge, pr_cmd, sub),
+        Some(("merge", sub)) => translate_pr_merge(forge, domain, pr_cmd, sub),
         Some(("review", sub)) => translate_pr_review(forge, pr_cmd, sub),
         Some(("approve", sub)) => translate_pr_approve(forge, pr_cmd, sub),
         Some(("edit", sub)) => translate_pr_edit(forge, pr_cmd, sub),
@@ -213,6 +213,7 @@ fn translate_pr_checkout(
 ///   gh: --delete-branch, glab: --remove-source-branch, fj: --delete, tea: UNSUPPORTED
 fn translate_pr_merge(
     forge: ForgeType,
+    domain: &str,
     pr_cmd: &str,
     matches: &ArgMatches,
 ) -> Result<Vec<String>, GfError> {
@@ -268,11 +269,17 @@ fn translate_pr_merge(
         }
     }
 
-    // Delete-branch: CLI flag > built-in default (false)
+    // Delete-branch: CLI flag > config (per-forge > global [merge]) > built-in default (false)
     let explicit_delete = matches.get_flag("delete-branch");
     let explicit_no_delete = matches.get_flag("no-delete-branch");
 
-    let should_delete = explicit_delete && !explicit_no_delete;
+    let should_delete = if explicit_delete {
+        true
+    } else if explicit_no_delete {
+        false
+    } else {
+        resolve_delete_branch(domain)
+    };
 
     if should_delete {
         match forge {

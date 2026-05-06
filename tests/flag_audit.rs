@@ -19,7 +19,7 @@ macro_rules! translation_test {
             let matches = gf::cmd::build_cli()
                 .try_get_matches_from([$($arg),+])
                 .unwrap_or_else(|e| panic!("clap parse failed: {e}"));
-            let result = gf::adapter::translate($forge, &matches).unwrap_or_else(|e| panic!("translate returned error: {e}"));
+            let result = gf::adapter::translate($forge, "github.com", &matches).unwrap_or_else(|e| panic!("translate returned error: {e}"));
             let expected: Vec<String> = vec![$($exp.to_string()),+];
             assert_eq!(result, expected, "forge={:?}", $forge);
         }
@@ -384,7 +384,7 @@ macro_rules! unsupported_test {
             let matches = gf::cmd::build_cli()
                 .try_get_matches_from([$($arg),+])
                 .unwrap_or_else(|e| panic!("clap parse failed: {e}"));
-            let result = gf::adapter::translate($forge, &matches);
+            let result = gf::adapter::translate($forge, "github.com", &matches);
             match result {
                 Err(gf::error::GfError::UnsupportedFeature { ref feature, .. }) => {
                     assert!(feature.contains($feature),

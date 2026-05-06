@@ -799,7 +799,7 @@ mod tests {
     /// This confirms CORE-09: `gf mr create` will route to the pr create handler.
     #[test]
     fn test_mr_resolves_to_pr() {
-        let mut cli = build_cli();
+        let cli = build_cli();
         // get_matches_from on ["gf", "mr", "create"] should not error
         let result = cli.try_get_matches_from(["gf", "mr", "create"]);
         assert!(

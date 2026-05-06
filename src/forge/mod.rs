@@ -147,6 +147,16 @@ pub fn resolve_detached_head_fallback(domain: &str) -> Option<String> {
 }
 
 /// Top-level forge detection entry point.
+/// Determines which forge a git repo lives on, given a remote name, and also returns
+/// the domain. Prefer this over calling `detect` + `domain_from_remote` separately
+/// to avoid two git subprocess calls.
+pub fn detect_with_domain(remote: &str) -> Result<(ForgeType, String), GfError> {
+    let url = get_remote_url(remote)?;
+    let host = parse_host(&url)?;
+    let forge = detect_from_host(&host)?;
+    Ok((forge, host))
+}
+
 /// Determines which forge a git repo lives on, given a remote name.
 ///
 /// Priority: config file → known host → cached probe → live probe → error
