@@ -199,14 +199,20 @@ fn get_remote_url(remote: &str) -> Result<String, GfError> {
 
 /// Extracts the hostname from HTTPS or SCP-style git remote URLs.
 /// Strips port numbers from HTTPS hostnames (e.g., "host:8443" → "host").
+/// Strips userinfo per RFC 3986 (e.g., "api@host" or "user:pass@host" → "host").
 fn parse_host(url: &str) -> Result<String, GfError> {
-    // HTTPS / HTTP: https://github.com/owner/repo.git
+    // HTTPS / HTTP: https://[userinfo@]github.com[:port]/owner/repo.git
     // Also covers http:// (uncommon but valid)
     if let Some(rest) = url
         .strip_prefix("https://")
         .or_else(|| url.strip_prefix("http://"))
     {
-        let host_with_possible_port = rest.split('/').next().unwrap_or("");
+        let authority = rest.split('/').next().unwrap_or("");
+        // Strip userinfo: "user:pass@host:port" -> "host:port"; "host:port" stays as-is
+        let host_with_possible_port = match authority.rfind('@') {
+            Some(pos) => &authority[pos + 1..],
+            None => authority,
+        };
         // Strip port: "git.company.com:8443" -> "git.company.com"
         let host = host_with_possible_port.split(':').next().unwrap_or("");
         if !host.is_empty() {
@@ -239,7 +245,12 @@ pub fn parse_remote_parts(url: &str) -> Result<(String, String, String), GfError
         .or_else(|| url.strip_prefix("http://"))
     {
         let mut parts = rest.splitn(4, '/');
-        let host_with_port = parts.next().unwrap_or("");
+        let authority = parts.next().unwrap_or("");
+        // Strip userinfo per RFC 3986: "user:pass@host:port" -> "host:port"
+        let host_with_port = match authority.rfind('@') {
+            Some(pos) => &authority[pos + 1..],
+            None => authority,
+        };
         let host = host_with_port.split(':').next().unwrap_or("").to_string();
         let owner = parts.next().unwrap_or("").to_string();
         let repo_raw = parts.next().unwrap_or("");
@@ -463,6 +474,24 @@ mod tests {
         assert!(matches!(result, Err(GfError::RemoteUrlUnrecognized(_))));
     }
 
+    #[test]
+    fn test_parse_host_https_with_userinfo() {
+        let result = parse_host("https://api@github.com/owner/repo.git");
+        assert_eq!(result.unwrap(), "github.com");
+    }
+
+    #[test]
+    fn test_parse_host_https_with_user_password() {
+        let result = parse_host("https://user:token@github.com/owner/repo.git");
+        assert_eq!(result.unwrap(), "github.com");
+    }
+
+    #[test]
+    fn test_parse_host_https_with_userinfo_and_port() {
+        let result = parse_host("https://user:token@git.company.com:8443/owner/repo.git");
+        assert_eq!(result.unwrap(), "git.company.com");
+    }
+
     // --- match_known_host() stubs (RED — will pass after plan 02) ---
 
     #[test]
@@ -606,6 +635,24 @@ type = "forgejo"
     }
 
     #[test]
+    fn test_parse_remote_parts_https_with_userinfo() {
+        let (host, owner, repo) =
+            parse_remote_parts("https://api@github.com/alice/myrepo.git").unwrap();
+        assert_eq!(host, "github.com");
+        assert_eq!(owner, "alice");
+        assert_eq!(repo, "myrepo");
+    }
+
+    #[test]
+    fn test_parse_remote_parts_https_with_user_password_and_port() {
+        let (host, owner, repo) =
+            parse_remote_parts("https://user:token@git.company.com:8443/org/proj.git").unwrap();
+        assert_eq!(host, "git.company.com");
+        assert_eq!(owner, "org");
+        assert_eq!(repo, "proj");
+    }
+
+    #[test]
     fn test_config_with_merge_section() {
         let toml_str = r#"
 [merge]
@@ -629,6 +676,39 @@ delete_branch = true
 "#;
         let cfg: GfConfig = toml::from_str(toml_str).expect("valid TOML");
         assert_eq!(cfg.forge[0].delete_branch, Some(true));
+    }
+
+    #[test]
+    fn test_config_forge_entry_detached_head_fallback() {
+        let toml_str = r#"
+[[forge]]
+domain = "github.com"
+type = "github"
+detached_head_fallback = "main"
+"#;
+        let cfg: GfConfig = toml::from_str(toml_str).expect("valid TOML");
+        assert_eq!(
+            cfg.forge[0].detached_head_fallback,
+            Some("main".to_string())
+        );
+    }
+
+    #[test]
+    fn test_config_global_browse_detached_head_fallback() {
+        let toml_str = r#"
+[browse]
+detached_head_fallback = "main"
+
+[[forge]]
+domain = "github.com"
+type = "github"
+"#;
+        let cfg: GfConfig = toml::from_str(toml_str).expect("valid TOML");
+        assert_eq!(
+            cfg.browse.detached_head_fallback,
+            Some("main".to_string())
+        );
+        assert_eq!(cfg.forge[0].detached_head_fallback, None);
     }
 
     #[test]

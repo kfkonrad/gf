@@ -463,6 +463,7 @@ fn build_browse() -> Command {
         .arg(
             Arg::new("branch")
                 .long("branch")
+                .short('b')
                 .value_name("BRANCH")
                 .help("Branch to use instead of the current branch"),
         )
@@ -484,6 +485,7 @@ fn build_browse() -> Command {
         .arg(
             Arg::new("issue")
                 .long("issue")
+                .short('i')
                 .value_name("NUMBER")
                 .conflicts_with_all(["pr", "file", "branch"])
                 .help("Open issue in browser"),
