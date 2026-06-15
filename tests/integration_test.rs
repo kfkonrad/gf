@@ -126,19 +126,11 @@ fn test_cli_not_found_no_ansi() {
 
 /// Helper: create a bin dir with a fake `gh` script that calls exit_with with the given code.
 fn setup_gh_exit_script(home_dir: &std::path::Path, exit_code: u32) -> std::path::PathBuf {
-    let exit_with_path = assert_cmd::cargo::cargo_bin("exit_with");
     let bin_dir = home_dir.join("bin");
     std::fs::create_dir_all(&bin_dir).expect("create bin dir");
     let gh_script = bin_dir.join("gh");
-    std::fs::write(
-        &gh_script,
-        format!(
-            "#!/bin/sh\nexec \"{}\" {}\n",
-            exit_with_path.display(),
-            exit_code
-        ),
-    )
-    .expect("write gh script");
+    std::fs::write(&gh_script, format!("#!/bin/sh\nexit {}\n", exit_code))
+        .expect("write gh script");
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
