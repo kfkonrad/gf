@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  pull_request:
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.2
+      - uses: actions-rust-lang/setup-rust-toolchain@v1.15.4
+      - name: Install forge CLIs
+        env:
+          GLAB_VERSION: 1.102.0
+          TEA_VERSION: 0.14.1
+          FJ_VERSION: 0.5.0
+        run: |
+          set -euxo pipefail
+          # gh is preinstalled on GitHub-hosted runners; verify it's present.
+          gh --version
+          # glab (GitLab CLI) — tarball contains bin/glab
+          curl -fsSL "https://gitlab.com/gitlab-org/cli/-/releases/v${GLAB_VERSION}/downloads/glab_${GLAB_VERSION}_linux_amd64.tar.gz" \
+            | sudo tar -xz -C /usr/local bin/glab
+          # tea (Gitea CLI) — single static binary
+          sudo curl -fsSL "https://dl.gitea.com/tea/${TEA_VERSION}/tea-${TEA_VERSION}-linux-amd64" -o /usr/local/bin/tea
+          sudo chmod +x /usr/local/bin/tea
+          # fj (Forgejo CLI) — tarball contains a single `fj` binary
+          curl -fsSL "https://codeberg.org/forgejo-contrib/forgejo-cli/releases/download/v${FJ_VERSION}/forgejo-cli-x86_64-linux.tar.gz" \
+            | sudo tar -xz -C /usr/local/bin fj
+          # Verify all four are on PATH
+          glab --version
+          tea --version
+          fj version
+      - name: cargo test
+        run: cargo test
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.2
+      - uses: actions-rust-lang/setup-rust-toolchain@v1.15.4
+        with:
+          components: clippy
+      - name: cargo clippy
+        run: cargo clippy -- -D warnings
