@@ -11,6 +11,7 @@ pub enum GfError {
     },
 
     #[error("failed to exec {0}: {1}")]
+    #[cfg_attr(windows, allow(dead_code))]
     ExecFailed(String, std::io::Error),
 
     #[error("failed to spawn {0}: {1}")]
