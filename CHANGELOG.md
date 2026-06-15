@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-06-15
+
 ### Added
 * Add `-V`/`--version` flag to display the version
 * Add configurable default for branch deletion on merge

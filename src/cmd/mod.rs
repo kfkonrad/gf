@@ -19,6 +19,15 @@ pub fn build_cli() -> Command {
     Command::new("gf")
         .about("Unified git forge CLI — works across GitHub, GitLab, Gitea, and Forgejo")
         .arg(
+            Arg::new("version")
+                .short('v')
+                .long("version")
+                .action(ArgAction::Version)
+                .help("Print version"),
+        )
+        .version(env!("CARGO_PKG_VERSION"))
+        .disable_version_flag(true)
+        .arg(
             Arg::new("remote")
                 .long("remote")
                 .value_name("NAME")
