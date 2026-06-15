@@ -8,7 +8,7 @@ use std::thread;
 use std::time::Duration;
 
 /// The four supported forge types.
-#[derive(Debug, PartialEq, Clone, Copy, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ForgeType {
     Github,
@@ -19,13 +19,14 @@ pub enum ForgeType {
 
 impl ForgeType {
     /// Returns the CLI binary name for this forge.
-    /// This is the single source of truth — used by runner::run() and cli_info().
-    pub fn cli_name(&self) -> &'static str {
+    /// This is the single source of truth — used by `runner::run()` and `cli_info()`.
+    #[must_use] 
+    pub const fn cli_name(self) -> &'static str {
         match self {
-            ForgeType::Github => "gh",
-            ForgeType::Gitlab => "glab",
-            ForgeType::Gitea => "tea",
-            ForgeType::Forgejo => "fj",
+            Self::Github => "gh",
+            Self::Gitlab => "glab",
+            Self::Gitea => "tea",
+            Self::Forgejo => "fj",
         }
     }
 }
@@ -95,9 +96,8 @@ fn config_path() -> Option<std::path::PathBuf> {
 /// Loads the config file. Returns Ok(None) if file is absent (not an error).
 /// Returns Err(ConfigParseError) on TOML parse failure.
 fn load_config() -> Result<Option<GfConfig>, GfError> {
-    let path = match config_path() {
-        Some(p) => p,
-        None => return Ok(None),
+    let Some(path) = config_path() else {
+        return Ok(None);
     };
     if !path.exists() {
         return Ok(None);
@@ -112,10 +112,10 @@ fn load_config() -> Result<Option<GfConfig>, GfError> {
 /// Resolves delete-branch behavior for merge.
 /// Priority: per-forge config > global [merge] config > built-in default (false).
 /// CLI flag override is handled by the caller (adapter).
+#[must_use] 
 pub fn resolve_delete_branch(domain: &str) -> bool {
-    let config = match load_config() {
-        Ok(Some(cfg)) => cfg,
-        _ => return false, // no config = default false
+    let Ok(Some(config)) = load_config() else {
+        return false; // no config = default false
     };
 
     // Per-forge override
@@ -130,8 +130,10 @@ pub fn resolve_delete_branch(domain: &str) -> bool {
 }
 
 /// Resolves the detached-HEAD fallback ref for `gf browse`.
+///
 /// Priority: per-forge `detached_head_fallback` > global `[browse] detached_head_fallback` > None.
 /// Returns None when no fallback is configured (caller uses the commit SHA).
+#[must_use] 
 pub fn resolve_detached_head_fallback(domain: &str) -> Option<String> {
     let config = load_config().ok().flatten()?;
 
@@ -143,13 +145,19 @@ pub fn resolve_detached_head_fallback(domain: &str) -> Option<String> {
     }
 
     // Global [browse] section
-    config.browse.detached_head_fallback.clone()
+    config.browse.detached_head_fallback
 }
 
 /// Top-level forge detection entry point.
+///
 /// Determines which forge a git repo lives on, given a remote name, and also returns
 /// the domain. Prefer this over calling `detect` + `domain_from_remote` separately
 /// to avoid two git subprocess calls.
+///
+/// # Errors
+///
+/// Returns `Err` if the git remote URL cannot be retrieved, the host cannot be
+/// parsed from the URL, or the forge type cannot be detected for the host.
 pub fn detect_with_domain(remote: &str) -> Result<(ForgeType, String), GfError> {
     let url = get_remote_url(remote)?;
     let host = parse_host(&url)?;
@@ -162,6 +170,11 @@ pub fn detect_with_domain(remote: &str) -> Result<(ForgeType, String), GfError> 
 /// Priority: config file → known host → cached probe → live probe → error
 ///
 /// `remote` — git remote name (typically "origin", overridden by --remote flag)
+///
+/// # Errors
+///
+/// Returns `Err` if the git remote URL cannot be retrieved, the host cannot be
+/// parsed, or no forge could be detected for the host via any priority source.
 pub fn detect(remote: &str) -> Result<ForgeType, GfError> {
     let url = get_remote_url(remote)?;
     let host = parse_host(&url)?;
@@ -191,9 +204,15 @@ pub fn detect(remote: &str) -> Result<ForgeType, GfError> {
     Err(GfError::ForgeNotDetected { domain: host })
 }
 
-/// Detects forge type from a hostname using the full priority chain
-/// (config → known hosts → cache → live probe) without requiring a git remote.
-/// Used by browse which already has the host parsed from the remote URL.
+/// Detects forge type from a hostname using the full priority chain.
+///
+/// Walks config → known hosts → cache → live probe without requiring a git
+/// remote. Used by browse which already has the host parsed from the remote URL.
+///
+/// # Errors
+///
+/// Returns `Err` if no forge could be detected for the host via config, known
+/// hosts, the probe cache, or a live probe.
 pub fn detect_from_host(host: &str) -> Result<ForgeType, GfError> {
     if let Some(forge) = config_lookup(host)? {
         return Ok(forge);
@@ -214,8 +233,8 @@ pub fn detect_from_host(host: &str) -> Result<ForgeType, GfError> {
 }
 
 /// Runs `git remote get-url <remote>` and returns the URL string.
-/// Returns GfError::NotAGitRepo if not in a git repo.
-/// Returns GfError::NoRemote if the remote name does not exist.
+/// Returns `GfError::NotAGitRepo` if not in a git repo.
+/// Returns `GfError::NoRemote` if the remote name does not exist.
 fn get_remote_url(remote: &str) -> Result<String, GfError> {
     let output = std::process::Command::new("git")
         .args(["remote", "get-url", remote])
@@ -248,10 +267,8 @@ fn parse_host(url: &str) -> Result<String, GfError> {
     {
         let authority = rest.split('/').next().unwrap_or("");
         // Strip userinfo: "user:pass@host:port" -> "host:port"; "host:port" stays as-is
-        let host_with_possible_port = match authority.rfind('@') {
-            Some(pos) => &authority[pos + 1..],
-            None => authority,
-        };
+        let host_with_possible_port =
+            authority.rfind('@').map_or(authority, |pos| &authority[pos + 1..]);
         // Strip port: "git.company.com:8443" -> "git.company.com"
         let host = host_with_possible_port.split(':').next().unwrap_or("");
         if !host.is_empty() {
@@ -272,11 +289,16 @@ fn parse_host(url: &str) -> Result<String, GfError> {
 
 /// Parses HTTPS or SCP-style remote URLs into (host, owner, repo).
 /// Strips .git suffix from repo name.
-/// Handles HTTPS with port (e.g., "https://host:8443/owner/repo.git").
+/// Handles HTTPS with port (e.g., `https://host:8443/owner/repo.git`).
 ///
 /// Examples:
-///   "https://github.com/alice/myrepo.git" → ("github.com", "alice", "myrepo")
-///   "git@gitlab.com:alice/myrepo.git"     → ("gitlab.com", "alice", "myrepo")
+///   `https://github.com/alice/myrepo.git` → ("github.com", "alice", "myrepo")
+///   `git@gitlab.com:alice/myrepo.git`     → ("gitlab.com", "alice", "myrepo")
+///
+/// # Errors
+///
+/// Returns `Err(GfError::RemoteUrlUnrecognized)` if the URL is neither a
+/// recognizable HTTPS/HTTP nor SCP-style remote with host, owner, and repo.
 pub fn parse_remote_parts(url: &str) -> Result<(String, String, String), GfError> {
     // HTTPS / HTTP path: strip scheme, strip host (first segment), take next two path segments
     if let Some(rest) = url
@@ -286,10 +308,8 @@ pub fn parse_remote_parts(url: &str) -> Result<(String, String, String), GfError
         let mut parts = rest.splitn(4, '/');
         let authority = parts.next().unwrap_or("");
         // Strip userinfo per RFC 3986: "user:pass@host:port" -> "host:port"
-        let host_with_port = match authority.rfind('@') {
-            Some(pos) => &authority[pos + 1..],
-            None => authority,
-        };
+        let host_with_port =
+            authority.rfind('@').map_or(authority, |pos| &authority[pos + 1..]);
         let host = host_with_port.split(':').next().unwrap_or("").to_string();
         let owner = parts.next().unwrap_or("").to_string();
         let repo_raw = parts.next().unwrap_or("");
@@ -324,10 +344,14 @@ pub fn parse_remote_parts(url: &str) -> Result<(String, String, String), GfError
 
 /// Checks ~/.config/gf/config.toml for a domain-to-forge mapping.
 /// Returns Ok(None) if config file is absent (not an error).
+///
+/// # Errors
+///
+/// Returns `Err(GfError::ConfigParseError)` if the config file exists but
+/// cannot be read or parsed.
 pub fn config_lookup(host: &str) -> Result<Option<ForgeType>, GfError> {
-    let cfg = match load_config()? {
-        Some(c) => c,
-        None => return Ok(None),
+    let Some(cfg) = load_config()? else {
+        return Ok(None);
     };
     Ok(cfg
         .forge
@@ -337,6 +361,11 @@ pub fn config_lookup(host: &str) -> Result<Option<ForgeType>, GfError> {
 }
 
 /// Matches a hostname against the four built-in public forge entries.
+///
+/// # Errors
+///
+/// Returns `Err(GfError::ForgeNotDetected)` if the host is not one of the
+/// built-in known public forges.
 pub fn match_known_host(host: &str) -> Result<ForgeType, GfError> {
     match host {
         "github.com" => Ok(ForgeType::Github),
@@ -350,7 +379,7 @@ pub fn match_known_host(host: &str) -> Result<ForgeType, GfError> {
 }
 
 /// Probe forge CLIs for auth status containing the given hostname.
-/// Returns the first matching ForgeType, or None if no CLI matches.
+/// Returns the first matching `ForgeType`, or None if no CLI matches.
 /// Checks in order: gh, glab, tea, fj (market share priority per CONTEXT.md).
 fn probe_auth(hostname: &str) -> Option<ForgeType> {
     let probes: [(ForgeType, &str, &[&str]); 4] = [
@@ -378,7 +407,7 @@ fn run_with_timeout(cmd: &str, args: &[&str], timeout: Duration) -> Option<std::
     let (tx, rx) = mpsc::channel();
 
     let cmd_owned = cmd.to_string();
-    let args_owned: Vec<String> = args.iter().map(|s| s.to_string()).collect();
+    let args_owned: Vec<String> = args.iter().map(|s| (*s).to_string()).collect();
 
     thread::spawn(move || {
         let result = std::process::Command::new(&cmd_owned)
@@ -393,7 +422,7 @@ fn run_with_timeout(cmd: &str, args: &[&str], timeout: Duration) -> Option<std::
     }
 }
 
-/// Returns path to ~/.cache/gf/probes.toml, respecting XDG_CACHE_HOME.
+/// Returns path to ~/.cache/gf/probes.toml, respecting `XDG_CACHE_HOME`.
 fn cache_path() -> Option<std::path::PathBuf> {
     // XDG_CACHE_HOME takes precedence (Linux standard)
     if let Ok(xdg) = std::env::var("XDG_CACHE_HOME") {
@@ -481,28 +510,28 @@ mod tests {
     fn test_parse_host_https_github() {
         // RED: stub returns Err
         let result = parse_host("https://github.com/owner/repo.git");
-        assert_eq!(result.unwrap(), "github.com");
+        assert_eq!(result.expect("should parse host"), "github.com");
     }
 
     #[test]
     fn test_parse_host_https_with_port() {
         // RED: stub returns Err; also validates port stripping
         let result = parse_host("https://git.company.com:8443/owner/repo.git");
-        assert_eq!(result.unwrap(), "git.company.com");
+        assert_eq!(result.expect("should parse host"), "git.company.com");
     }
 
     #[test]
     fn test_parse_host_ssh_scp() {
         // RED: stub returns Err
         let result = parse_host("git@github.com:owner/repo.git");
-        assert_eq!(result.unwrap(), "github.com");
+        assert_eq!(result.expect("should parse host"), "github.com");
     }
 
     #[test]
     fn test_parse_host_ssh_gitlab() {
         // RED: stub returns Err
         let result = parse_host("git@gitlab.com:owner/repo.git");
-        assert_eq!(result.unwrap(), "gitlab.com");
+        assert_eq!(result.expect("should parse host"), "gitlab.com");
     }
 
     #[test]
@@ -516,19 +545,19 @@ mod tests {
     #[test]
     fn test_parse_host_https_with_userinfo() {
         let result = parse_host("https://api@github.com/owner/repo.git");
-        assert_eq!(result.unwrap(), "github.com");
+        assert_eq!(result.expect("should parse host"), "github.com");
     }
 
     #[test]
     fn test_parse_host_https_with_user_password() {
         let result = parse_host("https://user:token@github.com/owner/repo.git");
-        assert_eq!(result.unwrap(), "github.com");
+        assert_eq!(result.expect("should parse host"), "github.com");
     }
 
     #[test]
     fn test_parse_host_https_with_userinfo_and_port() {
         let result = parse_host("https://user:token@git.company.com:8443/owner/repo.git");
-        assert_eq!(result.unwrap(), "git.company.com");
+        assert_eq!(result.expect("should parse host"), "git.company.com");
     }
 
     // --- match_known_host() stubs (RED — will pass after plan 02) ---
@@ -536,23 +565,32 @@ mod tests {
     #[test]
     fn test_known_host_github() {
         // RED: stub returns ForgeNotDetected
-        assert_eq!(match_known_host("github.com").unwrap(), ForgeType::Github);
+        assert_eq!(
+            match_known_host("github.com").expect("known host"),
+            ForgeType::Github
+        );
     }
 
     #[test]
     fn test_known_host_gitlab() {
-        assert_eq!(match_known_host("gitlab.com").unwrap(), ForgeType::Gitlab);
+        assert_eq!(
+            match_known_host("gitlab.com").expect("known host"),
+            ForgeType::Gitlab
+        );
     }
 
     #[test]
     fn test_known_host_gitea() {
-        assert_eq!(match_known_host("gitea.com").unwrap(), ForgeType::Gitea);
+        assert_eq!(
+            match_known_host("gitea.com").expect("known host"),
+            ForgeType::Gitea
+        );
     }
 
     #[test]
     fn test_known_host_codeberg() {
         assert_eq!(
-            match_known_host("codeberg.org").unwrap(),
+            match_known_host("codeberg.org").expect("known host"),
             ForgeType::Forgejo
         );
     }
@@ -601,15 +639,13 @@ mod tests {
     fn test_config_lookup_absent_config_is_ok_none() {
         // When HOME points to a dir without .config/gf/config.toml, returns Ok(None)
         // Override HOME to a temp dir that definitely has no config
-        // Safety: set_var is process-wide; cargo test runs unit tests sequentially by default
-        unsafe {
-            std::env::set_var("HOME", "/tmp");
-        }
-        let result = config_lookup("github.com");
-        assert!(
-            matches!(result, Ok(None)),
-            "expected Ok(None) for absent config, got: {result:?}"
-        );
+        temp_env::with_var("HOME", Some("/tmp"), || {
+            let result = config_lookup("github.com");
+            assert!(
+                matches!(result, Ok(None)),
+                "expected Ok(None) for absent config, got: {result:?}"
+            );
+        });
     }
 
     #[test]
@@ -636,7 +672,7 @@ type = "forgejo"
     #[test]
     fn test_parse_remote_parts_https_github() {
         let (host, owner, repo) =
-            parse_remote_parts("https://github.com/alice/myrepo.git").unwrap();
+            parse_remote_parts("https://github.com/alice/myrepo.git").expect("should parse");
         assert_eq!(host, "github.com");
         assert_eq!(owner, "alice");
         assert_eq!(repo, "myrepo");
@@ -644,7 +680,8 @@ type = "forgejo"
 
     #[test]
     fn test_parse_remote_parts_https_no_git_suffix() {
-        let (host, owner, repo) = parse_remote_parts("https://github.com/alice/myrepo").unwrap();
+        let (host, owner, repo) =
+            parse_remote_parts("https://github.com/alice/myrepo").expect("should parse");
         assert_eq!(host, "github.com");
         assert_eq!(owner, "alice");
         assert_eq!(repo, "myrepo");
@@ -653,7 +690,7 @@ type = "forgejo"
     #[test]
     fn test_parse_remote_parts_https_with_port() {
         let (host, owner, repo) =
-            parse_remote_parts("https://git.company.com:8443/org/proj.git").unwrap();
+            parse_remote_parts("https://git.company.com:8443/org/proj.git").expect("should parse");
         assert_eq!(host, "git.company.com");
         assert_eq!(owner, "org");
         assert_eq!(repo, "proj");
@@ -661,7 +698,8 @@ type = "forgejo"
 
     #[test]
     fn test_parse_remote_parts_scp_ssh() {
-        let (host, owner, repo) = parse_remote_parts("git@gitlab.com:alice/myrepo.git").unwrap();
+        let (host, owner, repo) =
+            parse_remote_parts("git@gitlab.com:alice/myrepo.git").expect("should parse");
         assert_eq!(host, "gitlab.com");
         assert_eq!(owner, "alice");
         assert_eq!(repo, "myrepo");
@@ -676,7 +714,7 @@ type = "forgejo"
     #[test]
     fn test_parse_remote_parts_https_with_userinfo() {
         let (host, owner, repo) =
-            parse_remote_parts("https://api@github.com/alice/myrepo.git").unwrap();
+            parse_remote_parts("https://api@github.com/alice/myrepo.git").expect("should parse");
         assert_eq!(host, "github.com");
         assert_eq!(owner, "alice");
         assert_eq!(repo, "myrepo");
@@ -685,7 +723,8 @@ type = "forgejo"
     #[test]
     fn test_parse_remote_parts_https_with_user_password_and_port() {
         let (host, owner, repo) =
-            parse_remote_parts("https://user:token@git.company.com:8443/org/proj.git").unwrap();
+            parse_remote_parts("https://user:token@git.company.com:8443/org/proj.git")
+                .expect("should parse");
         assert_eq!(host, "git.company.com");
         assert_eq!(owner, "org");
         assert_eq!(repo, "proj");
@@ -768,7 +807,7 @@ type = "github"
         let result: Result<GfConfig, _> = toml::from_str(bad_toml);
         assert!(result.is_err(), "malformed TOML should fail");
         // Wrap in GfError to verify round-trip
-        let gf_err = GfError::ConfigParseError(result.unwrap_err().to_string());
+        let gf_err = GfError::ConfigParseError(result.expect_err("malformed TOML").to_string());
         assert!(gf_err.to_string().starts_with("failed to parse config:"));
     }
 
@@ -800,7 +839,7 @@ type = "github"
             path.is_some(),
             "cache_path should return Some when HOME is set"
         );
-        let path = path.unwrap();
+        let path = path.expect("cache_path should be Some");
         assert!(path.to_string_lossy().contains("probes.toml"));
     }
 
@@ -809,19 +848,18 @@ type = "github"
         // Create a temporary cache by setting XDG_CACHE_HOME
         let temp_dir = std::env::temp_dir().join("gf_test_cache");
         let _ = std::fs::remove_dir_all(&temp_dir); // Clean up any previous test
-        unsafe {
-            std::env::set_var("XDG_CACHE_HOME", &temp_dir);
-        }
 
-        // Cache should be empty initially
-        assert!(cache_lookup("test.example.com").is_none());
+        temp_env::with_var("XDG_CACHE_HOME", Some(&temp_dir), || {
+            // Cache should be empty initially
+            assert!(cache_lookup("test.example.com").is_none());
 
-        // Save a probe result
-        save_probe_cache("test.example.com", ForgeType::Gitlab);
+            // Save a probe result
+            save_probe_cache("test.example.com", ForgeType::Gitlab);
 
-        // Should be able to read it back
-        let result = cache_lookup("test.example.com");
-        assert_eq!(result, Some(ForgeType::Gitlab));
+            // Should be able to read it back
+            let result = cache_lookup("test.example.com");
+            assert_eq!(result, Some(ForgeType::Gitlab));
+        });
 
         // Clean up
         let _ = std::fs::remove_dir_all(&temp_dir);

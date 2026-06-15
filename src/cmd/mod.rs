@@ -4,16 +4,17 @@ use clap::{Arg, ArgAction, Command};
 /// Build the complete gf CLI command tree.
 ///
 /// Alias strategy:
-///   - `mr` is a visible_alias for `pr` at the top level (CORE-09)
-///   - `r` is a visible_alias for `repo` (CORE-08)
-///   - `a` is a visible_alias for `auth` (CORE-08)
-///   - Each verb has a one-letter visible_alias: c=create, v=view, f=fork, l=login, s=status (CORE-10)
+///   - `mr` is a `visible_alias` for `pr` at the top level (CORE-09)
+///   - `r` is a `visible_alias` for `repo` (CORE-08)
+///   - `a` is a `visible_alias` for `auth` (CORE-08)
+///   - Each verb has a one-letter `visible_alias`: c=create, v=view, f=fork, l=login, s=status (CORE-10)
 ///
 /// Multi-word aliases (e.g., "mr create") are NOT expressed as clap aliases —
 /// clap does not support multi-word aliases. Since `mr` aliases `pr`, the routing
 /// `gf mr create` → `pr create` works automatically (mr resolves to pr, then create
 /// resolves as a subcommand). Help text for `pr create` notes `mr create` in its
 /// about string.
+#[must_use] 
 pub fn build_cli() -> Command {
     Command::new("gf")
         .about("Unified git forge CLI — works across GitHub, GitLab, Gitea, and Forgejo")
@@ -33,282 +34,252 @@ pub fn build_cli() -> Command {
         .subcommand(build_issue())
 }
 
+/// The trailing `extra` argument shared by most subcommands: a passthrough of
+/// additional flags forwarded verbatim to the underlying forge CLI.
+fn extra_arg() -> Arg {
+    Arg::new("extra")
+        .num_args(0..)
+        .allow_hyphen_values(true)
+        .last(true)
+        .help("Additional flags passed through to the underlying CLI")
+}
+
 fn build_pr() -> Command {
     Command::new("pr")
         .about("Pull/merge request commands")
         .visible_alias("mr") // CORE-09: gf mr ... works identically to gf pr ...
         .subcommand_required(false)
-        .subcommand(
-            Command::new("create")
-                .about("Create a pull/merge request (aliases: c, mr create, mr c)")
-                .visible_alias("c") // CORE-10
-                .arg(
-                    Arg::new("title")
-                        .long("title")
-                        .short('t')
-                        .value_name("TITLE")
-                        .help("PR title"),
-                )
-                .arg(
-                    Arg::new("body")
-                        .long("body")
-                        .short('b')
-                        .value_name("BODY")
-                        .help("PR body/description"),
-                )
-                .arg(
-                    Arg::new("base")
-                        .long("base")
-                        .short('B')
-                        .value_name("BRANCH")
-                        .help("Base branch"),
-                )
-                .arg(
-                    Arg::new("draft")
-                        .long("draft")
-                        .action(ArgAction::SetTrue)
-                        .help("Mark as draft"),
-                )
-                .arg(
-                    Arg::new("extra")
-                        .num_args(0..)
-                        .allow_hyphen_values(true)
-                        .last(true)
-                        .help("Additional flags passed through to the underlying CLI"),
-                ),
+        .subcommand(build_pr_create())
+        .subcommand(build_pr_view())
+        .subcommand(build_pr_list())
+        .subcommand(build_pr_merge())
+        .subcommand(build_pr_checkout())
+        .subcommand(build_pr_review())
+        .subcommand(build_pr_approve())
+        .subcommand(build_pr_edit())
+        .subcommand(build_pr_checks())
+        .subcommand(build_pr_comment())
+}
+
+fn build_pr_create() -> Command {
+    Command::new("create")
+        .about("Create a pull/merge request (aliases: c, mr create, mr c)")
+        .visible_alias("c") // CORE-10
+        .arg(
+            Arg::new("title")
+                .long("title")
+                .short('t')
+                .value_name("TITLE")
+                .help("PR title"),
         )
-        .subcommand(
-            Command::new("view")
-                .about("View a pull/merge request (aliases: v, mr view, mr v)")
-                .visible_alias("v") // CORE-10
-                .arg(
-                    Arg::new("number")
-                        .value_name("NUMBER")
-                        .required(false)
-                        .help("PR number (optional if on a PR branch)"),
-                )
-                .arg(
-                    Arg::new("extra")
-                        .num_args(0..)
-                        .allow_hyphen_values(true)
-                        .last(true)
-                        .help("Additional flags passed through to the underlying CLI"),
-                ),
+        .arg(
+            Arg::new("body")
+                .long("body")
+                .short('b')
+                .value_name("BODY")
+                .help("PR body/description"),
         )
-        .subcommand(
-            Command::new("list")
-                .about("List pull/merge requests (aliases: l, mr list)")
-                .visible_alias("l")
-                .arg(
-                    Arg::new("state")
-                        .long("state")
-                        .value_name("STATE")
-                        .help("Filter by state (open, closed, merged, all)"),
-                )
-                .arg(
-                    Arg::new("author")
-                        .long("author")
-                        .value_name("USER")
-                        .help("Filter by author"),
-                )
-                .arg(
-                    Arg::new("label")
-                        .long("label")
-                        .value_name("LABEL")
-                        .help("Filter by label"),
-                )
-                .arg(
-                    Arg::new("extra")
-                        .num_args(0..)
-                        .allow_hyphen_values(true)
-                        .last(true)
-                        .help("Additional flags passed through to the underlying CLI"),
-                ),
+        .arg(
+            Arg::new("base")
+                .long("base")
+                .short('B')
+                .value_name("BRANCH")
+                .help("Base branch"),
         )
-        .subcommand(
-            Command::new("merge")
-                .about("Merge a pull/merge request (aliases: m, mr merge)")
-                .visible_alias("m")
-                .arg(
-                    Arg::new("number")
-                        .value_name("NUMBER")
-                        .required(false)
-                        .help("PR number"),
-                )
-                .arg(
-                    Arg::new("squash")
-                        .long("squash")
-                        .action(ArgAction::SetTrue)
-                        .help("Squash merge"),
-                )
-                .arg(
-                    Arg::new("rebase")
-                        .long("rebase")
-                        .action(ArgAction::SetTrue)
-                        .help("Rebase merge"),
-                )
-                .arg(
-                    Arg::new("merge")
-                        .long("merge")
-                        .action(ArgAction::SetTrue)
-                        .help("Merge commit (default strategy)"),
-                )
-                .arg(
-                    Arg::new("delete-branch")
-                        .long("delete-branch")
-                        .action(ArgAction::SetTrue)
-                        .help("Delete branch after merge"),
-                )
-                .arg(
-                    Arg::new("no-delete-branch")
-                        .long("no-delete-branch")
-                        .action(ArgAction::SetTrue)
-                        .help("Keep branch after merge"),
-                )
-                .arg(
-                    Arg::new("extra")
-                        .num_args(0..)
-                        .allow_hyphen_values(true)
-                        .last(true)
-                        .help("Additional flags passed through to the underlying CLI"),
-                ),
+        .arg(
+            Arg::new("draft")
+                .long("draft")
+                .action(ArgAction::SetTrue)
+                .help("Mark as draft"),
         )
-        .subcommand(
-            Command::new("checkout")
-                .about("Checkout a pull/merge request branch (aliases: co, mr checkout)")
-                .visible_alias("co")
-                .arg(
-                    Arg::new("number")
-                        .value_name("NUMBER")
-                        .required(false)
-                        .help("PR number"),
-                )
-                .arg(
-                    Arg::new("extra")
-                        .num_args(0..)
-                        .allow_hyphen_values(true)
-                        .last(true)
-                        .help("Additional flags passed through to the underlying CLI"),
-                ),
+        .arg(extra_arg())
+}
+
+fn build_pr_view() -> Command {
+    Command::new("view")
+        .about("View a pull/merge request (aliases: v, mr view, mr v)")
+        .visible_alias("v") // CORE-10
+        .arg(
+            Arg::new("number")
+                .value_name("NUMBER")
+                .required(false)
+                .help("PR number (optional if on a PR branch)"),
         )
-        .subcommand(
-            Command::new("review")
-                .about("Review a pull/merge request (mr review)")
-                .arg(
-                    Arg::new("number")
-                        .value_name("NUMBER")
-                        .required(false)
-                        .help("PR number"),
-                )
-                .arg(
-                    Arg::new("comment")
-                        .long("comment")
-                        .action(ArgAction::SetTrue)
-                        .help("Add a review comment"),
-                )
-                .arg(
-                    Arg::new("approve")
-                        .long("approve")
-                        .action(ArgAction::SetTrue)
-                        .help("Approve the PR"),
-                )
-                .arg(
-                    Arg::new("body")
-                        .long("body")
-                        .short('b')
-                        .value_name("TEXT")
-                        .help("Comment body text"),
-                )
-                .arg(
-                    Arg::new("extra")
-                        .num_args(0..)
-                        .allow_hyphen_values(true)
-                        .last(true)
-                        .help("Additional flags passed through to the underlying CLI"),
-                ),
+        .arg(extra_arg())
+}
+
+fn build_pr_list() -> Command {
+    Command::new("list")
+        .about("List pull/merge requests (aliases: l, mr list)")
+        .visible_alias("l")
+        .arg(
+            Arg::new("state")
+                .long("state")
+                .value_name("STATE")
+                .help("Filter by state (open, closed, merged, all)"),
         )
-        .subcommand(
-            Command::new("approve")
-                .about("Approve a pull/merge request (shorthand for review --approve)")
-                .arg(
-                    Arg::new("number")
-                        .value_name("NUMBER")
-                        .required(false)
-                        .help("PR number"),
-                )
-                .arg(
-                    Arg::new("extra")
-                        .num_args(0..)
-                        .allow_hyphen_values(true)
-                        .last(true)
-                        .help("Additional flags passed through to the underlying CLI"),
-                ),
+        .arg(
+            Arg::new("author")
+                .long("author")
+                .value_name("USER")
+                .help("Filter by author"),
         )
-        .subcommand(
-            Command::new("edit")
-                .about("Edit a pull request (add/remove labels, reviewers, assignees)")
-                .visible_alias("e")
-                .arg(
-                    Arg::new("number")
-                        .value_name("NUMBER")
-                        .required(false)
-                        .help("PR number (optional if on a PR branch)"),
-                )
-                .arg(Arg::new("add-label").long("add-label").value_name("NAME").help("Add a label"))
-                .arg(Arg::new("remove-label").long("remove-label").value_name("NAME").help("Remove a label"))
-                .arg(Arg::new("add-reviewer").long("add-reviewer").value_name("LOGIN").help("Add a reviewer"))
-                .arg(Arg::new("remove-reviewer").long("remove-reviewer").value_name("LOGIN").help("Remove a reviewer"))
-                .arg(Arg::new("add-assignee").long("add-assignee").value_name("LOGIN").help("Add an assignee"))
-                .arg(Arg::new("remove-assignee").long("remove-assignee").value_name("LOGIN").help("Remove an assignee"))
-                .arg(
-                    Arg::new("extra")
-                        .num_args(0..)
-                        .allow_hyphen_values(true)
-                        .last(true)
-                        .help("Additional flags passed through to the underlying CLI"),
-                ),
+        .arg(
+            Arg::new("label")
+                .long("label")
+                .value_name("LABEL")
+                .help("Filter by label"),
         )
-        .subcommand(
-            Command::new("checks")
-                .about("Show CI/check status for a pull request")
-                .arg(
-                    Arg::new("number")
-                        .value_name("NUMBER")
-                        .required(false)
-                        .help("PR number (optional if on a PR branch)"),
-                )
-                .arg(
-                    Arg::new("extra")
-                        .num_args(0..)
-                        .allow_hyphen_values(true)
-                        .last(true)
-                        .help("Additional flags passed through to the underlying CLI"),
-                ),
+        .arg(extra_arg())
+}
+
+fn build_pr_merge() -> Command {
+    Command::new("merge")
+        .about("Merge a pull/merge request (aliases: m, mr merge)")
+        .visible_alias("m")
+        .arg(
+            Arg::new("number")
+                .value_name("NUMBER")
+                .required(false)
+                .help("PR number"),
         )
-        .subcommand(
-            Command::new("comment")
-                .about("Add a comment to a pull request")
-                .arg(
-                    Arg::new("number")
-                        .value_name("NUMBER")
-                        .required(false)
-                        .help("PR number (optional if on a PR branch)"),
-                )
-                .arg(
-                    Arg::new("body")
-                        .long("body")
-                        .short('b')
-                        .value_name("TEXT")
-                        .help("Comment body text"),
-                )
-                .arg(
-                    Arg::new("extra")
-                        .num_args(0..)
-                        .allow_hyphen_values(true)
-                        .last(true)
-                        .help("Additional flags passed through to the underlying CLI"),
-                ),
+        .arg(
+            Arg::new("squash")
+                .long("squash")
+                .action(ArgAction::SetTrue)
+                .help("Squash merge"),
         )
+        .arg(
+            Arg::new("rebase")
+                .long("rebase")
+                .action(ArgAction::SetTrue)
+                .help("Rebase merge"),
+        )
+        .arg(
+            Arg::new("merge")
+                .long("merge")
+                .action(ArgAction::SetTrue)
+                .help("Merge commit (default strategy)"),
+        )
+        .arg(
+            Arg::new("delete-branch")
+                .long("delete-branch")
+                .action(ArgAction::SetTrue)
+                .help("Delete branch after merge"),
+        )
+        .arg(
+            Arg::new("no-delete-branch")
+                .long("no-delete-branch")
+                .action(ArgAction::SetTrue)
+                .help("Keep branch after merge"),
+        )
+        .arg(extra_arg())
+}
+
+fn build_pr_checkout() -> Command {
+    Command::new("checkout")
+        .about("Checkout a pull/merge request branch (aliases: co, mr checkout)")
+        .visible_alias("co")
+        .arg(
+            Arg::new("number")
+                .value_name("NUMBER")
+                .required(false)
+                .help("PR number"),
+        )
+        .arg(extra_arg())
+}
+
+fn build_pr_review() -> Command {
+    Command::new("review")
+        .about("Review a pull/merge request (mr review)")
+        .arg(
+            Arg::new("number")
+                .value_name("NUMBER")
+                .required(false)
+                .help("PR number"),
+        )
+        .arg(
+            Arg::new("comment")
+                .long("comment")
+                .action(ArgAction::SetTrue)
+                .help("Add a review comment"),
+        )
+        .arg(
+            Arg::new("approve")
+                .long("approve")
+                .action(ArgAction::SetTrue)
+                .help("Approve the PR"),
+        )
+        .arg(
+            Arg::new("body")
+                .long("body")
+                .short('b')
+                .value_name("TEXT")
+                .help("Comment body text"),
+        )
+        .arg(extra_arg())
+}
+
+fn build_pr_approve() -> Command {
+    Command::new("approve")
+        .about("Approve a pull/merge request (shorthand for review --approve)")
+        .arg(
+            Arg::new("number")
+                .value_name("NUMBER")
+                .required(false)
+                .help("PR number"),
+        )
+        .arg(extra_arg())
+}
+
+fn build_pr_edit() -> Command {
+    Command::new("edit")
+        .about("Edit a pull request (add/remove labels, reviewers, assignees)")
+        .visible_alias("e")
+        .arg(
+            Arg::new("number")
+                .value_name("NUMBER")
+                .required(false)
+                .help("PR number (optional if on a PR branch)"),
+        )
+        .arg(Arg::new("add-label").long("add-label").value_name("NAME").help("Add a label"))
+        .arg(Arg::new("remove-label").long("remove-label").value_name("NAME").help("Remove a label"))
+        .arg(Arg::new("add-reviewer").long("add-reviewer").value_name("LOGIN").help("Add a reviewer"))
+        .arg(Arg::new("remove-reviewer").long("remove-reviewer").value_name("LOGIN").help("Remove a reviewer"))
+        .arg(Arg::new("add-assignee").long("add-assignee").value_name("LOGIN").help("Add an assignee"))
+        .arg(Arg::new("remove-assignee").long("remove-assignee").value_name("LOGIN").help("Remove an assignee"))
+        .arg(extra_arg())
+}
+
+fn build_pr_checks() -> Command {
+    Command::new("checks")
+        .about("Show CI/check status for a pull request")
+        .arg(
+            Arg::new("number")
+                .value_name("NUMBER")
+                .required(false)
+                .help("PR number (optional if on a PR branch)"),
+        )
+        .arg(extra_arg())
+}
+
+fn build_pr_comment() -> Command {
+    Command::new("comment")
+        .about("Add a comment to a pull request")
+        .arg(
+            Arg::new("number")
+                .value_name("NUMBER")
+                .required(false)
+                .help("PR number (optional if on a PR branch)"),
+        )
+        .arg(
+            Arg::new("body")
+                .long("body")
+                .short('b')
+                .value_name("TEXT")
+                .help("Comment body text"),
+        )
+        .arg(extra_arg())
 }
 
 fn build_repo() -> Command {
@@ -492,165 +463,130 @@ fn build_browse() -> Command {
         )
 }
 
+/// The trailing `extra` passthrough argument used by `issue` subcommands, whose
+/// help text differs slightly from [`extra_arg`].
+fn issue_extra_arg() -> Arg {
+    Arg::new("extra")
+        .num_args(0..)
+        .allow_hyphen_values(true)
+        .last(true)
+        .help("Additional flags passed through")
+}
+
+/// A required positional `NUMBER` argument identifying an issue.
+fn issue_number_arg() -> Arg {
+    Arg::new("number")
+        .value_name("NUMBER")
+        .required(true)
+        .help("Issue number")
+}
+
 fn build_issue() -> Command {
     Command::new("issue")
         .about("Issue commands")
         .visible_alias("i")
         .subcommand_required(false)
-        .subcommand(
-            Command::new("list")
-                .about("List issues (aliases: l)")
-                .visible_alias("l")
-                .arg(
-                    Arg::new("state")
-                        .long("state")
-                        .value_name("STATE")
-                        .help("Filter by state (open, closed, all)"),
-                )
-                .arg(
-                    Arg::new("author")
-                        .long("author")
-                        .value_name("USER")
-                        .help("Filter by author"),
-                )
-                .arg(
-                    Arg::new("label")
-                        .long("label")
-                        .value_name("LABEL")
-                        .help("Filter by label"),
-                )
-                .arg(
-                    Arg::new("extra")
-                        .num_args(0..)
-                        .allow_hyphen_values(true)
-                        .last(true)
-                        .help("Additional flags passed through"),
-                ),
+        .subcommand(build_issue_list())
+        .subcommand(build_issue_view())
+        .subcommand(build_issue_create())
+        .subcommand(build_issue_close())
+        .subcommand(build_issue_reopen())
+        .subcommand(build_issue_edit())
+        .subcommand(build_issue_comment())
+}
+
+fn build_issue_list() -> Command {
+    Command::new("list")
+        .about("List issues (aliases: l)")
+        .visible_alias("l")
+        .arg(
+            Arg::new("state")
+                .long("state")
+                .value_name("STATE")
+                .help("Filter by state (open, closed, all)"),
         )
-        .subcommand(
-            Command::new("view")
-                .about("View an issue (aliases: v)")
-                .visible_alias("v")
-                .arg(
-                    Arg::new("number")
-                        .value_name("NUMBER")
-                        .required(true)
-                        .help("Issue number"),
-                )
-                .arg(
-                    Arg::new("extra")
-                        .num_args(0..)
-                        .allow_hyphen_values(true)
-                        .last(true)
-                        .help("Additional flags passed through"),
-                ),
+        .arg(
+            Arg::new("author")
+                .long("author")
+                .value_name("USER")
+                .help("Filter by author"),
         )
-        .subcommand(
-            Command::new("create")
-                .about("Create a new issue (aliases: c)")
-                .visible_alias("c")
-                .arg(
-                    Arg::new("title")
-                        .long("title")
-                        .short('t')
-                        .value_name("TITLE")
-                        .help("Issue title"),
-                )
-                .arg(
-                    Arg::new("body")
-                        .long("body")
-                        .short('b')
-                        .value_name("BODY")
-                        .help("Issue body"),
-                )
-                .arg(
-                    Arg::new("extra")
-                        .num_args(0..)
-                        .allow_hyphen_values(true)
-                        .last(true)
-                        .help("Additional flags passed through"),
-                ),
+        .arg(
+            Arg::new("label")
+                .long("label")
+                .value_name("LABEL")
+                .help("Filter by label"),
         )
-        .subcommand(
-            Command::new("close")
-                .about("Close an issue")
-                .arg(
-                    Arg::new("number")
-                        .value_name("NUMBER")
-                        .required(true)
-                        .help("Issue number"),
-                )
-                .arg(
-                    Arg::new("extra")
-                        .num_args(0..)
-                        .allow_hyphen_values(true)
-                        .last(true)
-                        .help("Additional flags passed through"),
-                ),
+        .arg(issue_extra_arg())
+}
+
+fn build_issue_view() -> Command {
+    Command::new("view")
+        .about("View an issue (aliases: v)")
+        .visible_alias("v")
+        .arg(issue_number_arg())
+        .arg(issue_extra_arg())
+}
+
+fn build_issue_create() -> Command {
+    Command::new("create")
+        .about("Create a new issue (aliases: c)")
+        .visible_alias("c")
+        .arg(
+            Arg::new("title")
+                .long("title")
+                .short('t')
+                .value_name("TITLE")
+                .help("Issue title"),
         )
-        .subcommand(
-            Command::new("reopen")
-                .about("Reopen a closed issue")
-                .arg(
-                    Arg::new("number")
-                        .value_name("NUMBER")
-                        .required(true)
-                        .help("Issue number"),
-                )
-                .arg(
-                    Arg::new("extra")
-                        .num_args(0..)
-                        .allow_hyphen_values(true)
-                        .last(true)
-                        .help("Additional flags passed through"),
-                ),
+        .arg(
+            Arg::new("body")
+                .long("body")
+                .short('b')
+                .value_name("BODY")
+                .help("Issue body"),
         )
-        .subcommand(
-            Command::new("edit")
-                .about("Edit an issue (add/remove labels, assignees)")
-                .visible_alias("e")
-                .arg(
-                    Arg::new("number")
-                        .value_name("NUMBER")
-                        .required(true)
-                        .help("Issue number"),
-                )
-                .arg(Arg::new("add-label").long("add-label").value_name("NAME").help("Add a label"))
-                .arg(Arg::new("remove-label").long("remove-label").value_name("NAME").help("Remove a label"))
-                .arg(Arg::new("add-assignee").long("add-assignee").value_name("LOGIN").help("Add an assignee"))
-                .arg(Arg::new("remove-assignee").long("remove-assignee").value_name("LOGIN").help("Remove an assignee"))
-                .arg(
-                    Arg::new("extra")
-                        .num_args(0..)
-                        .allow_hyphen_values(true)
-                        .last(true)
-                        .help("Additional flags passed through to the underlying CLI"),
-                ),
+        .arg(issue_extra_arg())
+}
+
+fn build_issue_close() -> Command {
+    Command::new("close")
+        .about("Close an issue")
+        .arg(issue_number_arg())
+        .arg(issue_extra_arg())
+}
+
+fn build_issue_reopen() -> Command {
+    Command::new("reopen")
+        .about("Reopen a closed issue")
+        .arg(issue_number_arg())
+        .arg(issue_extra_arg())
+}
+
+fn build_issue_edit() -> Command {
+    Command::new("edit")
+        .about("Edit an issue (add/remove labels, assignees)")
+        .visible_alias("e")
+        .arg(issue_number_arg())
+        .arg(Arg::new("add-label").long("add-label").value_name("NAME").help("Add a label"))
+        .arg(Arg::new("remove-label").long("remove-label").value_name("NAME").help("Remove a label"))
+        .arg(Arg::new("add-assignee").long("add-assignee").value_name("LOGIN").help("Add an assignee"))
+        .arg(Arg::new("remove-assignee").long("remove-assignee").value_name("LOGIN").help("Remove an assignee"))
+        .arg(extra_arg())
+}
+
+fn build_issue_comment() -> Command {
+    Command::new("comment")
+        .about("Add a comment to an issue")
+        .arg(issue_number_arg())
+        .arg(
+            Arg::new("body")
+                .long("body")
+                .short('b')
+                .value_name("TEXT")
+                .help("Comment body text"),
         )
-        .subcommand(
-            Command::new("comment")
-                .about("Add a comment to an issue")
-                .arg(
-                    Arg::new("number")
-                        .value_name("NUMBER")
-                        .required(true)
-                        .help("Issue number"),
-                )
-                .arg(
-                    Arg::new("body")
-                        .long("body")
-                        .short('b')
-                        .value_name("TEXT")
-                        .help("Comment body text"),
-                )
-                .arg(
-                    Arg::new("extra")
-                        .num_args(0..)
-                        .allow_hyphen_values(true)
-                        .last(true)
-                        .help("Additional flags passed through to the underlying CLI"),
-                ),
-        )
+        .arg(extra_arg())
 }
 
 /// Hidden subcommand: `gf completions --shell <bash|zsh|fish|...>`
@@ -715,7 +651,7 @@ mod tests {
     #[test]
     fn test_pr_create_has_c_alias() {
         let cli = build_cli();
-        let pr_cmd = cli.find_subcommand("pr").unwrap();
+        let pr_cmd = cli.find_subcommand("pr").expect("pr subcommand exists");
         let create_cmd = pr_cmd
             .find_subcommand("create")
             .expect("create subcommand exists");
@@ -729,7 +665,7 @@ mod tests {
     #[test]
     fn test_pr_view_has_v_alias() {
         let cli = build_cli();
-        let pr_cmd = cli.find_subcommand("pr").unwrap();
+        let pr_cmd = cli.find_subcommand("pr").expect("pr subcommand exists");
         let view_cmd = pr_cmd
             .find_subcommand("view")
             .expect("view subcommand exists");
@@ -743,7 +679,7 @@ mod tests {
     #[test]
     fn test_auth_login_has_l_alias() {
         let cli = build_cli();
-        let auth_cmd = cli.find_subcommand("auth").unwrap();
+        let auth_cmd = cli.find_subcommand("auth").expect("auth subcommand exists");
         let login_cmd = auth_cmd
             .find_subcommand("login")
             .expect("login subcommand exists");
@@ -757,7 +693,7 @@ mod tests {
     #[test]
     fn test_auth_status_has_s_alias() {
         let cli = build_cli();
-        let auth_cmd = cli.find_subcommand("auth").unwrap();
+        let auth_cmd = cli.find_subcommand("auth").expect("auth subcommand exists");
         let status_cmd = auth_cmd
             .find_subcommand("status")
             .expect("status subcommand exists");
@@ -771,7 +707,7 @@ mod tests {
     #[test]
     fn test_repo_fork_has_f_alias() {
         let cli = build_cli();
-        let repo_cmd = cli.find_subcommand("repo").unwrap();
+        let repo_cmd = cli.find_subcommand("repo").expect("repo subcommand exists");
         let fork_cmd = repo_cmd
             .find_subcommand("fork")
             .expect("fork subcommand exists");
@@ -807,7 +743,7 @@ mod tests {
             "gf mr create should parse without error: {:?}",
             result.err()
         );
-        let matches = result.unwrap();
+        let matches = result.expect("gf mr create parses");
         let (subcmd_name, _) = matches.subcommand().expect("subcommand matched");
         // clap returns the canonical name (pr), not the alias (mr)
         assert_eq!(

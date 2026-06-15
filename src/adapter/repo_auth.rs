@@ -5,14 +5,18 @@ use clap::ArgMatches;
 
 // ─── Repo ────────────────────────────────────────────────────────────────────
 
-/// Translate `gf repo ...` ArgMatches into forge-specific args.
+/// Translate `gf repo ...` `ArgMatches` into forge-specific args.
+///
+/// # Errors
+/// Returns [`GfError::UnsupportedFeature`] when the requested repo operation is
+/// not supported by the target forge.
 pub fn translate_repo(forge: ForgeType, matches: &ArgMatches) -> Result<Vec<String>, GfError> {
     let repo_cmd = repo_subcommand_name(forge);
 
     match matches.subcommand() {
-        Some(("view", sub)) => translate_repo_view(forge, repo_cmd, sub),
-        Some(("create", sub)) => translate_repo_create(forge, repo_cmd, sub),
-        Some(("fork", sub)) => translate_repo_fork(forge, repo_cmd, sub),
+        Some(("view", sub)) => Ok(translate_repo_view(forge, repo_cmd, sub)),
+        Some(("create", sub)) => Ok(translate_repo_create(forge, repo_cmd, sub)),
+        Some(("fork", sub)) => Ok(translate_repo_fork(forge, repo_cmd, sub)),
         Some(("clone", sub)) => translate_repo_clone(forge, repo_cmd, sub),
         Some((verb, sub)) => {
             let mut args = vec![repo_cmd.to_string(), verb.to_string()];
@@ -27,31 +31,23 @@ pub fn translate_repo(forge: ForgeType, matches: &ArgMatches) -> Result<Vec<Stri
 
 /// The repo subcommand name per forge.
 /// tea uses "repos" (plural); all others use "repo".
-fn repo_subcommand_name(forge: ForgeType) -> &'static str {
+const fn repo_subcommand_name(forge: ForgeType) -> &'static str {
     match forge {
         ForgeType::Gitea => "repos",
         _ => "repo",
     }
 }
 
-fn translate_repo_view(
-    forge: ForgeType,
-    repo_cmd: &str,
-    matches: &ArgMatches,
-) -> Result<Vec<String>, GfError> {
+fn translate_repo_view(forge: ForgeType, repo_cmd: &str, matches: &ArgMatches) -> Vec<String> {
     let _ = forge;
     let mut args = vec![repo_cmd.to_string(), "view".to_string()];
     if let Some(extra) = matches.get_many::<String>("extra") {
         args.extend(extra.cloned());
     }
-    Ok(args)
+    args
 }
 
-fn translate_repo_create(
-    forge: ForgeType,
-    repo_cmd: &str,
-    matches: &ArgMatches,
-) -> Result<Vec<String>, GfError> {
+fn translate_repo_create(forge: ForgeType, repo_cmd: &str, matches: &ArgMatches) -> Vec<String> {
     let mut args = vec![repo_cmd.to_string(), "create".to_string()];
 
     // --name: positional for gh and glab; --name flag for tea and fj (REPO-02)
@@ -101,14 +97,11 @@ fn translate_repo_create(
 
     // --homepage: only gh supports it; others silently omit
     if let Some(url) = matches.get_one::<String>("homepage") {
-        match forge {
-            ForgeType::Github => {
-                args.push("--homepage".to_string());
-                args.push(url.clone());
-            }
-            _ => {
-                // --homepage not supported on glab/tea/fj; silently omit
-            }
+        if forge == ForgeType::Github {
+            args.push("--homepage".to_string());
+            args.push(url.clone());
+        } else {
+            // --homepage not supported on glab/tea/fj; silently omit
         }
     }
 
@@ -117,27 +110,27 @@ fn translate_repo_create(
         args.extend(extra.cloned());
     }
 
-    Ok(args)
+    args
 }
 
-fn translate_repo_fork(
-    forge: ForgeType,
-    repo_cmd: &str,
-    matches: &ArgMatches,
-) -> Result<Vec<String>, GfError> {
+fn translate_repo_fork(forge: ForgeType, repo_cmd: &str, matches: &ArgMatches) -> Vec<String> {
     let _ = forge;
     let mut args = vec![repo_cmd.to_string(), "fork".to_string()];
     if let Some(extra) = matches.get_many::<String>("extra") {
         args.extend(extra.cloned());
     }
-    Ok(args)
+    args
 }
 
 /// Translate `gf repo clone <repo>` where repo is either:
-///   - owner/repo shorthand (requires [defaults] clone_host config)
-///   - full URL (https://host/owner/repo or git@host:owner/repo)
+///   - owner/repo shorthand (requires [defaults] `clone_host` config)
+///   - full URL (<https://host/owner/repo> or git@host:owner/repo)
 ///
-/// Tea has no clone subcommand → UnsupportedFeature error.
+/// Tea has no clone subcommand → `UnsupportedFeature` error.
+///
+/// # Errors
+/// Returns [`GfError::UnsupportedFeature`] when `forge` is Gitea, which has no
+/// clone subcommand.
 fn translate_repo_clone(
     forge: ForgeType,
     repo_cmd: &str,
@@ -154,22 +147,12 @@ fn translate_repo_clone(
 
     let repo = matches.get_one::<String>("repo").expect("repo is required");
 
-    // Detect if repo is a full URL or owner/repo shorthand
-    let resolved_repo =
-        if repo.starts_with("https://") || repo.starts_with("http://") || repo.contains('@') {
-            // Full URL — pass through as-is
-            repo.clone()
-        } else if repo.contains('/') && !repo.contains(':') {
-            // Looks like owner/repo shorthand — need clone_host from config
-            // Note: The forge type was already detected from the current repo's remote,
-            // but for clone we need to know which HOST to target.
-            //
-            // For shorthand, we just pass owner/repo to the CLI — gh/glab/fj know their default hosts
-            repo.clone()
-        } else {
-            // Unrecognized format — pass through and let forge CLI error
-            repo.clone()
-        };
+    // Detect if repo is a full URL or owner/repo shorthand.
+    // In every case we currently pass the value through as-is:
+    //   - Full URL (https://…, http://…, git@…): pass through verbatim.
+    //   - owner/repo shorthand: gh/glab/fj know their default hosts, so pass through.
+    //   - Unrecognized format: pass through and let the forge CLI error.
+    let resolved_repo = repo.clone();
 
     let mut args = vec![repo_cmd.to_string(), "clone".to_string(), resolved_repo];
 
@@ -182,7 +165,7 @@ fn translate_repo_clone(
 
 // ─── Auth ────────────────────────────────────────────────────────────────────
 
-/// Translate `gf auth ...` ArgMatches into forge-specific args.
+/// Translate `gf auth ...` `ArgMatches` into forge-specific args.
 ///
 /// Tea has NO `auth` subcommand — its auth is under `logins` (Pitfall 3 from RESEARCH.md):
 ///   gf auth login  → tea logins add
@@ -190,7 +173,8 @@ fn translate_repo_clone(
 ///   gf auth status → tea logins ls
 ///
 /// Forgejo uses `auth add-key` for login, `auth list` for status.
-pub fn translate_auth(forge: ForgeType, matches: &ArgMatches) -> Result<Vec<String>, GfError> {
+#[must_use]
+pub fn translate_auth(forge: ForgeType, matches: &ArgMatches) -> Vec<String> {
     match matches.subcommand() {
         Some(("login", sub)) => translate_auth_login(forge, sub),
         Some(("logout", sub)) => translate_auth_logout(forge, sub),
@@ -200,17 +184,16 @@ pub fn translate_auth(forge: ForgeType, matches: &ArgMatches) -> Result<Vec<Stri
             if let Some(extra) = sub.get_many::<String>("extra") {
                 args.extend(extra.cloned());
             }
-            Ok(args)
+            args
         }
-        None => Ok(vec!["auth".to_string()]),
+        None => vec!["auth".to_string()],
     }
 }
 
-fn translate_auth_login(forge: ForgeType, matches: &ArgMatches) -> Result<Vec<String>, GfError> {
+fn translate_auth_login(forge: ForgeType, matches: &ArgMatches) -> Vec<String> {
     // Subcommand remap per forge
     let mut args = match forge {
-        ForgeType::Github => vec!["auth".to_string(), "login".to_string()],
-        ForgeType::Gitlab => vec!["auth".to_string(), "login".to_string()],
+        ForgeType::Github | ForgeType::Gitlab => vec!["auth".to_string(), "login".to_string()],
         ForgeType::Gitea => vec!["logins".to_string(), "add".to_string()],
         ForgeType::Forgejo => vec!["auth".to_string(), "add-key".to_string()],
     };
@@ -234,15 +217,12 @@ fn translate_auth_login(forge: ForgeType, matches: &ArgMatches) -> Result<Vec<St
 
     // --token: all CLIs accept --token except fj (positional args for add-key)
     if let Some(token) = matches.get_one::<String>("token") {
-        match forge {
-            ForgeType::Forgejo => {
-                // fj auth add-key <USER> [KEY] — token is positional, not --token flag
-                // Cannot map without username; silently omit
-            }
-            _ => {
-                args.push("--token".to_string());
-                args.push(token.clone());
-            }
+        if forge == ForgeType::Forgejo {
+            // fj auth add-key <USER> [KEY] — token is positional, not --token flag
+            // Cannot map without username; silently omit
+        } else {
+            args.push("--token".to_string());
+            args.push(token.clone());
         }
     }
 
@@ -251,31 +231,30 @@ fn translate_auth_login(forge: ForgeType, matches: &ArgMatches) -> Result<Vec<St
         args.extend(extra.cloned());
     }
 
-    Ok(args)
+    args
 }
 
-fn translate_auth_logout(forge: ForgeType, matches: &ArgMatches) -> Result<Vec<String>, GfError> {
+fn translate_auth_logout(forge: ForgeType, matches: &ArgMatches) -> Vec<String> {
     let mut args = match forge {
-        ForgeType::Github => vec!["auth".to_string(), "logout".to_string()],
-        ForgeType::Gitlab => vec!["auth".to_string(), "logout".to_string()],
+        ForgeType::Github | ForgeType::Gitlab | ForgeType::Forgejo => {
+            vec!["auth".to_string(), "logout".to_string()]
+        }
         ForgeType::Gitea => vec!["logins".to_string(), "rm".to_string()],
-        ForgeType::Forgejo => vec!["auth".to_string(), "logout".to_string()],
     };
     if let Some(extra) = matches.get_many::<String>("extra") {
         args.extend(extra.cloned());
     }
-    Ok(args)
+    args
 }
 
-fn translate_auth_status(forge: ForgeType, matches: &ArgMatches) -> Result<Vec<String>, GfError> {
+fn translate_auth_status(forge: ForgeType, matches: &ArgMatches) -> Vec<String> {
     let mut args = match forge {
-        ForgeType::Github => vec!["auth".to_string(), "status".to_string()],
-        ForgeType::Gitlab => vec!["auth".to_string(), "status".to_string()],
+        ForgeType::Github | ForgeType::Gitlab => vec!["auth".to_string(), "status".to_string()],
         ForgeType::Gitea => vec!["logins".to_string(), "ls".to_string()],
         ForgeType::Forgejo => vec!["auth".to_string(), "list".to_string()],
     };
     if let Some(extra) = matches.get_many::<String>("extra") {
         args.extend(extra.cloned());
     }
-    Ok(args)
+    args
 }

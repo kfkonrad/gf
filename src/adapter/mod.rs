@@ -16,17 +16,25 @@ use crate::error::GfError;
 use crate::forge::ForgeType;
 use clap::ArgMatches;
 
-/// Translate clap ArgMatches into a Vec<String> of args for the forge CLI.
+/// Translate clap `ArgMatches` into a `Vec<String>` of args for the forge CLI.
 ///
 /// Called after clap parsing in main.rs. The returned Vec is passed directly
-/// to runner::run(forge.cli_name(), &translated).
+/// to `runner::run(forge.cli_name(), &translated)`.
 ///
-/// Dispatches to per-subcommand translators in pr.rs and repo_auth.rs.
-pub fn translate(forge: ForgeType, domain: &str, matches: &ArgMatches) -> Result<Vec<String>, GfError> {
+/// Dispatches to per-subcommand translators in `pr.rs` and `repo_auth.rs`.
+///
+/// # Errors
+/// Returns [`GfError`] when a delegated subcommand translator reports that the
+/// requested operation is unsupported by the target forge.
+pub fn translate(
+    forge: ForgeType,
+    domain: &str,
+    matches: &ArgMatches,
+) -> Result<Vec<String>, GfError> {
     match matches.subcommand() {
         Some(("pr", sub)) => pr::translate_pr(forge, domain, sub),
         Some(("repo", sub)) => repo_auth::translate_repo(forge, sub),
-        Some(("auth", sub)) => repo_auth::translate_auth(forge, sub),
+        Some(("auth", sub)) => Ok(repo_auth::translate_auth(forge, sub)),
         Some(("issue", sub)) => issue::translate_issue(forge, sub),
         Some((other, _)) => Ok(vec![other.to_string()]),
         None => Ok(vec![]),

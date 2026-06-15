@@ -35,8 +35,7 @@ fn main() {
     // Extract --remote (global flag, defaults to "origin")
     let remote = matches
         .get_one::<String>("remote")
-        .map(|s| s.as_str())
-        .unwrap_or("origin");
+        .map_or("origin", std::string::String::as_str);
 
     // Detect the forge from the git remote URL (Phase 2)
     let (forge_type, domain) = match forge::detect_with_domain(remote) {
@@ -57,7 +56,7 @@ fn main() {
     };
 
     // runner::run takes &[&str] — convert Vec<String> to temporary &[&str]
-    let args_refs: Vec<&str> = translated.iter().map(|s| s.as_str()).collect();
+    let args_refs: Vec<&str> = translated.iter().map(std::string::String::as_str).collect();
 
     // Exec the forge CLI (replaces current process on Unix)
     if let Err(e) = runner::run(forge_type.cli_name(), &args_refs) {

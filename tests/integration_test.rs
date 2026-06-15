@@ -32,7 +32,7 @@ fn setup_github_repo() -> tempfile::TempDir {
 }
 
 /// Creates a temp bin dir with only a symlink to git (no gh or other CLIs).
-/// Returns the bin dir path. Caller must keep the TempDir alive.
+/// Returns the bin dir path. Caller must keep the `TempDir` alive.
 fn make_git_only_bin_dir() -> (tempfile::TempDir, String) {
     let bin_dir = tempfile::tempdir().expect("create bin temp dir");
     let git_path = which::which("git").expect("git must be installed");
@@ -41,7 +41,11 @@ fn make_git_only_bin_dir() -> (tempfile::TempDir, String) {
     std::os::unix::fs::symlink(&git_path, &symlink_path).expect("symlink git");
     (
         bin_dir,
-        symlink_path.parent().unwrap().to_string_lossy().to_string(),
+        symlink_path
+            .parent()
+            .expect("symlink path should have parent")
+            .to_string_lossy()
+            .to_string(),
     )
 }
 
@@ -58,7 +62,7 @@ fn test_cli_not_found() {
     let (_bin_tmp, git_only) = make_git_only_bin_dir();
 
     Command::cargo_bin("gf")
-        .unwrap()
+        .expect("gf binary should build")
         .current_dir(repo.path())
         .env("HOME", home_dir.path())
         .env("PATH", &git_only)
@@ -76,7 +80,7 @@ fn test_cli_not_found_format() {
     let (_bin_tmp, git_only) = make_git_only_bin_dir();
 
     Command::cargo_bin("gf")
-        .unwrap()
+        .expect("gf binary should build")
         .current_dir(repo.path())
         .env("HOME", home_dir.path())
         .env("PATH", &git_only)
@@ -94,7 +98,7 @@ fn test_cli_not_found_url() {
     let (_bin_tmp, git_only) = make_git_only_bin_dir();
 
     Command::cargo_bin("gf")
-        .unwrap()
+        .expect("gf binary should build")
         .current_dir(repo.path())
         .env("HOME", home_dir.path())
         .env("PATH", &git_only)
@@ -112,7 +116,7 @@ fn test_cli_not_found_no_ansi() {
     let (_bin_tmp, git_only) = make_git_only_bin_dir();
 
     Command::cargo_bin("gf")
-        .unwrap()
+        .expect("gf binary should build")
         .current_dir(repo.path())
         .env("HOME", home_dir.path())
         .env("PATH", &git_only)
@@ -124,12 +128,12 @@ fn test_cli_not_found_no_ansi() {
 
 // ── CORE-07: Exit code propagation ────────────────────────────────────────
 
-/// Helper: create a bin dir with a fake `gh` script that calls exit_with with the given code.
+/// Helper: create a bin dir with a fake `gh` script that calls `exit_with` with the given code.
 fn setup_gh_exit_script(home_dir: &std::path::Path, exit_code: u32) -> std::path::PathBuf {
     let bin_dir = home_dir.join("bin");
     std::fs::create_dir_all(&bin_dir).expect("create bin dir");
     let gh_script = bin_dir.join("gh");
-    std::fs::write(&gh_script, format!("#!/bin/sh\nexit {}\n", exit_code))
+    std::fs::write(&gh_script, format!("#!/bin/sh\nexit {exit_code}\n"))
         .expect("write gh script");
     #[cfg(unix)]
     {
@@ -142,7 +146,7 @@ fn setup_gh_exit_script(home_dir: &std::path::Path, exit_code: u32) -> std::path
 }
 
 /// When the child exits with code 2, gf must exit with code 2.
-/// After Phase 2: forge detection maps github.com → gh; we fake gh with exit_with.
+/// After Phase 2: forge detection maps github.com → gh; we fake gh with `exit_with`.
 #[test]
 fn test_exit_code_propagation() {
     let repo = setup_github_repo();
@@ -152,7 +156,7 @@ fn test_exit_code_propagation() {
     let path = format!("{}:{}", bin_dir.display(), git_only);
 
     Command::cargo_bin("gf")
-        .unwrap()
+        .expect("gf binary should build")
         .current_dir(repo.path())
         .env("HOME", home_dir.path())
         .env("PATH", &path)
@@ -171,7 +175,7 @@ fn test_exit_code_zero() {
     let path = format!("{}:{}", bin_dir.display(), git_only);
 
     Command::cargo_bin("gf")
-        .unwrap()
+        .expect("gf binary should build")
         .current_dir(repo.path())
         .env("HOME", home_dir.path())
         .env("PATH", &path)
@@ -190,7 +194,7 @@ fn test_exit_code_42() {
     let path = format!("{}:{}", bin_dir.display(), git_only);
 
     Command::cargo_bin("gf")
-        .unwrap()
+        .expect("gf binary should build")
         .current_dir(repo.path())
         .env("HOME", home_dir.path())
         .env("PATH", &path)
@@ -205,10 +209,10 @@ mod forge_detection {
     use assert_cmd::Command;
     use predicates::str::contains;
 
-    /// CORE-01: Running gf outside a git repo should produce the NotAGitRepo error.
+    /// CORE-01: Running gf outside a git repo should produce the `NotAGitRepo` error.
     #[test]
     fn test_gf_outside_git_repo_shows_error() {
-        let mut cmd = Command::cargo_bin("gf").unwrap();
+        let mut cmd = Command::cargo_bin("gf").expect("gf binary should build");
         cmd.current_dir("/tmp") // /tmp is not a git repo
             .arg("pr")
             .arg("view");
@@ -218,7 +222,7 @@ mod forge_detection {
     }
 
     /// CORE-01: Running gf in a repo without a recognized forge should show detection error.
-    /// Covered by forge::tests::test_known_host_unknown_returns_error unit test.
+    /// Covered by `forge::tests::test_known_host_unknown_returns_error` unit test.
     #[test]
     fn test_gf_unknown_remote_url_shows_config_hint() {
         // Covered by unit test. Full integration coverage deferred.
@@ -275,7 +279,7 @@ fn test_browse_no_browser_prints_url() {
         .expect("git commit");
 
     Command::cargo_bin("gf")
-        .unwrap()
+        .expect("gf binary should build")
         .args(["browse", "--no-browser"])
         .current_dir(repo.path())
         .env("HOME", home_dir.path())
@@ -312,7 +316,7 @@ fn test_browse_no_browser_gitlab_url_has_infix() {
         .expect("git commit");
 
     Command::cargo_bin("gf")
-        .unwrap()
+        .expect("gf binary should build")
         .args(["browse", "--no-browser"])
         .current_dir(repo.path())
         .env("HOME", home_dir.path())
@@ -347,7 +351,7 @@ fn test_browse_no_browser_branch_override() {
         .expect("git commit");
 
     Command::cargo_bin("gf")
-        .unwrap()
+        .expect("gf binary should build")
         .args(["browse", "--no-browser", "--branch", "main"])
         .current_dir(repo.path())
         .env("HOME", home_dir.path())
@@ -382,7 +386,7 @@ fn test_browse_no_browser_file_arg() {
         .expect("git commit");
 
     Command::cargo_bin("gf")
-        .unwrap()
+        .expect("gf binary should build")
         .args(["browse", "--no-browser", "src/lib.rs"])
         .current_dir(repo.path())
         .env("HOME", home_dir.path())
@@ -417,7 +421,7 @@ fn test_browse_alias_b_works() {
         .expect("git commit");
 
     Command::cargo_bin("gf")
-        .unwrap()
+        .expect("gf binary should build")
         .args(["b", "--no-browser"])
         .current_dir(repo.path())
         .env("HOME", home_dir.path())
@@ -502,9 +506,9 @@ mod alias_routing {
         let matches = build_cli()
             .try_get_matches_from(["gf", "r", "c"])
             .expect("r c should parse");
-        let (subcmd, sub) = matches.subcommand().unwrap();
+        let (subcmd, sub) = matches.subcommand().expect("top subcommand");
         assert_eq!(subcmd, "repo");
-        let (verb, _) = sub.subcommand().unwrap();
+        let (verb, _) = sub.subcommand().expect("verb subcommand");
         assert_eq!(verb, "create");
     }
 
@@ -514,9 +518,9 @@ mod alias_routing {
         let matches = build_cli()
             .try_get_matches_from(["gf", "a", "l"])
             .expect("a l should parse");
-        let (subcmd, sub) = matches.subcommand().unwrap();
+        let (subcmd, sub) = matches.subcommand().expect("top subcommand");
         assert_eq!(subcmd, "auth");
-        let (verb, _) = sub.subcommand().unwrap();
+        let (verb, _) = sub.subcommand().expect("verb subcommand");
         assert_eq!(verb, "login");
     }
 
@@ -559,7 +563,7 @@ mod alias_routing {
     fn test_completions_zsh_generates_output() {
         let mut buf = Vec::new();
         generate(Shell::Zsh, &mut build_cli(), "gf", &mut buf);
-        let output = String::from_utf8(buf).unwrap();
+        let output = String::from_utf8(buf).expect("completion output should be valid UTF-8");
         assert!(!output.is_empty());
     }
 }
@@ -573,7 +577,7 @@ mod alias_routing {
 #[test]
 fn test_v12_pr_help_shows_checks() {
     Command::cargo_bin("gf")
-        .unwrap()
+        .expect("gf binary should build")
         .args(["pr", "--help"])
         .assert()
         .success()
@@ -583,7 +587,7 @@ fn test_v12_pr_help_shows_checks() {
 #[test]
 fn test_v12_pr_help_shows_comment() {
     Command::cargo_bin("gf")
-        .unwrap()
+        .expect("gf binary should build")
         .args(["pr", "--help"])
         .assert()
         .success()
@@ -593,7 +597,7 @@ fn test_v12_pr_help_shows_comment() {
 #[test]
 fn test_v12_pr_help_shows_edit() {
     Command::cargo_bin("gf")
-        .unwrap()
+        .expect("gf binary should build")
         .args(["pr", "--help"])
         .assert()
         .success()
@@ -605,7 +609,7 @@ fn test_v12_pr_help_shows_edit() {
 #[test]
 fn test_v12_issue_help_shows_comment() {
     Command::cargo_bin("gf")
-        .unwrap()
+        .expect("gf binary should build")
         .args(["issue", "--help"])
         .assert()
         .success()
@@ -615,7 +619,7 @@ fn test_v12_issue_help_shows_comment() {
 #[test]
 fn test_v12_issue_help_shows_edit() {
     Command::cargo_bin("gf")
-        .unwrap()
+        .expect("gf binary should build")
         .args(["issue", "--help"])
         .assert()
         .success()
@@ -627,7 +631,7 @@ fn test_v12_issue_help_shows_edit() {
 #[test]
 fn test_v12_pr_checks_help() {
     Command::cargo_bin("gf")
-        .unwrap()
+        .expect("gf binary should build")
         .args(["pr", "checks", "--help"])
         .assert()
         .success()
@@ -637,7 +641,7 @@ fn test_v12_pr_checks_help() {
 #[test]
 fn test_v12_pr_comment_help() {
     Command::cargo_bin("gf")
-        .unwrap()
+        .expect("gf binary should build")
         .args(["pr", "comment", "--help"])
         .assert()
         .success()
@@ -647,7 +651,7 @@ fn test_v12_pr_comment_help() {
 #[test]
 fn test_v12_issue_comment_help() {
     Command::cargo_bin("gf")
-        .unwrap()
+        .expect("gf binary should build")
         .args(["issue", "comment", "--help"])
         .assert()
         .success()
@@ -657,7 +661,7 @@ fn test_v12_issue_comment_help() {
 #[test]
 fn test_v12_pr_edit_help() {
     Command::cargo_bin("gf")
-        .unwrap()
+        .expect("gf binary should build")
         .args(["pr", "edit", "--help"])
         .assert()
         .success()
@@ -667,7 +671,7 @@ fn test_v12_pr_edit_help() {
 #[test]
 fn test_v12_issue_edit_help() {
     Command::cargo_bin("gf")
-        .unwrap()
+        .expect("gf binary should build")
         .args(["issue", "edit", "--help"])
         .assert()
         .success()

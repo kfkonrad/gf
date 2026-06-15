@@ -2,16 +2,19 @@ use crate::error::{cli_info, GfError};
 
 /// Run the given forge CLI with the provided arguments.
 ///
-/// On Unix: replaces the current process via exec(). This function does not
+/// On Unix: replaces the current process via `exec()`. This function does not
 /// return on success — the forge CLI becomes the process. TTY, signals, and
 /// exit codes are inherited automatically by the shell.
 ///
 /// On Windows: spawns a child process, waits for it, and propagates the exit
 /// code. Handles signal-terminated processes (exit code None) with exit(1).
 ///
-/// Returns Err(GfError::CliNotFound) if the CLI is not on PATH.
-/// Returns Err(GfError::ExecFailed) if exec() fails after PATH check (unusual).
-/// Returns Err(GfError::SpawnFailed) if spawn() fails (Windows only).
+/// # Errors
+///
+/// Returns `Err(GfError::CliNotFound)` if the CLI is not on PATH.
+/// Returns `Err(GfError::ExecFailed)` if `exec()` fails after the PATH check
+/// (unusual). Returns `Err(GfError::SpawnFailed)` if `spawn()` fails (Windows
+/// only).
 pub fn run(cli: &str, args: &[&str]) -> Result<(), GfError> {
     // CORE-06: Check PATH before attempting exec/spawn.
     // which() handles cross-platform PATH lookup, .exe extension on Windows,

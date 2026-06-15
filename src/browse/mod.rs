@@ -17,14 +17,19 @@ pub struct LineRange {
 // ── Public entry point ──────────────────────────────────────────────────────
 
 /// Entry point called from main.rs for the `browse` subcommand.
+///
+/// # Errors
+///
+/// Returns an error if the remote URL cannot be determined or parsed, the
+/// forge type cannot be resolved, the ref/path cannot be resolved, or the
+/// browser fails to launch.
 pub fn run(matches: &ArgMatches) -> Result<(), GfError> {
     // 1. Get remote name from global flag (default "origin")
     //    Note: browse handles its own remote detection — does NOT call forge::detect()
     //    because detect() discards owner/repo. We need all three parts.
     let remote = matches
         .get_one::<String>("remote")
-        .map(|s| s.as_str())
-        .unwrap_or("origin");
+        .map_or("origin", std::string::String::as_str);
 
     // 2. Parse remote URL into parts
     let raw_url = get_remote_url(remote)?;
@@ -35,7 +40,7 @@ pub fn run(matches: &ArgMatches) -> Result<(), GfError> {
 
     // Handle --pr/--mr and --issue early — these don't need git ref resolution
     if let Some(pr_num) = matches.get_one::<String>("pr") {
-        let url = build_pr_url(&forge_type, &host, &owner, &repo, pr_num);
+        let url = build_pr_url(forge_type, &host, &owner, &repo, pr_num);
         println!("{url}");
         let no_browser = matches.get_flag("no-browser");
         if !no_browser {
@@ -45,7 +50,7 @@ pub fn run(matches: &ArgMatches) -> Result<(), GfError> {
     }
 
     if let Some(issue_num) = matches.get_one::<String>("issue") {
-        let url = build_issue_url(&forge_type, &host, &owner, &repo, issue_num);
+        let url = build_issue_url(forge_type, &host, &owner, &repo, issue_num);
         println!("{url}");
         let no_browser = matches.get_flag("no-browser");
         if !no_browser {
@@ -55,18 +60,18 @@ pub fn run(matches: &ArgMatches) -> Result<(), GfError> {
     }
 
     // 4. Resolve branch/SHA ref
-    let branch_override = matches.get_one::<String>("branch").map(|s| s.as_str());
+    let branch_override = matches.get_one::<String>("branch").map(std::string::String::as_str);
     let detached_fallback = resolve_detached_head_fallback(&host);
     let (git_ref, is_sha) = resolve_ref(branch_override, detached_fallback.as_deref())?;
 
     // 5. Build URL
-    let file_arg = matches.get_one::<String>("file").map(|s| s.as_str());
+    let file_arg = matches.get_one::<String>("file").map(std::string::String::as_str);
     let url = if let Some(raw_file) = file_arg {
         let (path_part, line_spec) = split_file_and_line(raw_file);
         let line_range = line_spec.map(parse_line_spec).transpose()?;
         let normalized = normalize_path(path_part)?;
         build_file_url(
-            &forge_type,
+            forge_type,
             &host,
             &owner,
             &repo,
@@ -76,7 +81,7 @@ pub fn run(matches: &ArgMatches) -> Result<(), GfError> {
             line_range.as_ref(),
         )
     } else {
-        build_repo_url(&forge_type, &host, &owner, &repo, &git_ref)
+        build_repo_url(forge_type, &host, &owner, &repo, &git_ref)
     };
 
     // 6. Print URL always (like gh browse behavior)
@@ -94,13 +99,15 @@ pub fn run(matches: &ArgMatches) -> Result<(), GfError> {
 // ── URL construction ────────────────────────────────────────────────────────
 
 /// Builds a repo URL for the given forge and ref.
+///
 /// Repo URL format:
-///   GitHub:  https://host/owner/repo/tree/<ref>
-///   GitLab:  https://host/owner/repo/-/tree/<ref>
-///   Gitea:   https://host/owner/repo/src/branch/<ref>  (or src/commit/ for SHA)
-///   Forgejo: https://host/owner/repo/src/branch/<ref>  (or src/commit/ for SHA)
+///   GitHub:  `https://host/owner/repo/tree/<ref>`
+///   GitLab:  `https://host/owner/repo/-/tree/<ref>`
+///   Gitea:   `https://host/owner/repo/src/branch/<ref>`  (or `src/commit/` for SHA)
+///   Forgejo: `https://host/owner/repo/src/branch/<ref>`  (or `src/commit/` for SHA)
+#[must_use] 
 pub fn build_repo_url(
-    forge: &ForgeType,
+    forge: ForgeType,
     host: &str,
     owner: &str,
     repo: &str,
@@ -115,15 +122,18 @@ pub fn build_repo_url(
 }
 
 /// Builds a file view URL for the given forge, ref, and file path.
-/// is_sha: true when git_ref is a full commit SHA (affects Gitea/Forgejo URL segment).
-/// line_range: optional line anchor (appended as per-forge fragment).
+///
+/// `is_sha`: true when `git_ref` is a full commit SHA (affects Gitea/Forgejo URL segment).
+/// `line_range`: optional line anchor (appended as per-forge fragment).
 /// File URL format:
-///   GitHub:  https://host/owner/repo/blob/<ref>/<path>[#L<n>[-L<m>]]
-///   GitLab:  https://host/owner/repo/-/blob/<ref>/<path>[#L<n>[-<m>]]
-///   Gitea:   https://host/owner/repo/src/branch/<ref>/<path>[#L<n>[-L<m>]]  (or src/commit/ if SHA)
-///   Forgejo: https://host/owner/repo/src/branch/<ref>/<path>[#L<n>[-L<m>]]  (or src/commit/ if SHA)
+///   GitHub:  `https://host/owner/repo/blob/<ref>/<path>[#L<n>[-L<m>]]`
+///   GitLab:  `https://host/owner/repo/-/blob/<ref>/<path>[#L<n>[-<m>]]`
+///   Gitea:   `https://host/owner/repo/src/branch/<ref>/<path>[#L<n>[-L<m>]]`  (or `src/commit/` if SHA)
+///   Forgejo: `https://host/owner/repo/src/branch/<ref>/<path>[#L<n>[-L<m>]]`  (or `src/commit/` if SHA)
+#[allow(clippy::too_many_arguments)]
+#[must_use] 
 pub fn build_file_url(
-    forge: &ForgeType,
+    forge: ForgeType,
     host: &str,
     owner: &str,
     repo: &str,
@@ -150,13 +160,15 @@ pub fn build_file_url(
 }
 
 /// Builds a PR/MR URL for the given forge and PR number.
+///
 /// PR URL format:
-///   GitHub:  https://host/owner/repo/pull/<number>
-///   GitLab:  https://host/owner/repo/-/merge_requests/<number>
-///   Gitea:   https://host/owner/repo/pulls/<number>
-///   Forgejo: https://host/owner/repo/pulls/<number>
+///   GitHub:  `https://host/owner/repo/pull/<number>`
+///   GitLab:  `https://host/owner/repo/-/merge_requests/<number>`
+///   Gitea:   `https://host/owner/repo/pulls/<number>`
+///   Forgejo: `https://host/owner/repo/pulls/<number>`
+#[must_use] 
 pub fn build_pr_url(
-    forge: &ForgeType,
+    forge: ForgeType,
     host: &str,
     owner: &str,
     repo: &str,
@@ -171,13 +183,15 @@ pub fn build_pr_url(
 }
 
 /// Builds an issue URL for the given forge and issue number.
+///
 /// Issue URL format:
-///   GitHub:  https://host/owner/repo/issues/<number>
-///   GitLab:  https://host/owner/repo/-/issues/<number>
-///   Gitea:   https://host/owner/repo/issues/<number>
-///   Forgejo: https://host/owner/repo/issues/<number>
+///   GitHub:  `https://host/owner/repo/issues/<number>`
+///   GitLab:  `https://host/owner/repo/-/issues/<number>`
+///   Gitea:   `https://host/owner/repo/issues/<number>`
+///   Forgejo: `https://host/owner/repo/issues/<number>`
+#[must_use] 
 pub fn build_issue_url(
-    forge: &ForgeType,
+    forge: ForgeType,
     host: &str,
     owner: &str,
     repo: &str,
@@ -194,7 +208,7 @@ pub fn build_issue_url(
 
 // ── Line-range helpers ───────────────────────────────────────────────────────
 
-/// Splits "path:linespec" on the last colon. Returns (path, optional_line_spec).
+/// Splits "path:linespec" on the last colon. Returns (path, `optional_line_spec`).
 fn split_file_and_line(raw: &str) -> (&str, Option<&str>) {
     if let Some(pos) = raw.rfind(':') {
         let (path, rest) = (&raw[..pos], &raw[pos + 1..]);
@@ -207,7 +221,7 @@ fn split_file_and_line(raw: &str) -> (&str, Option<&str>) {
     (raw, None)
 }
 
-/// Parses a line spec string (e.g., "42" or "42-55") into a LineRange.
+/// Parses a line spec string (e.g., "42" or "42-55") into a `LineRange`.
 fn parse_line_spec(spec: &str) -> Result<LineRange, GfError> {
     if let Some((start_str, end_str)) = spec.split_once('-') {
         let start: u32 = start_str.parse().map_err(|_| invalid_line_err(spec))?;
@@ -243,16 +257,16 @@ fn invalid_line_err(spec: &str) -> GfError {
 }
 
 /// Returns the per-forge URL fragment for a line range.
-fn line_fragment(forge: &ForgeType, lr: &LineRange) -> String {
+fn line_fragment(forge: ForgeType, lr: &LineRange) -> String {
     match forge {
-        ForgeType::Github | ForgeType::Gitea | ForgeType::Forgejo => match lr.end {
-            None => format!("#L{}", lr.start),
-            Some(end) => format!("#L{}-L{}", lr.start, end),
-        },
-        ForgeType::Gitlab => match lr.end {
-            None => format!("#L{}", lr.start),
-            Some(end) => format!("#L{}-{}", lr.start, end),
-        },
+        ForgeType::Github | ForgeType::Gitea | ForgeType::Forgejo => lr.end.map_or_else(
+            || format!("#L{}", lr.start),
+            |end| format!("#L{}-L{}", lr.start, end),
+        ),
+        ForgeType::Gitlab => lr.end.map_or_else(
+            || format!("#L{}", lr.start),
+            |end| format!("#L{}-{}", lr.start, end),
+        ),
     }
 }
 
@@ -274,16 +288,22 @@ fn get_remote_url(remote: &str) -> Result<String, GfError> {
     Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
 }
 
-/// Resolves the ForgeType for a given host using the full detection chain
+/// Resolves the `ForgeType` for a given host using the full detection chain
 /// (config → known hosts → cache → live probe).
 fn resolve_forge_type(host: &str) -> Result<ForgeType, GfError> {
     detect_from_host(host)
 }
 
 /// Resolves the git ref to use in the URL.
-/// Returns (ref_string, is_sha).
-/// is_sha is true only when falling back to the full 40-char commit SHA.
-/// Priority: --branch flag > current branch > configured detached_head_fallback > commit SHA.
+///
+/// Returns (`ref_string`, `is_sha`).
+/// `is_sha` is true only when falling back to the full 40-char commit SHA.
+/// Priority: --branch flag > current branch > configured `detached_head_fallback` > commit SHA.
+///
+/// # Errors
+///
+/// Returns an error if HEAD is detached, no `detached_fallback` is configured,
+/// and the underlying `git rev-parse HEAD` invocation fails.
 pub fn resolve_ref(
     branch_override: Option<&str>,
     detached_fallback: Option<&str>,
@@ -291,16 +311,14 @@ pub fn resolve_ref(
     if let Some(b) = branch_override {
         return Ok((b.to_string(), false));
     }
-    match get_current_branch() {
-        Ok(branch) => Ok((branch, false)),
-        Err(_) => {
-            if let Some(fallback) = detached_fallback {
-                return Ok((fallback.to_string(), false));
-            }
-            let sha = get_head_sha()?;
-            Ok((sha, true))
+    let Ok(branch) = get_current_branch() else {
+        if let Some(fallback) = detached_fallback {
+            return Ok((fallback.to_string(), false));
         }
-    }
+        let sha = get_head_sha()?;
+        return Ok((sha, true));
+    };
+    Ok((branch, false))
 }
 
 /// Runs `git symbolic-ref --short HEAD` to get the current branch name.
@@ -346,9 +364,15 @@ fn get_repo_toplevel() -> Result<String, GfError> {
 }
 
 /// Normalizes a file path to be repo-relative.
+///
 /// Absolute paths: strip the repo root prefix.
 /// Relative paths: pass through unchanged.
 /// No local filesystem validation — path may only exist on remote (BROWSE-03 decision).
+///
+/// # Errors
+///
+/// Returns an error if the repository top-level cannot be determined or if an
+/// absolute path lies outside the repository root.
 pub fn normalize_path(path: &str) -> Result<String, GfError> {
     if path.starts_with('/') {
         let toplevel = get_repo_toplevel()?;
@@ -374,26 +398,26 @@ mod tests {
 
     #[test]
     fn test_build_repo_url_github() {
-        let url = build_repo_url(&ForgeType::Github, "github.com", "alice", "myrepo", "main");
+        let url = build_repo_url(ForgeType::Github, "github.com", "alice", "myrepo", "main");
         assert_eq!(url, "https://github.com/alice/myrepo/tree/main");
     }
 
     #[test]
     fn test_build_repo_url_gitlab() {
-        let url = build_repo_url(&ForgeType::Gitlab, "gitlab.com", "alice", "myrepo", "main");
+        let url = build_repo_url(ForgeType::Gitlab, "gitlab.com", "alice", "myrepo", "main");
         assert_eq!(url, "https://gitlab.com/alice/myrepo/-/tree/main");
     }
 
     #[test]
     fn test_build_repo_url_gitea() {
-        let url = build_repo_url(&ForgeType::Gitea, "gitea.com", "alice", "myrepo", "main");
+        let url = build_repo_url(ForgeType::Gitea, "gitea.com", "alice", "myrepo", "main");
         assert_eq!(url, "https://gitea.com/alice/myrepo/src/branch/main");
     }
 
     #[test]
     fn test_build_repo_url_forgejo() {
         let url = build_repo_url(
-            &ForgeType::Forgejo,
+            ForgeType::Forgejo,
             "codeberg.org",
             "alice",
             "myrepo",
@@ -406,7 +430,7 @@ mod tests {
     fn test_build_repo_url_self_hosted_gitlab() {
         // Self-hosted: host is derived from remote, same URL pattern
         let url = build_repo_url(
-            &ForgeType::Gitlab,
+            ForgeType::Gitlab,
             "git.mycompany.com",
             "team",
             "proj",
@@ -420,7 +444,7 @@ mod tests {
     #[test]
     fn test_build_file_url_github() {
         let url = build_file_url(
-            &ForgeType::Github,
+            ForgeType::Github,
             "github.com",
             "alice",
             "myrepo",
@@ -435,7 +459,7 @@ mod tests {
     #[test]
     fn test_build_file_url_gitlab_has_infix() {
         let url = build_file_url(
-            &ForgeType::Gitlab,
+            ForgeType::Gitlab,
             "gitlab.com",
             "alice",
             "myrepo",
@@ -453,7 +477,7 @@ mod tests {
     #[test]
     fn test_build_file_url_gitea_branch() {
         let url = build_file_url(
-            &ForgeType::Gitea,
+            ForgeType::Gitea,
             "gitea.com",
             "alice",
             "myrepo",
@@ -473,7 +497,7 @@ mod tests {
         // Pitfall 1: Gitea/Forgejo use src/commit/<sha> not src/branch/<sha> for detached HEAD
         let sha = "a".repeat(40);
         let url = build_file_url(
-            &ForgeType::Gitea,
+            ForgeType::Gitea,
             "gitea.com",
             "alice",
             "myrepo",
@@ -492,7 +516,7 @@ mod tests {
     fn test_build_file_url_forgejo_sha_uses_commit_segment() {
         let sha = "b".repeat(40);
         let url = build_file_url(
-            &ForgeType::Forgejo,
+            ForgeType::Forgejo,
             "codeberg.org",
             "alice",
             "myrepo",
@@ -542,21 +566,21 @@ mod tests {
 
     #[test]
     fn test_parse_line_spec_single() {
-        let lr = parse_line_spec("42").unwrap();
+        let lr = parse_line_spec("42").expect("parsing valid single line spec should succeed");
         assert_eq!(lr.start, 42);
         assert_eq!(lr.end, None);
     }
 
     #[test]
     fn test_parse_line_spec_range() {
-        let lr = parse_line_spec("42-55").unwrap();
+        let lr = parse_line_spec("42-55").expect("parsing valid line range should succeed");
         assert_eq!(lr.start, 42);
         assert_eq!(lr.end, Some(55));
     }
 
     #[test]
     fn test_parse_line_spec_zero_errors() {
-        let err = parse_line_spec("0").unwrap_err();
+        let err = parse_line_spec("0").expect_err("zero line should be rejected");
         assert!(
             matches!(err, GfError::BrowseUrlConstructionFailed(_)),
             "expected BrowseUrlConstructionFailed, got: {err:?}"
@@ -565,19 +589,19 @@ mod tests {
 
     #[test]
     fn test_parse_line_spec_zero_start_in_range_errors() {
-        let err = parse_line_spec("0-10").unwrap_err();
+        let err = parse_line_spec("0-10").expect_err("zero start should be rejected");
         assert!(matches!(err, GfError::BrowseUrlConstructionFailed(_)));
     }
 
     #[test]
     fn test_parse_line_spec_zero_end_in_range_errors() {
-        let err = parse_line_spec("10-0").unwrap_err();
+        let err = parse_line_spec("10-0").expect_err("zero end should be rejected");
         assert!(matches!(err, GfError::BrowseUrlConstructionFailed(_)));
     }
 
     #[test]
     fn test_parse_line_spec_reversed_errors() {
-        let err = parse_line_spec("55-42").unwrap_err();
+        let err = parse_line_spec("55-42").expect_err("reversed range should be rejected");
         let msg = err.to_string();
         assert!(
             msg.contains("reversed"),
@@ -587,7 +611,7 @@ mod tests {
 
     #[test]
     fn test_parse_line_spec_non_numeric_errors() {
-        let err = parse_line_spec("abc").unwrap_err();
+        let err = parse_line_spec("abc").expect_err("non-numeric spec should be rejected");
         let msg = err.to_string();
         assert!(
             msg.contains("invalid"),
@@ -603,7 +627,7 @@ mod tests {
             start: 42,
             end: None,
         };
-        assert_eq!(line_fragment(&ForgeType::Github, &lr), "#L42");
+        assert_eq!(line_fragment(ForgeType::Github, &lr), "#L42");
     }
 
     #[test]
@@ -612,7 +636,7 @@ mod tests {
             start: 42,
             end: Some(55),
         };
-        assert_eq!(line_fragment(&ForgeType::Github, &lr), "#L42-L55");
+        assert_eq!(line_fragment(ForgeType::Github, &lr), "#L42-L55");
     }
 
     #[test]
@@ -621,7 +645,7 @@ mod tests {
             start: 42,
             end: Some(55),
         };
-        assert_eq!(line_fragment(&ForgeType::Gitlab, &lr), "#L42-55");
+        assert_eq!(line_fragment(ForgeType::Gitlab, &lr), "#L42-55");
     }
 
     #[test]
@@ -630,7 +654,7 @@ mod tests {
             start: 42,
             end: Some(55),
         };
-        assert_eq!(line_fragment(&ForgeType::Gitea, &lr), "#L42-L55");
+        assert_eq!(line_fragment(ForgeType::Gitea, &lr), "#L42-L55");
     }
 
     #[test]
@@ -639,7 +663,7 @@ mod tests {
             start: 42,
             end: Some(55),
         };
-        assert_eq!(line_fragment(&ForgeType::Forgejo, &lr), "#L42-L55");
+        assert_eq!(line_fragment(ForgeType::Forgejo, &lr), "#L42-L55");
     }
 
     // ── build_file_url with line ranges ──
@@ -651,7 +675,7 @@ mod tests {
             end: None,
         };
         let url = build_file_url(
-            &ForgeType::Github,
+            ForgeType::Github,
             "github.com",
             "alice",
             "myrepo",
@@ -673,7 +697,7 @@ mod tests {
             end: Some(55),
         };
         let url = build_file_url(
-            &ForgeType::Github,
+            ForgeType::Github,
             "github.com",
             "alice",
             "myrepo",
@@ -692,7 +716,7 @@ mod tests {
             end: Some(55),
         };
         let url = build_file_url(
-            &ForgeType::Gitlab,
+            ForgeType::Gitlab,
             "gitlab.com",
             "alice",
             "myrepo",
@@ -708,7 +732,7 @@ mod tests {
     fn test_build_file_url_no_line_range_unchanged() {
         // None produces same URL as original (no fragment)
         let url = build_file_url(
-            &ForgeType::Github,
+            ForgeType::Github,
             "github.com",
             "alice",
             "myrepo",
@@ -725,13 +749,13 @@ mod tests {
     #[test]
     fn test_normalize_path_relative_passthrough() {
         // Relative paths are returned unchanged (no git call needed)
-        let result = normalize_path("src/lib.rs").unwrap();
+        let result = normalize_path("src/lib.rs").expect("normalizing relative path should succeed");
         assert_eq!(result, "src/lib.rs");
     }
 
     #[test]
     fn test_normalize_path_relative_with_dotslash() {
-        let result = normalize_path("./src/lib.rs").unwrap();
+        let result = normalize_path("./src/lib.rs").expect("normalizing relative path should succeed");
         // Relative paths pass through as-is (no stripping of ./)
         assert_eq!(result, "./src/lib.rs");
     }
@@ -740,14 +764,14 @@ mod tests {
 
     #[test]
     fn test_resolve_ref_branch_override() {
-        let (git_ref, is_sha) = resolve_ref(Some("main"), None).unwrap();
+        let (git_ref, is_sha) = resolve_ref(Some("main"), None).expect("branch override should resolve");
         assert_eq!(git_ref, "main");
         assert!(!is_sha);
     }
 
     #[test]
     fn test_resolve_ref_branch_override_is_not_sha() {
-        let (_, is_sha) = resolve_ref(Some("feature/my-branch"), None).unwrap();
+        let (_, is_sha) = resolve_ref(Some("feature/my-branch"), None).expect("branch override should resolve");
         assert!(!is_sha);
     }
 
@@ -756,7 +780,7 @@ mod tests {
         // branch_override = None, detached_fallback = Some("main")
         // We can't actually detach HEAD in a unit test, so we test that the
         // override path still wins over the fallback when a branch is provided.
-        let (git_ref, is_sha) = resolve_ref(Some("topic"), Some("main")).unwrap();
+        let (git_ref, is_sha) = resolve_ref(Some("topic"), Some("main")).expect("branch override should resolve");
         assert_eq!(git_ref, "topic");
         assert!(!is_sha);
     }
@@ -768,7 +792,7 @@ mod tests {
         // working directory IS on a branch, the real branch is returned (not sha).
         // The detached-HEAD + fallback path is exercised by the integration path.
         // Here we just confirm the signature compiles and override still wins.
-        let (git_ref, is_sha) = resolve_ref(Some("main"), Some("fallback")).unwrap();
+        let (git_ref, is_sha) = resolve_ref(Some("main"), Some("fallback")).expect("branch override should resolve");
         assert_eq!(git_ref, "main");
         assert!(!is_sha);
     }
@@ -777,25 +801,25 @@ mod tests {
 
     #[test]
     fn test_build_pr_url_github() {
-        let url = build_pr_url(&ForgeType::Github, "github.com", "alice", "repo", "123");
+        let url = build_pr_url(ForgeType::Github, "github.com", "alice", "repo", "123");
         assert_eq!(url, "https://github.com/alice/repo/pull/123");
     }
 
     #[test]
     fn test_build_pr_url_gitlab() {
-        let url = build_pr_url(&ForgeType::Gitlab, "gitlab.com", "alice", "repo", "123");
+        let url = build_pr_url(ForgeType::Gitlab, "gitlab.com", "alice", "repo", "123");
         assert_eq!(url, "https://gitlab.com/alice/repo/-/merge_requests/123");
     }
 
     #[test]
     fn test_build_pr_url_gitea() {
-        let url = build_pr_url(&ForgeType::Gitea, "gitea.com", "alice", "repo", "123");
+        let url = build_pr_url(ForgeType::Gitea, "gitea.com", "alice", "repo", "123");
         assert_eq!(url, "https://gitea.com/alice/repo/pulls/123");
     }
 
     #[test]
     fn test_build_pr_url_forgejo() {
-        let url = build_pr_url(&ForgeType::Forgejo, "codeberg.org", "alice", "repo", "123");
+        let url = build_pr_url(ForgeType::Forgejo, "codeberg.org", "alice", "repo", "123");
         assert_eq!(url, "https://codeberg.org/alice/repo/pulls/123");
     }
 
@@ -803,25 +827,25 @@ mod tests {
 
     #[test]
     fn test_build_issue_url_github() {
-        let url = build_issue_url(&ForgeType::Github, "github.com", "alice", "repo", "42");
+        let url = build_issue_url(ForgeType::Github, "github.com", "alice", "repo", "42");
         assert_eq!(url, "https://github.com/alice/repo/issues/42");
     }
 
     #[test]
     fn test_build_issue_url_gitlab() {
-        let url = build_issue_url(&ForgeType::Gitlab, "gitlab.com", "alice", "repo", "42");
+        let url = build_issue_url(ForgeType::Gitlab, "gitlab.com", "alice", "repo", "42");
         assert_eq!(url, "https://gitlab.com/alice/repo/-/issues/42");
     }
 
     #[test]
     fn test_build_issue_url_gitea() {
-        let url = build_issue_url(&ForgeType::Gitea, "gitea.com", "alice", "repo", "42");
+        let url = build_issue_url(ForgeType::Gitea, "gitea.com", "alice", "repo", "42");
         assert_eq!(url, "https://gitea.com/alice/repo/issues/42");
     }
 
     #[test]
     fn test_build_issue_url_forgejo() {
-        let url = build_issue_url(&ForgeType::Forgejo, "codeberg.org", "alice", "repo", "42");
+        let url = build_issue_url(ForgeType::Forgejo, "codeberg.org", "alice", "repo", "42");
         assert_eq!(url, "https://codeberg.org/alice/repo/issues/42");
     }
 
@@ -830,7 +854,7 @@ mod tests {
     #[test]
     fn test_build_pr_url_self_hosted_gitlab() {
         let url = build_pr_url(
-            &ForgeType::Gitlab,
+            ForgeType::Gitlab,
             "gitlab.company.com",
             "team",
             "project",
@@ -845,7 +869,7 @@ mod tests {
     #[test]
     fn test_build_issue_url_self_hosted_gitlab() {
         let url = build_issue_url(
-            &ForgeType::Gitlab,
+            ForgeType::Gitlab,
             "gitlab.company.com",
             "team",
             "project",
@@ -886,9 +910,13 @@ mod tests {
     fn test_browse_mr_alias_works() {
         let result = crate::cmd::build_cli().try_get_matches_from(["gf", "browse", "--mr", "123"]);
         assert!(result.is_ok(), "browse --mr should parse as alias for --pr");
-        let matches = result.unwrap();
-        let (_, sub) = matches.subcommand().unwrap();
-        let pr_val = sub.get_one::<String>("pr").unwrap();
+        let matches = result.expect("browse --mr should parse");
+        let (_, sub) = matches
+            .subcommand()
+            .expect("browse subcommand should be present");
+        let pr_val = sub
+            .get_one::<String>("pr")
+            .expect("pr value should be present");
         assert_eq!(pr_val, "123");
     }
 
@@ -898,30 +926,38 @@ mod tests {
 
     #[test]
     fn test_resolve_forge_type_self_hosted_via_config() {
-        let _lock = HOME_MUTEX.lock().unwrap();
         use std::io::Write;
+        let _lock = HOME_MUTEX
+            .lock()
+            .expect("HOME_MUTEX should not be poisoned");
         let tmp_dir = std::path::PathBuf::from("/tmp/gf-test-phase5-config");
-        let config_dir = tmp_dir.join(".config/gf");
-        std::fs::create_dir_all(&config_dir).unwrap();
-        let config_path = config_dir.join("config.toml");
-        let mut f = std::fs::File::create(&config_path).unwrap();
-        writeln!(
-            f,
-            "[[forge]]\ndomain = \"git.mycompany.com\"\ntype = \"gitlab\""
-        )
-        .unwrap();
-        unsafe { std::env::set_var("HOME", &tmp_dir) };
-        let result = resolve_forge_type("git.mycompany.com").unwrap();
-        assert_eq!(result, ForgeType::Gitlab);
+        temp_env::with_var("HOME", Some(&tmp_dir), || {
+            let config_dir = tmp_dir.join(".config/gf");
+            std::fs::create_dir_all(&config_dir).expect("creating config dir should succeed");
+            let config_path = config_dir.join("config.toml");
+            let mut f =
+                std::fs::File::create(&config_path).expect("creating config file should succeed");
+            writeln!(
+                f,
+                "[[forge]]\ndomain = \"git.mycompany.com\"\ntype = \"gitlab\""
+            )
+            .expect("writing config should succeed");
+            let result =
+                resolve_forge_type("git.mycompany.com").expect("forge type should resolve");
+            assert_eq!(result, ForgeType::Gitlab);
+        });
         // Cleanup
         let _ = std::fs::remove_dir_all(&tmp_dir);
     }
 
     #[test]
     fn test_resolve_forge_type_self_hosted_unknown_still_errors() {
-        let _lock = HOME_MUTEX.lock().unwrap();
-        unsafe { std::env::set_var("HOME", "/tmp/gf-test-phase5-empty") };
-        let result = resolve_forge_type("unknown.example.com");
-        assert!(matches!(result, Err(GfError::ForgeNotDetected { .. })));
+        let _lock = HOME_MUTEX
+            .lock()
+            .expect("HOME_MUTEX should not be poisoned");
+        temp_env::with_var("HOME", Some("/tmp/gf-test-phase5-empty"), || {
+            let result = resolve_forge_type("unknown.example.com");
+            assert!(matches!(result, Err(GfError::ForgeNotDetected { .. })));
+        });
     }
 }
