@@ -3,17 +3,25 @@ use crate::error::GfError;
 use crate::forge::{resolve_delete_branch, ForgeType};
 use clap::ArgMatches;
 
-/// Translate `gf pr ...` ArgMatches into forge-specific args.
-/// Called by adapter::translate() when the matched subcommand is "pr" (or "mr" alias).
-pub fn translate_pr(forge: ForgeType, domain: &str, matches: &ArgMatches) -> Result<Vec<String>, GfError> {
+/// Translate `gf pr ...` `ArgMatches` into forge-specific args.
+/// Called by `adapter::translate()` when the matched subcommand is "pr" (or "mr" alias).
+///
+/// # Errors
+/// Returns [`GfError::UnsupportedFeature`] when the requested PR operation is
+/// not supported by the target forge.
+pub fn translate_pr(
+    forge: ForgeType,
+    domain: &str,
+    matches: &ArgMatches,
+) -> Result<Vec<String>, GfError> {
     // The PR subcommand name differs per forge (PR-03)
     let pr_cmd = pr_subcommand_name(forge);
 
     match matches.subcommand() {
-        Some(("create", sub)) => translate_pr_create(forge, pr_cmd, sub),
-        Some(("view", sub)) => translate_pr_view(forge, pr_cmd, sub),
+        Some(("create", sub)) => Ok(translate_pr_create(forge, pr_cmd, sub)),
+        Some(("view", sub)) => Ok(translate_pr_view(forge, pr_cmd, sub)),
         Some(("list", sub)) => translate_pr_list(forge, pr_cmd, sub),
-        Some(("checkout", sub)) => translate_pr_checkout(forge, pr_cmd, sub),
+        Some(("checkout", sub)) => Ok(translate_pr_checkout(forge, pr_cmd, sub)),
         Some(("merge", sub)) => translate_pr_merge(forge, domain, pr_cmd, sub),
         Some(("review", sub)) => translate_pr_review(forge, pr_cmd, sub),
         Some(("approve", sub)) => translate_pr_approve(forge, pr_cmd, sub),
@@ -33,21 +41,16 @@ pub fn translate_pr(forge: ForgeType, domain: &str, matches: &ArgMatches) -> Res
 }
 
 /// Maps the canonical "pr" command to the forge-specific equivalent (PR-03).
-fn pr_subcommand_name(forge: ForgeType) -> &'static str {
+const fn pr_subcommand_name(forge: ForgeType) -> &'static str {
     match forge {
-        ForgeType::Github => "pr",
+        ForgeType::Github | ForgeType::Forgejo => "pr",
         ForgeType::Gitlab => "mr",
         ForgeType::Gitea => "pulls",
-        ForgeType::Forgejo => "pr",
     }
 }
 
 /// Translate `gf pr create` with canonical flags (PR-01, PR-02, PR-04).
-fn translate_pr_create(
-    forge: ForgeType,
-    pr_cmd: &str,
-    matches: &ArgMatches,
-) -> Result<Vec<String>, GfError> {
+fn translate_pr_create(forge: ForgeType, pr_cmd: &str, matches: &ArgMatches) -> Vec<String> {
     let mut args = vec![pr_cmd.to_string(), "create".to_string()];
 
     // --title: canonical flag name matches all forges
@@ -93,7 +96,7 @@ fn translate_pr_create(
         args.extend(extra.cloned());
     }
 
-    Ok(args)
+    args
 }
 
 /// Translate `gf pr list` with filter flags (PR-01).
@@ -115,21 +118,18 @@ fn translate_pr_list(
 
     // --state: glab uses boolean flags, others use --state <value>
     if let Some(state) = matches.get_one::<String>("state") {
-        match forge {
-            ForgeType::Gitlab => match state.as_str() {
-                "closed" => args.push("--closed".to_string()),
-                "merged" => args.push("--merged".to_string()),
-                "all" => args.push("--all".to_string()),
-                "open" => {} // glab default, no flag needed
-                _ => {
-                    args.push("--state".to_string());
-                    args.push(state.clone());
-                }
-            },
+        if forge == ForgeType::Gitlab { match state.as_str() {
+            "closed" => args.push("--closed".to_string()),
+            "merged" => args.push("--merged".to_string()),
+            "all" => args.push("--all".to_string()),
+            "open" => {} // glab default, no flag needed
             _ => {
                 args.push("--state".to_string());
                 args.push(state.clone());
             }
+        } } else {
+            args.push("--state".to_string());
+            args.push(state.clone());
         }
     }
 
@@ -183,11 +183,7 @@ fn translate_pr_list(
 }
 
 /// Translate `gf pr checkout [<number>]`.
-fn translate_pr_checkout(
-    forge: ForgeType,
-    pr_cmd: &str,
-    matches: &ArgMatches,
-) -> Result<Vec<String>, GfError> {
+fn translate_pr_checkout(forge: ForgeType, pr_cmd: &str, matches: &ArgMatches) -> Vec<String> {
     let mut args = vec![pr_cmd.to_string(), "checkout".to_string()];
 
     if let Some(number) = matches.get_one::<String>("number") {
@@ -199,7 +195,7 @@ fn translate_pr_checkout(
     }
 
     let _ = forge; // forge-specific routing may be added later
-    Ok(args)
+    args
 }
 
 /// Translate `gf pr merge [<number>] [--squash|--rebase|--merge] [--delete-branch|--no-delete-branch]` (PR-02).
@@ -412,7 +408,7 @@ fn translate_pr_review(
 }
 
 /// Translate `gf pr approve [<number>]` — syntactic sugar for `gf pr review --approve`.
-/// Produces the same output as translate_pr_review with --approve flag.
+/// Produces the same output as `translate_pr_review` with --approve flag.
 fn translate_pr_approve(
     forge: ForgeType,
     pr_cmd: &str,
@@ -452,11 +448,7 @@ fn translate_pr_approve(
 /// Translate `gf pr view [<number>]` (PR-05, PR-06).
 /// Delegates to the underlying CLI with or without number.
 /// Current-branch PR lookup is handled natively by gh/glab/tea/fj.
-fn translate_pr_view(
-    forge: ForgeType,
-    pr_cmd: &str,
-    matches: &ArgMatches,
-) -> Result<Vec<String>, GfError> {
+fn translate_pr_view(forge: ForgeType, pr_cmd: &str, matches: &ArgMatches) -> Vec<String> {
     let mut args = vec![pr_cmd.to_string()];
 
     // tea does not have "pulls view" — use "pulls <N>" directly
@@ -474,7 +466,7 @@ fn translate_pr_view(
         args.extend(extra.cloned());
     }
 
-    Ok(args)
+    args
 }
 
 /// Translate `gf pr edit [<number>] [--add-label X] [--remove-label X] [--add-reviewer X] [--remove-reviewer X] [--add-assignee X] [--remove-assignee X]` (PR-09).
@@ -558,10 +550,10 @@ fn translate_pr_edit(
             if let Some(n) = number { args.push(n.clone()); }
             if let Some(v) = add_label { args.push("--label".to_string()); args.push(v.clone()); }
             if let Some(v) = remove_label { args.push("--unlabel".to_string()); args.push(v.clone()); }
-            if let Some(v) = add_reviewer { args.push("--reviewer".to_string()); args.push(format!("+{}", v)); }
-            if let Some(v) = remove_reviewer { args.push("--reviewer".to_string()); args.push(format!("-{}", v)); }
-            if let Some(v) = add_assignee { args.push("--assignee".to_string()); args.push(format!("+{}", v)); }
-            if let Some(v) = remove_assignee { args.push("--assignee".to_string()); args.push(format!("-{}", v)); }
+            if let Some(v) = add_reviewer { args.push("--reviewer".to_string()); args.push(format!("+{v}")); }
+            if let Some(v) = remove_reviewer { args.push("--reviewer".to_string()); args.push(format!("-{v}")); }
+            if let Some(v) = add_assignee { args.push("--assignee".to_string()); args.push(format!("+{v}")); }
+            if let Some(v) = remove_assignee { args.push("--assignee".to_string()); args.push(format!("-{v}")); }
             if let Some(extra) = matches.get_many::<String>("extra") { args.extend(extra.cloned()); }
             Ok(args)
         }

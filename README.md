@@ -34,6 +34,8 @@ cd gf
 cargo install --path .
 ```
 
+Alternatively you can download the latest version from the GitHub Releases.
+
 ## Usage
 
 `gf` organizes commands into five groups: `pr`, `issue`, `repo`, `auth`, and `browse`. The `mr` alias for `pr` is
