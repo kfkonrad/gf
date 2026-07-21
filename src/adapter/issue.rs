@@ -57,15 +57,17 @@ fn translate_issue_list(forge: ForgeType, issue_cmd: &str, matches: &ArgMatches)
 
     // --state: glab uses boolean flags, others use --state <value>
     if let Some(state) = matches.get_one::<String>("state") {
-        if forge == ForgeType::Gitlab { match state.as_str() {
-            "closed" => args.push("--closed".to_string()),
-            "all" => args.push("--all".to_string()),
-            "open" => {} // glab default, no flag needed
-            _ => {
-                args.push("--state".to_string());
-                args.push(state.clone());
+        if forge == ForgeType::Gitlab {
+            match state.as_str() {
+                "closed" => args.push("--closed".to_string()),
+                "all" => args.push("--all".to_string()),
+                "open" => {} // glab default, no flag needed
+                _ => {
+                    args.push("--state".to_string());
+                    args.push(state.clone());
+                }
             }
-        } } else {
+        } else {
             args.push("--state".to_string());
             args.push(state.clone());
         }
@@ -215,43 +217,35 @@ fn translate_issue_edit(
     issue_cmd: &str,
     matches: &ArgMatches,
 ) -> Result<Vec<String>, GfError> {
-    let number = matches.get_one::<String>("number");
-    let add_label = matches.get_one::<String>("add-label");
-    let remove_label = matches.get_one::<String>("remove-label");
-    let add_assignee = matches.get_one::<String>("add-assignee");
+    validate_issue_edit(forge, matches)?;
+    Ok(build_issue_edit(forge, issue_cmd, matches))
+}
+
+/// Checks the `issue edit` flags against the target forge's capabilities.
+///
+/// # Errors
+///
+/// Returns [`GfError::UnsupportedFeature`] for the flags Forgejo and Gitea
+/// cannot express (see [`translate_issue_edit`] for the forge mapping).
+fn validate_issue_edit(forge: ForgeType, matches: &ArgMatches) -> Result<(), GfError> {
     let remove_assignee = matches.get_one::<String>("remove-assignee");
 
-    // ── VALIDATE: check flags against forge capabilities ──
     match forge {
         ForgeType::Forgejo => {
             // fj issue edit has no labels or assignees subcommands
-            if add_label.is_some() {
-                return Err(GfError::UnsupportedFeature {
-                    feature: "issue edit --add-label".to_string(),
-                    forge: "Forgejo".to_string(),
-                    forge_cli: "fj".to_string(),
-                });
-            }
-            if remove_label.is_some() {
-                return Err(GfError::UnsupportedFeature {
-                    feature: "issue edit --remove-label".to_string(),
-                    forge: "Forgejo".to_string(),
-                    forge_cli: "fj".to_string(),
-                });
-            }
-            if add_assignee.is_some() {
-                return Err(GfError::UnsupportedFeature {
-                    feature: "issue edit --add-assignee".to_string(),
-                    forge: "Forgejo".to_string(),
-                    forge_cli: "fj".to_string(),
-                });
-            }
-            if remove_assignee.is_some() {
-                return Err(GfError::UnsupportedFeature {
-                    feature: "issue edit --remove-assignee".to_string(),
-                    forge: "Forgejo".to_string(),
-                    forge_cli: "fj".to_string(),
-                });
+            for flag in [
+                "add-label",
+                "remove-label",
+                "add-assignee",
+                "remove-assignee",
+            ] {
+                if matches.get_one::<String>(flag).is_some() {
+                    return Err(GfError::UnsupportedFeature {
+                        feature: format!("issue edit --{flag}"),
+                        forge: "Forgejo".to_string(),
+                        forge_cli: "fj".to_string(),
+                    });
+                }
             }
         }
         // tea issues edit has no --remove-assignees
@@ -265,44 +259,104 @@ fn translate_issue_edit(
         _ => {} // Github and Gitlab support all issue edit flags
     }
 
-    // ── BUILD: construct forge-specific args ──
+    Ok(())
+}
+
+/// Builds the forge-specific `issue edit` args. Assumes [`validate_issue_edit`]
+/// has already rejected the flags the forge cannot express.
+fn build_issue_edit(forge: ForgeType, issue_cmd: &str, matches: &ArgMatches) -> Vec<String> {
+    let number = matches.get_one::<String>("number");
+    let add_label = matches.get_one::<String>("add-label");
+    let remove_label = matches.get_one::<String>("remove-label");
+    let add_assignee = matches.get_one::<String>("add-assignee");
+    let remove_assignee = matches.get_one::<String>("remove-assignee");
+
     match forge {
         ForgeType::Github => {
             let mut args = vec![issue_cmd.to_string(), "edit".to_string()];
-            if let Some(n) = number { args.push(n.clone()); }
-            if let Some(v) = add_label { args.push("--add-label".to_string()); args.push(v.clone()); }
-            if let Some(v) = remove_label { args.push("--remove-label".to_string()); args.push(v.clone()); }
-            if let Some(v) = add_assignee { args.push("--add-assignee".to_string()); args.push(v.clone()); }
-            if let Some(v) = remove_assignee { args.push("--remove-assignee".to_string()); args.push(v.clone()); }
-            if let Some(extra) = matches.get_many::<String>("extra") { args.extend(extra.cloned()); }
-            Ok(args)
+            if let Some(n) = number {
+                args.push(n.clone());
+            }
+            if let Some(v) = add_label {
+                args.push("--add-label".to_string());
+                args.push(v.clone());
+            }
+            if let Some(v) = remove_label {
+                args.push("--remove-label".to_string());
+                args.push(v.clone());
+            }
+            if let Some(v) = add_assignee {
+                args.push("--add-assignee".to_string());
+                args.push(v.clone());
+            }
+            if let Some(v) = remove_assignee {
+                args.push("--remove-assignee".to_string());
+                args.push(v.clone());
+            }
+            if let Some(extra) = matches.get_many::<String>("extra") {
+                args.extend(extra.cloned());
+            }
+            args
         }
         ForgeType::Gitlab => {
             let mut args = vec![issue_cmd.to_string(), "update".to_string()]; // "issue" "update"
-            if let Some(n) = number { args.push(n.clone()); }
-            if let Some(v) = add_label { args.push("--label".to_string()); args.push(v.clone()); }
-            if let Some(v) = remove_label { args.push("--unlabel".to_string()); args.push(v.clone()); }
-            if let Some(v) = add_assignee { args.push("--assignee".to_string()); args.push(format!("+{v}")); }
-            if let Some(v) = remove_assignee { args.push("--assignee".to_string()); args.push(format!("-{v}")); }
-            if let Some(extra) = matches.get_many::<String>("extra") { args.extend(extra.cloned()); }
-            Ok(args)
+            if let Some(n) = number {
+                args.push(n.clone());
+            }
+            if let Some(v) = add_label {
+                args.push("--label".to_string());
+                args.push(v.clone());
+            }
+            if let Some(v) = remove_label {
+                args.push("--unlabel".to_string());
+                args.push(v.clone());
+            }
+            if let Some(v) = add_assignee {
+                args.push("--assignee".to_string());
+                args.push(format!("+{v}"));
+            }
+            if let Some(v) = remove_assignee {
+                args.push("--assignee".to_string());
+                args.push(format!("-{v}"));
+            }
+            if let Some(extra) = matches.get_many::<String>("extra") {
+                args.extend(extra.cloned());
+            }
+            args
         }
         ForgeType::Gitea => {
             let mut args = vec![issue_cmd.to_string(), "edit".to_string()]; // "issues" "edit"
-            if let Some(n) = number { args.push(n.clone()); }
-            if let Some(v) = add_label { args.push("--add-labels".to_string()); args.push(v.clone()); } // plural!
-            if let Some(v) = remove_label { args.push("--remove-labels".to_string()); args.push(v.clone()); } // plural!
-            if let Some(v) = add_assignee { args.push("--add-assignees".to_string()); args.push(v.clone()); } // plural!
-            // remove_assignee: validated above (UnsupportedFeature)
-            if let Some(extra) = matches.get_many::<String>("extra") { args.extend(extra.cloned()); }
-            Ok(args)
+            if let Some(n) = number {
+                args.push(n.clone());
+            }
+            if let Some(v) = add_label {
+                args.push("--add-labels".to_string());
+                args.push(v.clone());
+            } // plural!
+            if let Some(v) = remove_label {
+                args.push("--remove-labels".to_string());
+                args.push(v.clone());
+            } // plural!
+            if let Some(v) = add_assignee {
+                args.push("--add-assignees".to_string());
+                args.push(v.clone());
+            } // plural!
+              // remove_assignee: validated above (UnsupportedFeature)
+            if let Some(extra) = matches.get_many::<String>("extra") {
+                args.extend(extra.cloned());
+            }
+            args
         }
         ForgeType::Forgejo => {
             // All label/assignee flags validated above; only passthrough remains
             let mut args = vec![issue_cmd.to_string(), "edit".to_string()];
-            if let Some(n) = number { args.push(n.clone()); }
-            if let Some(extra) = matches.get_many::<String>("extra") { args.extend(extra.cloned()); }
-            Ok(args)
+            if let Some(n) = number {
+                args.push(n.clone());
+            }
+            if let Some(extra) = matches.get_many::<String>("extra") {
+                args.extend(extra.cloned());
+            }
+            args
         }
     }
 }
@@ -326,14 +380,26 @@ fn translate_issue_comment(
         ForgeType::Gitlab => args.push("note".to_string()),
         _ => args.push("comment".to_string()),
     }
-    if let Some(n) = number { args.push(n.clone()); }
+    if let Some(n) = number {
+        args.push(n.clone());
+    }
     if let Some(b) = body {
         match forge {
-            ForgeType::Gitlab => { args.push("--message".to_string()); args.push(b.clone()); }
-            ForgeType::Forgejo => { args.push(b.clone()); }
-            _ => { args.push("--body".to_string()); args.push(b.clone()); }
+            ForgeType::Gitlab => {
+                args.push("--message".to_string());
+                args.push(b.clone());
+            }
+            ForgeType::Forgejo => {
+                args.push(b.clone());
+            }
+            _ => {
+                args.push("--body".to_string());
+                args.push(b.clone());
+            }
         }
     }
-    if let Some(extra) = matches.get_many::<String>("extra") { args.extend(extra.cloned()); }
+    if let Some(extra) = matches.get_many::<String>("extra") {
+        args.extend(extra.cloned());
+    }
     Ok(args)
 }

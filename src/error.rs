@@ -57,7 +57,7 @@ pub struct CliInfo {
 }
 
 /// Return install hint info for a known CLI, or a sensible default.
-#[must_use] 
+#[must_use]
 pub fn cli_info(cli: &str) -> CliInfo {
     match cli {
         "gh" => CliInfo {
