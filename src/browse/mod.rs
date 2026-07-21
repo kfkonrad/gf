@@ -2,7 +2,9 @@
 //! Does NOT delegate to gh/glab/tea/fj (BROWSE-05).
 
 use crate::error::GfError;
-use crate::forge::{detect_from_host, parse_remote_parts, resolve_detached_head_fallback, ForgeType};
+use crate::forge::{
+    detect_from_host, parse_remote_parts, resolve_detached_head_fallback, ForgeType,
+};
 use clap::ArgMatches;
 
 // ── Line-range types ─────────────────────────────────────────────────────────
@@ -60,12 +62,16 @@ pub fn run(matches: &ArgMatches) -> Result<(), GfError> {
     }
 
     // 4. Resolve branch/SHA ref
-    let branch_override = matches.get_one::<String>("branch").map(std::string::String::as_str);
+    let branch_override = matches
+        .get_one::<String>("branch")
+        .map(std::string::String::as_str);
     let detached_fallback = resolve_detached_head_fallback(&host);
     let (git_ref, is_sha) = resolve_ref(branch_override, detached_fallback.as_deref())?;
 
     // 5. Build URL
-    let file_arg = matches.get_one::<String>("file").map(std::string::String::as_str);
+    let file_arg = matches
+        .get_one::<String>("file")
+        .map(std::string::String::as_str);
     let url = if let Some(raw_file) = file_arg {
         let (path_part, line_spec) = split_file_and_line(raw_file);
         let line_range = line_spec.map(parse_line_spec).transpose()?;
@@ -105,7 +111,7 @@ pub fn run(matches: &ArgMatches) -> Result<(), GfError> {
 ///   GitLab:  `https://host/owner/repo/-/tree/<ref>`
 ///   Gitea:   `https://host/owner/repo/src/branch/<ref>`  (or `src/commit/` for SHA)
 ///   Forgejo: `https://host/owner/repo/src/branch/<ref>`  (or `src/commit/` for SHA)
-#[must_use] 
+#[must_use]
 pub fn build_repo_url(
     forge: ForgeType,
     host: &str,
@@ -131,7 +137,7 @@ pub fn build_repo_url(
 ///   Gitea:   `https://host/owner/repo/src/branch/<ref>/<path>[#L<n>[-L<m>]]`  (or `src/commit/` if SHA)
 ///   Forgejo: `https://host/owner/repo/src/branch/<ref>/<path>[#L<n>[-L<m>]]`  (or `src/commit/` if SHA)
 #[allow(clippy::too_many_arguments)]
-#[must_use] 
+#[must_use]
 pub fn build_file_url(
     forge: ForgeType,
     host: &str,
@@ -166,14 +172,8 @@ pub fn build_file_url(
 ///   GitLab:  `https://host/owner/repo/-/merge_requests/<number>`
 ///   Gitea:   `https://host/owner/repo/pulls/<number>`
 ///   Forgejo: `https://host/owner/repo/pulls/<number>`
-#[must_use] 
-pub fn build_pr_url(
-    forge: ForgeType,
-    host: &str,
-    owner: &str,
-    repo: &str,
-    number: &str,
-) -> String {
+#[must_use]
+pub fn build_pr_url(forge: ForgeType, host: &str, owner: &str, repo: &str, number: &str) -> String {
     let base = format!("https://{host}/{owner}/{repo}");
     match forge {
         ForgeType::Github => format!("{base}/pull/{number}"),
@@ -189,7 +189,7 @@ pub fn build_pr_url(
 ///   GitLab:  `https://host/owner/repo/-/issues/<number>`
 ///   Gitea:   `https://host/owner/repo/issues/<number>`
 ///   Forgejo: `https://host/owner/repo/issues/<number>`
-#[must_use] 
+#[must_use]
 pub fn build_issue_url(
     forge: ForgeType,
     host: &str,
@@ -749,13 +749,15 @@ mod tests {
     #[test]
     fn test_normalize_path_relative_passthrough() {
         // Relative paths are returned unchanged (no git call needed)
-        let result = normalize_path("src/lib.rs").expect("normalizing relative path should succeed");
+        let result =
+            normalize_path("src/lib.rs").expect("normalizing relative path should succeed");
         assert_eq!(result, "src/lib.rs");
     }
 
     #[test]
     fn test_normalize_path_relative_with_dotslash() {
-        let result = normalize_path("./src/lib.rs").expect("normalizing relative path should succeed");
+        let result =
+            normalize_path("./src/lib.rs").expect("normalizing relative path should succeed");
         // Relative paths pass through as-is (no stripping of ./)
         assert_eq!(result, "./src/lib.rs");
     }
@@ -764,14 +766,16 @@ mod tests {
 
     #[test]
     fn test_resolve_ref_branch_override() {
-        let (git_ref, is_sha) = resolve_ref(Some("main"), None).expect("branch override should resolve");
+        let (git_ref, is_sha) =
+            resolve_ref(Some("main"), None).expect("branch override should resolve");
         assert_eq!(git_ref, "main");
         assert!(!is_sha);
     }
 
     #[test]
     fn test_resolve_ref_branch_override_is_not_sha() {
-        let (_, is_sha) = resolve_ref(Some("feature/my-branch"), None).expect("branch override should resolve");
+        let (_, is_sha) =
+            resolve_ref(Some("feature/my-branch"), None).expect("branch override should resolve");
         assert!(!is_sha);
     }
 
@@ -780,7 +784,8 @@ mod tests {
         // branch_override = None, detached_fallback = Some("main")
         // We can't actually detach HEAD in a unit test, so we test that the
         // override path still wins over the fallback when a branch is provided.
-        let (git_ref, is_sha) = resolve_ref(Some("topic"), Some("main")).expect("branch override should resolve");
+        let (git_ref, is_sha) =
+            resolve_ref(Some("topic"), Some("main")).expect("branch override should resolve");
         assert_eq!(git_ref, "topic");
         assert!(!is_sha);
     }
@@ -792,7 +797,8 @@ mod tests {
         // working directory IS on a branch, the real branch is returned (not sha).
         // The detached-HEAD + fallback path is exercised by the integration path.
         // Here we just confirm the signature compiles and override still wins.
-        let (git_ref, is_sha) = resolve_ref(Some("main"), Some("fallback")).expect("branch override should resolve");
+        let (git_ref, is_sha) =
+            resolve_ref(Some("main"), Some("fallback")).expect("branch override should resolve");
         assert_eq!(git_ref, "main");
         assert!(!is_sha);
     }

@@ -133,8 +133,7 @@ fn setup_gh_exit_script(home_dir: &std::path::Path, exit_code: u32) -> std::path
     let bin_dir = home_dir.join("bin");
     std::fs::create_dir_all(&bin_dir).expect("create bin dir");
     let gh_script = bin_dir.join("gh");
-    std::fs::write(&gh_script, format!("#!/bin/sh\nexit {exit_code}\n"))
-        .expect("write gh script");
+    std::fs::write(&gh_script, format!("#!/bin/sh\nexit {exit_code}\n")).expect("write gh script");
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;

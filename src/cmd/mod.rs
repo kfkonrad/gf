@@ -14,7 +14,7 @@ use clap::{Arg, ArgAction, Command};
 /// `gf mr create` → `pr create` works automatically (mr resolves to pr, then create
 /// resolves as a subcommand). Help text for `pr create` notes `mr create` in its
 /// about string.
-#[must_use] 
+#[must_use]
 pub fn build_cli() -> Command {
     Command::new("gf")
         .about("Unified git forge CLI — works across GitHub, GitLab, Gitea, and Forgejo")
@@ -251,12 +251,42 @@ fn build_pr_edit() -> Command {
                 .required(false)
                 .help("PR number (optional if on a PR branch)"),
         )
-        .arg(Arg::new("add-label").long("add-label").value_name("NAME").help("Add a label"))
-        .arg(Arg::new("remove-label").long("remove-label").value_name("NAME").help("Remove a label"))
-        .arg(Arg::new("add-reviewer").long("add-reviewer").value_name("LOGIN").help("Add a reviewer"))
-        .arg(Arg::new("remove-reviewer").long("remove-reviewer").value_name("LOGIN").help("Remove a reviewer"))
-        .arg(Arg::new("add-assignee").long("add-assignee").value_name("LOGIN").help("Add an assignee"))
-        .arg(Arg::new("remove-assignee").long("remove-assignee").value_name("LOGIN").help("Remove an assignee"))
+        .arg(
+            Arg::new("add-label")
+                .long("add-label")
+                .value_name("NAME")
+                .help("Add a label"),
+        )
+        .arg(
+            Arg::new("remove-label")
+                .long("remove-label")
+                .value_name("NAME")
+                .help("Remove a label"),
+        )
+        .arg(
+            Arg::new("add-reviewer")
+                .long("add-reviewer")
+                .value_name("LOGIN")
+                .help("Add a reviewer"),
+        )
+        .arg(
+            Arg::new("remove-reviewer")
+                .long("remove-reviewer")
+                .value_name("LOGIN")
+                .help("Remove a reviewer"),
+        )
+        .arg(
+            Arg::new("add-assignee")
+                .long("add-assignee")
+                .value_name("LOGIN")
+                .help("Add an assignee"),
+        )
+        .arg(
+            Arg::new("remove-assignee")
+                .long("remove-assignee")
+                .value_name("LOGIN")
+                .help("Remove an assignee"),
+        )
         .arg(extra_arg())
 }
 
@@ -577,10 +607,30 @@ fn build_issue_edit() -> Command {
         .about("Edit an issue (add/remove labels, assignees)")
         .visible_alias("e")
         .arg(issue_number_arg())
-        .arg(Arg::new("add-label").long("add-label").value_name("NAME").help("Add a label"))
-        .arg(Arg::new("remove-label").long("remove-label").value_name("NAME").help("Remove a label"))
-        .arg(Arg::new("add-assignee").long("add-assignee").value_name("LOGIN").help("Add an assignee"))
-        .arg(Arg::new("remove-assignee").long("remove-assignee").value_name("LOGIN").help("Remove an assignee"))
+        .arg(
+            Arg::new("add-label")
+                .long("add-label")
+                .value_name("NAME")
+                .help("Add a label"),
+        )
+        .arg(
+            Arg::new("remove-label")
+                .long("remove-label")
+                .value_name("NAME")
+                .help("Remove a label"),
+        )
+        .arg(
+            Arg::new("add-assignee")
+                .long("add-assignee")
+                .value_name("LOGIN")
+                .help("Add an assignee"),
+        )
+        .arg(
+            Arg::new("remove-assignee")
+                .long("remove-assignee")
+                .value_name("LOGIN")
+                .help("Remove an assignee"),
+        )
         .arg(extra_arg())
 }
 

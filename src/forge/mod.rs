@@ -20,7 +20,7 @@ pub enum ForgeType {
 impl ForgeType {
     /// Returns the CLI binary name for this forge.
     /// This is the single source of truth — used by `runner::run()` and `cli_info()`.
-    #[must_use] 
+    #[must_use]
     pub const fn cli_name(self) -> &'static str {
         match self {
             Self::Github => "gh",
@@ -112,7 +112,7 @@ fn load_config() -> Result<Option<GfConfig>, GfError> {
 /// Resolves delete-branch behavior for merge.
 /// Priority: per-forge config > global [merge] config > built-in default (false).
 /// CLI flag override is handled by the caller (adapter).
-#[must_use] 
+#[must_use]
 pub fn resolve_delete_branch(domain: &str) -> bool {
     let Ok(Some(config)) = load_config() else {
         return false; // no config = default false
@@ -133,7 +133,7 @@ pub fn resolve_delete_branch(domain: &str) -> bool {
 ///
 /// Priority: per-forge `detached_head_fallback` > global `[browse] detached_head_fallback` > None.
 /// Returns None when no fallback is configured (caller uses the commit SHA).
-#[must_use] 
+#[must_use]
 pub fn resolve_detached_head_fallback(domain: &str) -> Option<String> {
     let config = load_config().ok().flatten()?;
 
@@ -267,8 +267,9 @@ fn parse_host(url: &str) -> Result<String, GfError> {
     {
         let authority = rest.split('/').next().unwrap_or("");
         // Strip userinfo: "user:pass@host:port" -> "host:port"; "host:port" stays as-is
-        let host_with_possible_port =
-            authority.rfind('@').map_or(authority, |pos| &authority[pos + 1..]);
+        let host_with_possible_port = authority
+            .rfind('@')
+            .map_or(authority, |pos| &authority[pos + 1..]);
         // Strip port: "git.company.com:8443" -> "git.company.com"
         let host = host_with_possible_port.split(':').next().unwrap_or("");
         if !host.is_empty() {
@@ -330,8 +331,9 @@ pub fn parse_remote_parts(url: &str) -> Result<(String, String, String), GfError
     {
         let (authority, path) = rest.split_once('/').unwrap_or((rest, ""));
         // Strip userinfo per RFC 3986: "user:pass@host:port" -> "host:port"
-        let host_with_port =
-            authority.rfind('@').map_or(authority, |pos| &authority[pos + 1..]);
+        let host_with_port = authority
+            .rfind('@')
+            .map_or(authority, |pos| &authority[pos + 1..]);
         let host = host_with_port.split(':').next().unwrap_or("").to_string();
         if let Some((owner, repo)) = split_owner_repo(path) {
             if !host.is_empty() {
@@ -742,10 +744,9 @@ type = "forgejo"
 
     #[test]
     fn test_parse_remote_parts_scp_nested_subgroup() {
-        let (host, owner, repo) = parse_remote_parts(
-            "git@gitlab.example.com:acme-org/platform/backend/service-api.git",
-        )
-        .expect("should parse");
+        let (host, owner, repo) =
+            parse_remote_parts("git@gitlab.example.com:acme-org/platform/backend/service-api.git")
+                .expect("should parse");
         assert_eq!(host, "gitlab.example.com");
         assert_eq!(owner, "acme-org/platform/backend");
         assert_eq!(repo, "service-api");
@@ -859,10 +860,7 @@ domain = "github.com"
 type = "github"
 "#;
         let cfg: GfConfig = toml::from_str(toml_str).expect("valid TOML");
-        assert_eq!(
-            cfg.browse.detached_head_fallback,
-            Some("main".to_string())
-        );
+        assert_eq!(cfg.browse.detached_head_fallback, Some("main".to_string()));
         assert_eq!(cfg.forge[0].detached_head_fallback, None);
     }
 
