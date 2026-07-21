@@ -287,55 +287,68 @@ fn parse_host(url: &str) -> Result<String, GfError> {
     Err(GfError::RemoteUrlUnrecognized(url.to_string()))
 }
 
+/// Splits a repo path into (owner, repo), where owner is everything before the
+/// final segment and repo is the final segment with any `.git` suffix stripped.
+///
+/// GitLab supports nested subgroups, so the owner/namespace may contain slashes
+/// (e.g. `group/subgroup/team`). For single-level namespaces (GitHub, Gitea,
+/// Forgejo) this yields the same result as a plain `owner/repo` split.
+///
+/// Returns `None` if the path has no `/` separator or if either part is empty.
+fn split_owner_repo(path: &str) -> Option<(String, String)> {
+    let (owner, repo_raw) = path.rsplit_once('/')?;
+    let repo = repo_raw.strip_suffix(".git").unwrap_or(repo_raw);
+    if owner.is_empty() || repo.is_empty() {
+        return None;
+    }
+    Some((owner.to_string(), repo.to_string()))
+}
+
 /// Parses HTTPS or SCP-style remote URLs into (host, owner, repo).
+///
 /// Strips .git suffix from repo name.
 /// Handles HTTPS with port (e.g., `https://host:8443/owner/repo.git`).
+/// Handles GitLab nested subgroups (owner may contain slashes).
 ///
 /// Examples:
 ///   `https://github.com/alice/myrepo.git` → ("github.com", "alice", "myrepo")
 ///   `git@gitlab.com:alice/myrepo.git`     → ("gitlab.com", "alice", "myrepo")
+///   `https://gitlab.com/grp/sub/repo.git` → ("gitlab.com", "grp/sub", "repo")
 ///
 /// # Errors
 ///
 /// Returns `Err(GfError::RemoteUrlUnrecognized)` if the URL is neither a
 /// recognizable HTTPS/HTTP nor SCP-style remote with host, owner, and repo.
 pub fn parse_remote_parts(url: &str) -> Result<(String, String, String), GfError> {
-    // HTTPS / HTTP path: strip scheme, strip host (first segment), take next two path segments
+    // HTTPS / HTTP path: strip scheme, strip host (first segment), then split the
+    // remaining path into namespace + repo. GitLab allows nested subgroups (up to
+    // 20 levels), so the namespace may contain slashes — the repo is always the
+    // LAST path segment and the owner is everything before it.
     if let Some(rest) = url
         .strip_prefix("https://")
         .or_else(|| url.strip_prefix("http://"))
     {
-        let mut parts = rest.splitn(4, '/');
-        let authority = parts.next().unwrap_or("");
+        let (authority, path) = rest.split_once('/').unwrap_or((rest, ""));
         // Strip userinfo per RFC 3986: "user:pass@host:port" -> "host:port"
         let host_with_port =
             authority.rfind('@').map_or(authority, |pos| &authority[pos + 1..]);
         let host = host_with_port.split(':').next().unwrap_or("").to_string();
-        let owner = parts.next().unwrap_or("").to_string();
-        let repo_raw = parts.next().unwrap_or("");
-        let repo = repo_raw
-            .strip_suffix(".git")
-            .unwrap_or(repo_raw)
-            .to_string();
-        if !host.is_empty() && !owner.is_empty() && !repo.is_empty() {
-            return Ok((host, owner, repo));
+        if let Some((owner, repo)) = split_owner_repo(path) {
+            if !host.is_empty() {
+                return Ok((host, owner, repo));
+            }
         }
     }
-    // SCP-style: [user@]host:owner/repo.git
+    // SCP-style: [user@]host:namespace/repo.git (namespace may be nested)
     if let Some(at_pos) = url.find('@') {
         let after_at = &url[at_pos + 1..];
         if let Some(colon_pos) = after_at.find(':') {
             let host = after_at[..colon_pos].to_string();
             let path = &after_at[colon_pos + 1..];
-            let mut path_parts = path.splitn(2, '/');
-            let owner = path_parts.next().unwrap_or("").to_string();
-            let repo_raw = path_parts.next().unwrap_or("");
-            let repo = repo_raw
-                .strip_suffix(".git")
-                .unwrap_or(repo_raw)
-                .to_string();
-            if !host.is_empty() && !owner.is_empty() && !repo.is_empty() {
-                return Ok((host, owner, repo));
+            if let Some((owner, repo)) = split_owner_repo(path) {
+                if !host.is_empty() {
+                    return Ok((host, owner, repo));
+                }
             }
         }
     }
@@ -709,6 +722,70 @@ type = "forgejo"
     fn test_parse_remote_parts_unrecognized() {
         let result = parse_remote_parts("not-a-url");
         assert!(matches!(result, Err(GfError::RemoteUrlUnrecognized(_))));
+    }
+
+    // --- GitLab nested subgroup tests ---
+    // GitLab is the only forge that allows nesting groups, and it permits up to
+    // 20 levels of nesting. The namespace (owner) may therefore contain slashes;
+    // only the final path segment is the repository name.
+
+    #[test]
+    fn test_parse_remote_parts_https_nested_subgroup() {
+        let (host, owner, repo) = parse_remote_parts(
+            "https://gitlab.example.com/acme-org/platform/backend/service-api.git",
+        )
+        .expect("should parse");
+        assert_eq!(host, "gitlab.example.com");
+        assert_eq!(owner, "acme-org/platform/backend");
+        assert_eq!(repo, "service-api");
+    }
+
+    #[test]
+    fn test_parse_remote_parts_scp_nested_subgroup() {
+        let (host, owner, repo) = parse_remote_parts(
+            "git@gitlab.example.com:acme-org/platform/backend/service-api.git",
+        )
+        .expect("should parse");
+        assert_eq!(host, "gitlab.example.com");
+        assert_eq!(owner, "acme-org/platform/backend");
+        assert_eq!(repo, "service-api");
+    }
+
+    /// Builds a namespace of `depth` made-up group segments, e.g. depth=3 →
+    /// "group1/group2/group3". Returns the joined namespace string.
+    fn nested_namespace(depth: usize) -> String {
+        (1..=depth)
+            .map(|n| format!("group{n}"))
+            .collect::<Vec<_>>()
+            .join("/")
+    }
+
+    #[test]
+    fn test_parse_remote_parts_https_all_nesting_depths() {
+        // GitLab permits up to 20 levels of group nesting. Verify every depth
+        // from a single group up to the 20-deep maximum parses correctly.
+        for depth in 1..=20 {
+            let namespace = nested_namespace(depth);
+            let url = format!("https://gitlab.example.com/{namespace}/my-repo.git");
+            let (host, owner, repo) =
+                parse_remote_parts(&url).unwrap_or_else(|e| panic!("depth {depth}: {e:?}"));
+            assert_eq!(host, "gitlab.example.com", "depth {depth}");
+            assert_eq!(owner, namespace, "depth {depth}");
+            assert_eq!(repo, "my-repo", "depth {depth}");
+        }
+    }
+
+    #[test]
+    fn test_parse_remote_parts_scp_all_nesting_depths() {
+        for depth in 1..=20 {
+            let namespace = nested_namespace(depth);
+            let url = format!("git@gitlab.example.com:{namespace}/my-repo.git");
+            let (host, owner, repo) =
+                parse_remote_parts(&url).unwrap_or_else(|e| panic!("depth {depth}: {e:?}"));
+            assert_eq!(host, "gitlab.example.com", "depth {depth}");
+            assert_eq!(owner, namespace, "depth {depth}");
+            assert_eq!(repo, "my-repo", "depth {depth}");
+        }
     }
 
     #[test]

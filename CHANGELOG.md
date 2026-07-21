@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-07-21
+
+### Fixed
+* Fix remote URL parsing for GitLab nested subgroups, where only the last path segment is the repository name and everything before it is the namespace (both HTTPS and SCP-style remotes)
+
 ## [1.3.0] - 2026-06-15
 
 ### Added
