@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-10-21
+
 ### Changed
 * Bump dependencies
 * Fix clippy `assert_is_empty` lint in integration tests
