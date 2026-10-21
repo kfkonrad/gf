@@ -563,7 +563,7 @@ mod alias_routing {
         let mut buf = Vec::new();
         generate(Shell::Zsh, &mut build_cli(), "gf", &mut buf);
         let output = String::from_utf8(buf).expect("completion output should be valid UTF-8");
-        assert!(!output.is_empty());
+        assert_ne!(output, "");
     }
 }
 
