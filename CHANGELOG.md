@@ -10,6 +10,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 * Bump dependencies
 * Fix clippy `assert_is_empty` lint in integration tests
 
+### Added
+* Support `pr create --draft` on Forgejo via a `WIP: ` title prefix (requires `--title`)
+
+### Fixed
+* Fix `pr create --title` on Forgejo, where `fj` expects the title as a positional argument
+
 ## [1.3.1] - 2026-07-21
 
 ### Fixed
