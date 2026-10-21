@@ -118,6 +118,31 @@ translation_test!(pr_create_fj_base,
     expected: ["pr", "create", "--base", "main"]
 );
 
+// --- PR create: Forgejo title is positional, drafts use a "WIP: " prefix ---
+translation_test!(pr_create_fj_title,
+    input: ["gf", "pr", "create", "--title", "fix", "--body", "details"],
+    forge: ForgeType::Forgejo,
+    expected: ["pr", "create", "--body", "details", "--", "fix"]
+);
+
+translation_test!(pr_create_fj_title_after_extra,
+    input: ["gf", "pr", "create", "-t", "fix", "--", "--autofill"],
+    forge: ForgeType::Forgejo,
+    expected: ["pr", "create", "--autofill", "--", "fix"]
+);
+
+translation_test!(pr_create_fj_draft,
+    input: ["gf", "pr", "create", "--title", "fix", "--draft"],
+    forge: ForgeType::Forgejo,
+    expected: ["pr", "create", "--", "WIP: fix"]
+);
+
+translation_test!(pr_create_fj_draft_already_wip,
+    input: ["gf", "pr", "create", "--title", "WIP: fix", "--draft"],
+    forge: ForgeType::Forgejo,
+    expected: ["pr", "create", "--", "WIP: fix"]
+);
+
 // --- PR view: GitHub ---
 translation_test!(pr_view_github_number,
     input: ["gf", "pr", "view", "42"],
@@ -157,17 +182,11 @@ translation_test!(pr_view_tea_no_number,
     expected: ["pulls"]
 );
 
-// --- PR create: --draft omitted for tea and fj (unsupported) ---
+// --- PR create: --draft omitted for tea (unsupported) ---
 translation_test!(pr_create_tea_draft_omitted,
     input: ["gf", "pr", "create", "--draft"],
     forge: ForgeType::Gitea,
     expected: ["pulls", "create"]
-);
-
-translation_test!(pr_create_fj_draft_omitted,
-    input: ["gf", "pr", "create", "--draft"],
-    forge: ForgeType::Forgejo,
-    expected: ["pr", "create"]
 );
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -354,6 +373,8 @@ audit_test!(audit_tea_pulls_create_base,         cli: "tea",  args: ["pulls", "c
 // --- fj pr create flags ---
 audit_test!(audit_fj_pr_create_body,  cli: "fj",  args: ["pr", "create"], contains: "--body");
 audit_test!(audit_fj_pr_create_base,  cli: "fj",  args: ["pr", "create"], contains: "--base");
+audit_test!(audit_fj_pr_create_title_positional, cli: "fj", args: ["pr", "create"], contains: "[TITLE]");
+audit_test!(audit_fj_pr_create_wip_draft,        cli: "fj", args: ["pr", "create"], contains: "WIP: ");
 
 // --- gh repo create flags ---
 audit_test!(audit_gh_repo_create_description,  cli: "gh",   args: ["repo", "create"], contains: "--description");
@@ -485,6 +506,12 @@ translation_test!(v11_pr_list_fj_label,
 );
 
 // --- PR list: tea unsupported flags (Phase 8 hard-error policy) ---
+unsupported_test!(pr_create_fj_draft_without_title_unsupported,
+    input: ["gf", "pr", "create", "--draft"],
+    forge: ForgeType::Forgejo,
+    feature_contains: "--draft"
+);
+
 unsupported_test!(pr_list_tea_author_unsupported,
     input: ["gf", "pr", "list", "--author", "alice"],
     forge: ForgeType::Gitea,
