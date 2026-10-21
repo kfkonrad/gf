@@ -3,6 +3,7 @@ mod browse;
 mod cmd;
 mod error;
 mod forge;
+mod pr_head;
 mod runner;
 
 use clap_complete::{generate, Shell};
@@ -45,6 +46,19 @@ fn main() {
             std::process::exit(1);
         }
     };
+
+    // Handle `gf pr list --head <branch>` natively so it can exit 1 when no PR
+    // matches. Exit codes: 0 = found, 1 = none found, 2 = lookup failed.
+    if let Some(list) = pr_head::head_lookup(&matches) {
+        match pr_head::run(forge_type, remote, list) {
+            Ok(true) => return,
+            Ok(false) => std::process::exit(1),
+            Err(e) => {
+                eprintln!("{e}");
+                std::process::exit(2);
+            }
+        }
+    }
 
     // Translate canonical gf args → forge-specific args (Phase 3)
     let translated = match adapter::translate(forge_type, &domain, &matches) {

@@ -58,6 +58,45 @@ pub fn run(cli: &str, args: &[&str]) -> Result<(), GfError> {
     }
 }
 
+/// Run the given forge CLI and return its stdout, for commands whose output
+/// gf processes itself instead of handing the terminal to the forge CLI.
+///
+/// stdin and stderr are inherited so prompts and error messages still reach
+/// the user.
+///
+/// # Errors
+///
+/// Returns `Err(GfError::CliNotFound)` if the CLI is not on PATH,
+/// `Err(GfError::SpawnFailed)` if it cannot be started and
+/// `Err(GfError::CliFailed)` if it exits unsuccessfully.
+pub fn capture(cli: &str, args: &[String]) -> Result<String, GfError> {
+    if which::which(cli).is_err() {
+        let info = cli_info(cli);
+        return Err(GfError::CliNotFound {
+            cli: cli.to_string(),
+            brew_name: info.brew_name,
+            url: info.url.to_string(),
+        });
+    }
+
+    let output = std::process::Command::new(cli)
+        .args(args)
+        .stdin(std::process::Stdio::inherit())
+        .stderr(std::process::Stdio::inherit())
+        .output()
+        .map_err(|e| GfError::SpawnFailed(cli.to_string(), e))?;
+
+    if !output.status.success() {
+        return Err(GfError::CliFailed {
+            cli: cli.to_string(),
+            args: args.join(" "),
+            status: output.status.to_string(),
+        });
+    }
+
+    Ok(String::from_utf8_lossy(&output.stdout).into_owned())
+}
+
 #[cfg(test)]
 mod tests {
     use crate::error::GfError;

@@ -93,7 +93,14 @@ fn build_pr_create() -> Command {
                 .long("base")
                 .short('B')
                 .value_name("BRANCH")
-                .help("Base branch"),
+                .help("Branch to merge into (default: the repository's default branch)"),
+        )
+        .arg(
+            Arg::new("head")
+                .long("head")
+                .short('H')
+                .value_name("BRANCH")
+                .help("Branch containing the changes (default: the current branch)"),
         )
         .arg(
             Arg::new("draft")
@@ -138,6 +145,16 @@ fn build_pr_list() -> Command {
                 .long("label")
                 .value_name("LABEL")
                 .help("Filter by label"),
+        )
+        .arg(
+            Arg::new("head")
+                .long("head")
+                .short('H')
+                .value_name("BRANCH")
+                .help(
+                    "Filter by the branch containing the changes; exits 1 if no PR matches \
+                     (2 if the lookup fails)",
+                ),
         )
         .arg(extra_arg())
 }

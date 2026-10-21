@@ -18,7 +18,7 @@ pub fn translate_pr(
     let pr_cmd = pr_subcommand_name(forge);
 
     match matches.subcommand() {
-        Some(("create", sub)) => Ok(translate_pr_create(forge, pr_cmd, sub)),
+        Some(("create", sub)) => translate_pr_create(forge, pr_cmd, sub),
         Some(("view", sub)) => Ok(translate_pr_view(forge, pr_cmd, sub)),
         Some(("list", sub)) => translate_pr_list(forge, pr_cmd, sub),
         Some(("checkout", sub)) => Ok(translate_pr_checkout(forge, pr_cmd, sub)),
@@ -50,13 +50,25 @@ const fn pr_subcommand_name(forge: ForgeType) -> &'static str {
 }
 
 /// Translate `gf pr create` with canonical flags (PR-01, PR-02, PR-04).
-fn translate_pr_create(forge: ForgeType, pr_cmd: &str, matches: &ArgMatches) -> Vec<String> {
+///
+/// Forgejo (fj) takes the title as a positional argument and marks drafts with a
+/// "WIP: " title prefix; the title is emitted last, after `--`, so titles starting
+/// with `-` are not mistaken for flags.
+fn translate_pr_create(
+    forge: ForgeType,
+    pr_cmd: &str,
+    matches: &ArgMatches,
+) -> Result<Vec<String>, GfError> {
     let mut args = vec![pr_cmd.to_string(), "create".to_string()];
+    let title = matches.get_one::<String>("title");
+    let draft = matches.get_flag("draft");
 
-    // --title: canonical flag name matches all forges
-    if let Some(title) = matches.get_one::<String>("title") {
-        args.push("--title".to_string());
-        args.push(title.clone());
+    // --title: gh, glab and tea use --title; fj takes it positionally (appended below)
+    if let Some(title) = title {
+        if forge != ForgeType::Forgejo {
+            args.push("--title".to_string());
+            args.push(title.clone());
+        }
     }
 
     // --body: translate to --description for glab and tea (PR-02)
@@ -79,15 +91,29 @@ fn translate_pr_create(forge: ForgeType, pr_cmd: &str, matches: &ArgMatches) -> 
         args.push(base.clone());
     }
 
-    // --draft: gh and glab support natively; tea and fj do not — silently omit
-    if matches.get_flag("draft") {
+    // --head: translate to --source-branch for glab; all others use --head natively
+    if let Some(head) = matches.get_one::<String>("head") {
+        let head_flag = match forge {
+            ForgeType::Gitlab => "--source-branch",
+            _ => "--head",
+        };
+        args.push(head_flag.to_string());
+        args.push(head.clone());
+    }
+
+    // --draft: gh and glab support natively; fj uses a "WIP: " title prefix (below);
+    // tea does not support drafts — silently omit
+    if draft {
         match forge {
-            ForgeType::Gitea | ForgeType::Forgejo => {
-                // tea and fj do not support --draft; silently omit
+            ForgeType::Github | ForgeType::Gitlab => args.push("--draft".to_string()),
+            ForgeType::Forgejo if title.is_none() => {
+                return Err(GfError::UnsupportedFeature {
+                    feature: "pr create --draft (without --title)".to_string(),
+                    forge: "Forgejo".to_string(),
+                    forge_cli: "fj".to_string(),
+                });
             }
-            _ => {
-                args.push("--draft".to_string());
-            }
+            ForgeType::Gitea | ForgeType::Forgejo => {}
         }
     }
 
@@ -96,7 +122,19 @@ fn translate_pr_create(forge: ForgeType, pr_cmd: &str, matches: &ArgMatches) -> 
         args.extend(extra.cloned());
     }
 
-    args
+    // fj positional title, prefixed with "WIP: " for drafts
+    if forge == ForgeType::Forgejo {
+        if let Some(title) = title {
+            args.push("--".to_string());
+            if draft && !title.starts_with("WIP:") {
+                args.push(format!("WIP: {title}"));
+            } else {
+                args.push(title.clone());
+            }
+        }
+    }
+
+    Ok(args)
 }
 
 /// Translate `gf pr list` with filter flags (PR-01).

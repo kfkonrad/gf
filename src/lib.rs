@@ -4,4 +4,5 @@ pub mod browse;
 pub mod cmd;
 pub mod error;
 pub mod forge;
+pub mod pr_head;
 pub mod runner;

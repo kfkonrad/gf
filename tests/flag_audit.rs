@@ -118,6 +118,56 @@ translation_test!(pr_create_fj_base,
     expected: ["pr", "create", "--base", "main"]
 );
 
+// --- PR create: --head (glab → --source-branch, others → --head) ---
+translation_test!(pr_create_github_head,
+    input: ["gf", "pr", "create", "-H", "feature", "-B", "main"],
+    forge: ForgeType::Github,
+    expected: ["pr", "create", "--base", "main", "--head", "feature"]
+);
+
+translation_test!(pr_create_glab_head,
+    input: ["gf", "pr", "create", "--head", "feature"],
+    forge: ForgeType::Gitlab,
+    expected: ["mr", "create", "--source-branch", "feature"]
+);
+
+translation_test!(pr_create_tea_head,
+    input: ["gf", "pr", "create", "--head", "feature"],
+    forge: ForgeType::Gitea,
+    expected: ["pulls", "create", "--head", "feature"]
+);
+
+translation_test!(pr_create_fj_head,
+    input: ["gf", "pr", "create", "--head", "feature"],
+    forge: ForgeType::Forgejo,
+    expected: ["pr", "create", "--head", "feature"]
+);
+
+// --- PR create: Forgejo title is positional, drafts use a "WIP: " prefix ---
+translation_test!(pr_create_fj_title,
+    input: ["gf", "pr", "create", "--title", "fix", "--body", "details"],
+    forge: ForgeType::Forgejo,
+    expected: ["pr", "create", "--body", "details", "--", "fix"]
+);
+
+translation_test!(pr_create_fj_title_after_extra,
+    input: ["gf", "pr", "create", "-t", "fix", "--", "--autofill"],
+    forge: ForgeType::Forgejo,
+    expected: ["pr", "create", "--autofill", "--", "fix"]
+);
+
+translation_test!(pr_create_fj_draft,
+    input: ["gf", "pr", "create", "--title", "fix", "--draft"],
+    forge: ForgeType::Forgejo,
+    expected: ["pr", "create", "--", "WIP: fix"]
+);
+
+translation_test!(pr_create_fj_draft_already_wip,
+    input: ["gf", "pr", "create", "--title", "WIP: fix", "--draft"],
+    forge: ForgeType::Forgejo,
+    expected: ["pr", "create", "--", "WIP: fix"]
+);
+
 // --- PR view: GitHub ---
 translation_test!(pr_view_github_number,
     input: ["gf", "pr", "view", "42"],
@@ -157,17 +207,11 @@ translation_test!(pr_view_tea_no_number,
     expected: ["pulls"]
 );
 
-// --- PR create: --draft omitted for tea and fj (unsupported) ---
+// --- PR create: --draft omitted for tea (unsupported) ---
 translation_test!(pr_create_tea_draft_omitted,
     input: ["gf", "pr", "create", "--draft"],
     forge: ForgeType::Gitea,
     expected: ["pulls", "create"]
-);
-
-translation_test!(pr_create_fj_draft_omitted,
-    input: ["gf", "pr", "create", "--draft"],
-    forge: ForgeType::Forgejo,
-    expected: ["pr", "create"]
 );
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -341,19 +385,25 @@ audit_test!(audit_gh_pr_create_title,     cli: "gh",   args: ["pr", "create"],  
 audit_test!(audit_gh_pr_create_body,      cli: "gh",   args: ["pr", "create"],   contains: "--body");
 audit_test!(audit_gh_pr_create_base,      cli: "gh",   args: ["pr", "create"],   contains: "--base");
 audit_test!(audit_gh_pr_create_draft,     cli: "gh",   args: ["pr", "create"],   contains: "--draft");
+audit_test!(audit_gh_pr_create_head,      cli: "gh",   args: ["pr", "create"],   contains: "--head");
 
 // --- glab mr create flags ---
 audit_test!(audit_glab_mr_create_description,    cli: "glab", args: ["mr", "create"],   contains: "--description");
 audit_test!(audit_glab_mr_create_target_branch,  cli: "glab", args: ["mr", "create"],   contains: "--target-branch");
 audit_test!(audit_glab_mr_create_draft,          cli: "glab", args: ["mr", "create"],   contains: "--draft");
+audit_test!(audit_glab_mr_create_source_branch,  cli: "glab", args: ["mr", "create"],   contains: "--source-branch");
 
 // --- tea pulls create flags ---
 audit_test!(audit_tea_pulls_create_description,  cli: "tea",  args: ["pulls", "create"], contains: "--description");
 audit_test!(audit_tea_pulls_create_base,         cli: "tea",  args: ["pulls", "create"], contains: "--base");
+audit_test!(audit_tea_pulls_create_head,         cli: "tea",  args: ["pulls", "create"], contains: "--head");
 
 // --- fj pr create flags ---
 audit_test!(audit_fj_pr_create_body,  cli: "fj",  args: ["pr", "create"], contains: "--body");
 audit_test!(audit_fj_pr_create_base,  cli: "fj",  args: ["pr", "create"], contains: "--base");
+audit_test!(audit_fj_pr_create_head,  cli: "fj",  args: ["pr", "create"], contains: "--head");
+audit_test!(audit_fj_pr_create_title_positional, cli: "fj", args: ["pr", "create"], contains: "[TITLE]");
+audit_test!(audit_fj_pr_create_wip_draft,        cli: "fj", args: ["pr", "create"], contains: "WIP: ");
 
 // --- gh repo create flags ---
 audit_test!(audit_gh_repo_create_description,  cli: "gh",   args: ["repo", "create"], contains: "--description");
@@ -485,6 +535,12 @@ translation_test!(v11_pr_list_fj_label,
 );
 
 // --- PR list: tea unsupported flags (Phase 8 hard-error policy) ---
+unsupported_test!(pr_create_fj_draft_without_title_unsupported,
+    input: ["gf", "pr", "create", "--draft"],
+    forge: ForgeType::Forgejo,
+    feature_contains: "--draft"
+);
+
 unsupported_test!(pr_list_tea_author_unsupported,
     input: ["gf", "pr", "list", "--author", "alice"],
     forge: ForgeType::Gitea,
@@ -1256,19 +1312,34 @@ unsupported_test!(issue_edit_tea_remove_assignee_unsupported,
 audit_test!(audit_v11_gh_pr_list_state,    cli: "gh",   args: ["pr", "list"],    contains: "--state");
 audit_test!(audit_v11_gh_pr_list_author,   cli: "gh",   args: ["pr", "list"],    contains: "--author");
 audit_test!(audit_v11_gh_pr_list_label,    cli: "gh",   args: ["pr", "list"],    contains: "--label");
+// --- gf pr list --head (native lookup in pr_head.rs) ---
+audit_test!(audit_gh_pr_list_head,         cli: "gh",   args: ["pr", "list"],    contains: "--head");
+audit_test!(audit_gh_pr_list_json,         cli: "gh",   args: ["pr", "list"],    contains: "--json");
+audit_test!(audit_gh_pr_list_limit,        cli: "gh",   args: ["pr", "list"],    contains: "--limit");
 
 // --- glab mr list flags ---
 audit_test!(audit_v11_glab_mr_list_closed, cli: "glab", args: ["mr", "list"],    contains: "--closed");
 audit_test!(audit_v11_glab_mr_list_author, cli: "glab", args: ["mr", "list"],    contains: "--author");
 audit_test!(audit_v11_glab_mr_list_label,  cli: "glab", args: ["mr", "list"],    contains: "--label");
+audit_test!(audit_glab_mr_list_source_branch, cli: "glab", args: ["mr", "list"], contains: "--source-branch");
+audit_test!(audit_glab_mr_list_output,        cli: "glab", args: ["mr", "list"], contains: "--output");
+audit_test!(audit_glab_mr_list_per_page,      cli: "glab", args: ["mr", "list"], contains: "--per-page");
+audit_test!(audit_glab_mr_list_page,          cli: "glab", args: ["mr", "list"], contains: "--page");
+audit_test!(audit_glab_mr_list_merged,        cli: "glab", args: ["mr", "list"], contains: "--merged");
 
 // --- tea pulls list flags ---
 audit_test!(audit_v11_tea_pulls_list_state, cli: "tea", args: ["pulls", "list"], contains: "--state");
+audit_test!(audit_tea_pulls_list_output,     cli: "tea", args: ["pulls", "list"], contains: "--output");
+audit_test!(audit_tea_pulls_list_fields,     cli: "tea", args: ["pulls", "list"], contains: "--fields");
+audit_test!(audit_tea_pulls_list_head_field, cli: "tea", args: ["pulls", "list"], contains: "head");
+audit_test!(audit_tea_pulls_list_page,       cli: "tea", args: ["pulls", "list"], contains: "--page");
+audit_test!(audit_tea_pulls_list_limit,      cli: "tea", args: ["pulls", "list"], contains: "--limit");
 
 // --- fj pr search flags ---
 audit_test!(audit_v11_fj_pr_search_state,   cli: "fj",  args: ["pr", "search"],  contains: "--state");
 audit_test!(audit_v11_fj_pr_search_creator, cli: "fj",  args: ["pr", "search"],  contains: "--creator");
 audit_test!(audit_v11_fj_pr_search_labels,  cli: "fj",  args: ["pr", "search"],  contains: "--labels");
+audit_test!(audit_fj_pr_search_all,         cli: "fj",  args: ["pr", "search"],  contains: "--all");
 
 // --- gh/glab pr merge flags ---
 audit_test!(audit_v11_gh_pr_merge_squash,    cli: "gh",   args: ["pr", "merge"],   contains: "--squash");
