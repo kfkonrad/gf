@@ -8,7 +8,7 @@ name = "gf"
 path = "src/main.rs"
 
 [dependencies]
-which = "8.0.5"
+which = "8.0.6"
 thiserror = "2"
 toml = "1.1"
 serde = { version = "1", features = ["derive"] }
