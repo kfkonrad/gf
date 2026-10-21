@@ -45,6 +45,7 @@ also supported for GitLab-centric workflows.
 
 ```sh
 gf pr list --state open
+gf pr list --head my-feature   # exits 1 if the branch has no open PR
 gf pr create --title "My feature" --body "Description"
 gf pr create --head my-feature --base develop --draft
 gf pr view 42

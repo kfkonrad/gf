@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Added
 * Add `-H`/`--head` to `pr create` to set the branch containing the changes (translated to `--source-branch` for GitLab)
+* Add `-H`/`--head` to `pr list` to find PRs by the branch containing the changes on all forges; exits 1 if no PR matches (2 if the lookup fails), so it can be used as a check in scripts
 * Support `pr create --draft` on Forgejo via a `WIP: ` title prefix (requires `--title`)
 
 ### Fixed

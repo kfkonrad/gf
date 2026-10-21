@@ -676,3 +676,206 @@ fn test_v12_issue_edit_help() {
         .success()
         .stdout(predicate::str::contains("Edit an issue"));
 }
+
+// ─── gf pr list --head: native lookup with exit codes ─────────────────────────
+
+mod pr_list_head {
+    use assert_cmd::Command;
+    use predicates::prelude::*;
+    use predicates::str::contains;
+
+    /// A temp git repo whose origin points at `https://<host>/test/repo.git`.
+    fn setup_repo(host: &str) -> tempfile::TempDir {
+        let dir = tempfile::tempdir().expect("create temp dir");
+        for args in [
+            vec!["init"],
+            vec![
+                "remote",
+                "add",
+                "origin",
+                &format!("https://{host}/test/repo.git"),
+            ],
+        ] {
+            std::process::Command::new("git")
+                .args(&args)
+                .current_dir(dir.path())
+                .output()
+                .expect("git setup");
+        }
+        dir
+    }
+
+    /// Runs `gf <args>` in a repo on `host`, with a fake `cli` whose body is `script`.
+    fn run_gf(host: &str, cli: &str, script: &str, args: &[&str]) -> assert_cmd::assert::Assert {
+        let repo = setup_repo(host);
+        let home = tempfile::tempdir().expect("create home temp dir");
+        let bin_dir = home.path().join("bin");
+        std::fs::create_dir_all(&bin_dir).expect("create bin dir");
+        let cli_path = bin_dir.join(cli);
+        std::fs::write(&cli_path, format!("#!/bin/sh\n{script}\n")).expect("write fake cli");
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(&cli_path, std::fs::Permissions::from_mode(0o755))
+                .expect("set executable");
+        }
+        let git_dir = which::which("git").expect("git must be installed");
+        let git_dir = git_dir.parent().expect("git has a parent dir");
+        let path = format!("{}:{}:/bin:/usr/bin", bin_dir.display(), git_dir.display());
+
+        Command::cargo_bin("gf")
+            .expect("gf binary should build")
+            .current_dir(repo.path())
+            .env("HOME", home.path())
+            .env("PATH", path)
+            .args(args)
+            .assert()
+    }
+
+    const GH_FOUND: &str = r#"echo '[{"baseRefName":"main","headRefName":"feature","number":6,"state":"OPEN","title":"Add feature","url":"https://github.com/test/repo/pull/6"}]'"#;
+
+    #[test]
+    fn gh_found_exits_0_and_prints_pr() {
+        run_gf(
+            "github.com",
+            "gh",
+            GH_FOUND,
+            &["pr", "list", "--head", "feature"],
+        )
+        .code(0)
+        .stdout(contains(
+            "#6\topen\tfeature -> main\tAdd feature\thttps://github.com/test/repo/pull/6",
+        ));
+    }
+
+    #[test]
+    fn gh_none_exits_1() {
+        run_gf(
+            "github.com",
+            "gh",
+            "echo '[]'",
+            &["pr", "list", "-H", "feature"],
+        )
+        .code(1)
+        .stdout("")
+        .stderr(contains("no open pull request found for branch 'feature'"));
+    }
+
+    #[test]
+    fn gh_failure_exits_2() {
+        run_gf(
+            "github.com",
+            "gh",
+            "echo 'auth expired' >&2; exit 1",
+            &["pr", "list", "--head", "feature"],
+        )
+        .code(2)
+        .stderr(contains("auth expired"));
+    }
+
+    #[test]
+    fn mr_alias_uses_lookup_too() {
+        run_gf(
+            "github.com",
+            "gh",
+            "echo '[]'",
+            &["mr", "l", "--head", "feature"],
+        )
+        .code(1);
+    }
+
+    #[test]
+    fn glab_reads_all_pages() {
+        let script = r#"case "$*" in
+  *"--page 1") echo '[{"iid":3,"title":"MR","source_branch":"feature","target_branch":"main","state":"opened","web_url":"https://gitlab.com/test/repo/-/merge_requests/3"}]' ;;
+  *) echo '[]' ;;
+esac"#;
+        run_gf(
+            "gitlab.com",
+            "glab",
+            script,
+            &["pr", "list", "--head", "feature"],
+        )
+        .code(0)
+        .stdout(contains("#3\topen\tfeature -> main\tMR"));
+    }
+
+    const TEA_PAGES: &str = r#"case "$*" in
+  *"--page 1") echo '[{"index":"7","state":"merged","head":"someone:feature","base":"main","title":"From fork","url":"https://gitea.com/test/repo/pulls/7"},{"index":"8","state":"open","head":"other","base":"main","title":"Other","url":"u8"}]' ;;
+  *) echo '[]' ;;
+esac"#;
+
+    #[test]
+    fn tea_filters_by_head_and_state() {
+        run_gf(
+            "gitea.com",
+            "tea",
+            TEA_PAGES,
+            &["pr", "list", "--head", "feature", "--state", "merged"],
+        )
+        .code(0)
+        .stdout(contains("#7\tmerged\tsomeone:feature -> main\tFrom fork"))
+        .stdout(contains("#8").not());
+    }
+
+    #[test]
+    fn tea_no_open_pr_exits_1() {
+        run_gf(
+            "gitea.com",
+            "tea",
+            TEA_PAGES,
+            &["pr", "list", "--head", "feature"],
+        )
+        .code(1);
+    }
+
+    const FJ: &str = r#"case "$1 $2" in
+  "pr search") printf '2 pull requests\n#5: Feature (by a)\n#4: Other (by b)\n' ;;
+  "pr view") case "$3" in
+      5) printf 'Feature #5\nBy a \342\200\224 Open \342\200\224 +1 -0\nFrom `feature` into `main`\n' ;;
+      4) printf 'Other #4\nBy b \342\200\224 Open \342\200\224 +1 -0\nFrom `other` into `main`\n' ;;
+    esac ;;
+esac"#;
+
+    #[test]
+    fn fj_views_each_pr_and_builds_url() {
+        run_gf(
+            "codeberg.org",
+            "fj",
+            FJ,
+            &["pr", "list", "--head", "feature"],
+        )
+        .code(0)
+        .stdout(contains(
+            "#5\topen\tfeature -> main\tFeature\thttps://codeberg.org/test/repo/pulls/5",
+        ))
+        .stdout(contains("#4").not());
+    }
+
+    #[test]
+    fn fj_no_match_exits_1() {
+        run_gf(
+            "codeberg.org",
+            "fj",
+            FJ,
+            &["pr", "list", "--head", "missing"],
+        )
+        .code(1);
+    }
+
+    #[test]
+    fn fj_unparseable_view_exits_2() {
+        let script = r#"case "$1 $2" in
+  "pr search") printf '1 pull request\n#5: Feature (by a)\n' ;;
+  *) echo 'something unexpected' ;;
+esac"#;
+        run_gf(
+            "codeberg.org",
+            "fj",
+            script,
+            &["pr", "list", "--head", "feature"],
+        )
+        .code(2)
+        .stderr(contains("unexpected output from fj"));
+    }
+}

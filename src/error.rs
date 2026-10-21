@@ -15,8 +15,17 @@ pub enum GfError {
     ExecFailed(String, std::io::Error),
 
     #[error("failed to spawn {0}: {1}")]
-    #[cfg_attr(not(windows), allow(dead_code))]
     SpawnFailed(String, std::io::Error),
+
+    #[error("`{cli} {args}` failed ({status})")]
+    CliFailed {
+        cli: String,
+        args: String,
+        status: String,
+    },
+
+    #[error("unexpected output from {cli}: {reason}")]
+    UnexpectedOutput { cli: String, reason: String },
 
     #[error("not a git repository (or any parent directory)")]
     NotAGitRepo,

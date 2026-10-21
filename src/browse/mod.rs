@@ -273,7 +273,12 @@ fn line_fragment(forge: ForgeType, lr: &LineRange) -> String {
 // ── Git queries ─────────────────────────────────────────────────────────────
 
 /// Runs `git remote get-url <remote>` and returns the URL string.
-fn get_remote_url(remote: &str) -> Result<String, GfError> {
+///
+/// # Errors
+///
+/// Returns [`GfError::NotAGitRepo`] outside a git repository and
+/// [`GfError::NoRemote`] if the remote does not exist.
+pub fn get_remote_url(remote: &str) -> Result<String, GfError> {
     let output = std::process::Command::new("git")
         .args(["remote", "get-url", remote])
         .output()

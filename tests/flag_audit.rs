@@ -1312,19 +1312,34 @@ unsupported_test!(issue_edit_tea_remove_assignee_unsupported,
 audit_test!(audit_v11_gh_pr_list_state,    cli: "gh",   args: ["pr", "list"],    contains: "--state");
 audit_test!(audit_v11_gh_pr_list_author,   cli: "gh",   args: ["pr", "list"],    contains: "--author");
 audit_test!(audit_v11_gh_pr_list_label,    cli: "gh",   args: ["pr", "list"],    contains: "--label");
+// --- gf pr list --head (native lookup in pr_head.rs) ---
+audit_test!(audit_gh_pr_list_head,         cli: "gh",   args: ["pr", "list"],    contains: "--head");
+audit_test!(audit_gh_pr_list_json,         cli: "gh",   args: ["pr", "list"],    contains: "--json");
+audit_test!(audit_gh_pr_list_limit,        cli: "gh",   args: ["pr", "list"],    contains: "--limit");
 
 // --- glab mr list flags ---
 audit_test!(audit_v11_glab_mr_list_closed, cli: "glab", args: ["mr", "list"],    contains: "--closed");
 audit_test!(audit_v11_glab_mr_list_author, cli: "glab", args: ["mr", "list"],    contains: "--author");
 audit_test!(audit_v11_glab_mr_list_label,  cli: "glab", args: ["mr", "list"],    contains: "--label");
+audit_test!(audit_glab_mr_list_source_branch, cli: "glab", args: ["mr", "list"], contains: "--source-branch");
+audit_test!(audit_glab_mr_list_output,        cli: "glab", args: ["mr", "list"], contains: "--output");
+audit_test!(audit_glab_mr_list_per_page,      cli: "glab", args: ["mr", "list"], contains: "--per-page");
+audit_test!(audit_glab_mr_list_page,          cli: "glab", args: ["mr", "list"], contains: "--page");
+audit_test!(audit_glab_mr_list_merged,        cli: "glab", args: ["mr", "list"], contains: "--merged");
 
 // --- tea pulls list flags ---
 audit_test!(audit_v11_tea_pulls_list_state, cli: "tea", args: ["pulls", "list"], contains: "--state");
+audit_test!(audit_tea_pulls_list_output,     cli: "tea", args: ["pulls", "list"], contains: "--output");
+audit_test!(audit_tea_pulls_list_fields,     cli: "tea", args: ["pulls", "list"], contains: "--fields");
+audit_test!(audit_tea_pulls_list_head_field, cli: "tea", args: ["pulls", "list"], contains: "head");
+audit_test!(audit_tea_pulls_list_page,       cli: "tea", args: ["pulls", "list"], contains: "--page");
+audit_test!(audit_tea_pulls_list_limit,      cli: "tea", args: ["pulls", "list"], contains: "--limit");
 
 // --- fj pr search flags ---
 audit_test!(audit_v11_fj_pr_search_state,   cli: "fj",  args: ["pr", "search"],  contains: "--state");
 audit_test!(audit_v11_fj_pr_search_creator, cli: "fj",  args: ["pr", "search"],  contains: "--creator");
 audit_test!(audit_v11_fj_pr_search_labels,  cli: "fj",  args: ["pr", "search"],  contains: "--labels");
+audit_test!(audit_fj_pr_search_all,         cli: "fj",  args: ["pr", "search"],  contains: "--all");
 
 // --- gh/glab pr merge flags ---
 audit_test!(audit_v11_gh_pr_merge_squash,    cli: "gh",   args: ["pr", "merge"],   contains: "--squash");
