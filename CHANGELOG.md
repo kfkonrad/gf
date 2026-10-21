@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 * Fix clippy `assert_is_empty` lint in integration tests
 
 ### Added
+* Add `-H`/`--head` to `pr create` to set the branch containing the changes (translated to `--source-branch` for GitLab)
 * Support `pr create --draft` on Forgejo via a `WIP: ` title prefix (requires `--title`)
 
 ### Fixed

@@ -46,6 +46,7 @@ also supported for GitLab-centric workflows.
 ```sh
 gf pr list --state open
 gf pr create --title "My feature" --body "Description"
+gf pr create --head my-feature --base develop --draft
 gf pr view 42
 gf pr merge 42 --squash --delete-branch
 gf pr checkout 42

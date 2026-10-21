@@ -91,6 +91,16 @@ fn translate_pr_create(
         args.push(base.clone());
     }
 
+    // --head: translate to --source-branch for glab; all others use --head natively
+    if let Some(head) = matches.get_one::<String>("head") {
+        let head_flag = match forge {
+            ForgeType::Gitlab => "--source-branch",
+            _ => "--head",
+        };
+        args.push(head_flag.to_string());
+        args.push(head.clone());
+    }
+
     // --draft: gh and glab support natively; fj uses a "WIP: " title prefix (below);
     // tea does not support drafts — silently omit
     if draft {
