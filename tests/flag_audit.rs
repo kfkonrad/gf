@@ -118,6 +118,31 @@ translation_test!(pr_create_fj_base,
     expected: ["pr", "create", "--base", "main"]
 );
 
+// --- PR create: --head (glab → --source-branch, others → --head) ---
+translation_test!(pr_create_github_head,
+    input: ["gf", "pr", "create", "-H", "feature", "-B", "main"],
+    forge: ForgeType::Github,
+    expected: ["pr", "create", "--base", "main", "--head", "feature"]
+);
+
+translation_test!(pr_create_glab_head,
+    input: ["gf", "pr", "create", "--head", "feature"],
+    forge: ForgeType::Gitlab,
+    expected: ["mr", "create", "--source-branch", "feature"]
+);
+
+translation_test!(pr_create_tea_head,
+    input: ["gf", "pr", "create", "--head", "feature"],
+    forge: ForgeType::Gitea,
+    expected: ["pulls", "create", "--head", "feature"]
+);
+
+translation_test!(pr_create_fj_head,
+    input: ["gf", "pr", "create", "--head", "feature"],
+    forge: ForgeType::Forgejo,
+    expected: ["pr", "create", "--head", "feature"]
+);
+
 // --- PR create: Forgejo title is positional, drafts use a "WIP: " prefix ---
 translation_test!(pr_create_fj_title,
     input: ["gf", "pr", "create", "--title", "fix", "--body", "details"],
@@ -360,19 +385,23 @@ audit_test!(audit_gh_pr_create_title,     cli: "gh",   args: ["pr", "create"],  
 audit_test!(audit_gh_pr_create_body,      cli: "gh",   args: ["pr", "create"],   contains: "--body");
 audit_test!(audit_gh_pr_create_base,      cli: "gh",   args: ["pr", "create"],   contains: "--base");
 audit_test!(audit_gh_pr_create_draft,     cli: "gh",   args: ["pr", "create"],   contains: "--draft");
+audit_test!(audit_gh_pr_create_head,      cli: "gh",   args: ["pr", "create"],   contains: "--head");
 
 // --- glab mr create flags ---
 audit_test!(audit_glab_mr_create_description,    cli: "glab", args: ["mr", "create"],   contains: "--description");
 audit_test!(audit_glab_mr_create_target_branch,  cli: "glab", args: ["mr", "create"],   contains: "--target-branch");
 audit_test!(audit_glab_mr_create_draft,          cli: "glab", args: ["mr", "create"],   contains: "--draft");
+audit_test!(audit_glab_mr_create_source_branch,  cli: "glab", args: ["mr", "create"],   contains: "--source-branch");
 
 // --- tea pulls create flags ---
 audit_test!(audit_tea_pulls_create_description,  cli: "tea",  args: ["pulls", "create"], contains: "--description");
 audit_test!(audit_tea_pulls_create_base,         cli: "tea",  args: ["pulls", "create"], contains: "--base");
+audit_test!(audit_tea_pulls_create_head,         cli: "tea",  args: ["pulls", "create"], contains: "--head");
 
 // --- fj pr create flags ---
 audit_test!(audit_fj_pr_create_body,  cli: "fj",  args: ["pr", "create"], contains: "--body");
 audit_test!(audit_fj_pr_create_base,  cli: "fj",  args: ["pr", "create"], contains: "--base");
+audit_test!(audit_fj_pr_create_head,  cli: "fj",  args: ["pr", "create"], contains: "--head");
 audit_test!(audit_fj_pr_create_title_positional, cli: "fj", args: ["pr", "create"], contains: "[TITLE]");
 audit_test!(audit_fj_pr_create_wip_draft,        cli: "fj", args: ["pr", "create"], contains: "WIP: ");
 
